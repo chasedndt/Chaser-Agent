@@ -9,7 +9,7 @@ This repository is a scaffold only. It contains starter documentation, safe toy 
 
 ## First local commands
 ```bash
-cd ~/repos/chaser-agent
+cd /mnt/c/Users/chaseos/Documents/Projects/chaser-agent
 python -m scripts.validate_jsonl evals/datasets/golden/source_card_summary_eval.jsonl
 python -m pytest -q
 ```

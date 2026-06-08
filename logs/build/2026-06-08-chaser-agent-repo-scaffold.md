@@ -2,7 +2,7 @@
 
 Date: 2026-06-08
 Runtime lane: Hermes / Optimus
-Repository path: `/home/chaseos/repos/chaser-agent`
+Repository path: `/mnt/c/Users/chaseos/Documents/Projects/chaser-agent` (`C:\Users\chaseos\Documents\Projects\chaser-agent` on Windows)
 
 ## Scope
 Created the standalone Chaser agent master repository scaffold: docs, Python package skeleton, JSONL golden datasets, rubrics, skill seeds, tests, validation script, and safety files.
