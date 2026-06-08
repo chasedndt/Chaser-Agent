@@ -29,3 +29,7 @@ python -m pytest -q
 
 ## Eval-first development
 A Chaser agent feature is not considered real until it has an eval, a failure mode, and a regression check. Fine-tuning, LoRA, PEFT, and model editing come only after golden datasets exist, eval failures are understood, and human review confirms patterns.
+
+## Current next steps
+
+See [`NEXT_STEPS.md`](NEXT_STEPS.md) for the active post-scaffold plan.
