@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+datasets/private/
+evals/datasets/private/*
+!evals/datasets/private/README.md
+logs/runs/*
+!logs/runs/.gitkeep
+*.key
+*.pem
+secrets/
+credentials/
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc

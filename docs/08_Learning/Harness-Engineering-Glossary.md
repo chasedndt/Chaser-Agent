@@ -1,0 +1,36 @@
+# Harness Engineering Glossary
+
+- **agent**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **adapter**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **artifact**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **audit log**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **benchmark**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **canonical truth**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **citation grounding**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **dataset**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **embedding**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **eval**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **fine-tuning**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **golden set**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **gradient descent**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **ground truth**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **harness**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **JSONL**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **LoRA**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **MCP**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **memory candidate**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **model editing**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **PEFT**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **prompt**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **prompt injection**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **RAG**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **regression**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **rubric**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **runtime**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **sandbox**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **schema**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **skill file**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **source card**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **tool call**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **vector**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **writeback**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
