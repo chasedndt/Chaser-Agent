@@ -2,113 +2,78 @@
 
 ## One-paragraph thesis
 
-**Chaser agent** is a governed, eval-first AI product/runtime lab for turning messy sources into reviewable source cards, scoped action candidates, and memory candidates without silently mutating ChaseOS canonical truth. Its first wedge is not broad autonomy or provider orchestration; it is a source-summary and eval harness that proves whether Chaser agent can preserve evidence, label uncertainty, surface useful next actions, and route memory suggestions through human review.
+Chaser agent is a governed, eval-aware source-intelligence and harness-development product derived from ChaseOS. Its first useful version does not try to become a fully autonomous agent; it defines Layer 0 behavior, then turns safe sources into reviewable artifacts that separate source claims, Chaser agent inferences, uncertainty, actions, and memory candidates while preserving human review and ChaseOS canonical-promotion boundaries.
 
 ## What Chaser agent is
 
-Chaser agent is:
-
-- a focused product/runtime implementation repo derived from ChaseOS concepts;
-- an eval lab for source summaries, action extraction, memory-candidate extraction, citation grounding, workflow judgement, and later tool/MCP behavior;
-- a place to develop implementation code, tests, datasets, rubrics, skills, and adapter notes before anything is promoted into ChaseOS canonical governance;
-- a human-in-the-loop system where output quality is measured by repeatable evals and operator judgement;
-- a staging ground for future fine-tuning candidates only after eval evidence and reviewed datasets exist.
+- a focused product/runtime implementation repo;
+- a source-summary and harness foundation;
+- a learning path for AI engineering, maths, CS, evals, and runtime governance;
+- a place to develop reviewable artifacts before production claims;
+- a future eval and adapter lab after Layer 0 behavior is defined.
 
 ## What Chaser agent is not
 
-Chaser agent is not:
-
-- a replacement for ChaseOS;
-- a canonical truth owner;
-- a production autonomous runtime today;
-- a permission bypass for ChaseOS Gate, AOR, provider authority, browser authority, or protected-file writes;
-- a fine-tuning project yet;
-- a place to ingest private logs, credentials, or raw personal datasets without explicit privacy handling;
-- a general chatbot that can make unsupported claims and call them knowledge.
+- not a foundation model;
+- not production-ready;
+- not a replacement for ChaseOS;
+- not a canonical truth engine;
+- not a live provider/API/fine-tuning system today;
+- not all 17 layers implemented.
 
 ## Relationship to ChaseOS
 
-ChaseOS remains the parent operating system, governance layer, approval system, and durable truth layer. Chaser agent may reference ChaseOS architecture, runtime boundaries, and public/product framing, but it does not silently update ChaseOS canonical docs. Chaser agent proposes, tests, and records; ChaseOS governance decides canonical promotion.
+ChaseOS remains the parent operating system/control plane and canonical governance owner. Chaser agent can develop product implementation, harness code, docs, and evals, but canonical promotion remains governed by ChaseOS.
 
-## First product wedge
+## Why Layer 0 comes first
 
-The first product wedge is:
+Layer 0 defines expected behavior before architecture layers or evals. It prevents the repo from mistaking JSONL files, smoke tests, or adapter notes for product capability.
+
+## First wedge
 
 ```text
-input source
+safe source input
 → source card
 → claims
-→ evidence snippets
-→ uncertainty labels
-→ contradiction scan
-→ action candidates
+→ uncertainty
+→ actions
 → memory candidates
-→ JSONL eval rows
 → human review
-→ run log
+→ no automatic canonical promotion
 ```
 
-This wedge is small enough to test, useful enough to guide real work, and foundational enough to support later memory, tool, runtime, and skill layers.
+## Why evals come after behaviour definition
 
-## Target users / operators
+JSONL and pytest are not product proof by themselves. Product-quality evals must test the behavior defined by Layer 0 and V0.
 
-Initial users are:
+## Why maths and CS foundations matter
 
-- the ChaseOS operator who needs grounded summaries and reviewable decisions;
-- agent builders comparing Hermes, OpenClaw, Codex, MCP, Ollama, and skill systems;
-- reviewers who need clear evidence packets before accepting memory, actions, roadmap changes, or dataset rows;
-- future contributors who need enough specification depth to build safely without relying on chat context.
-
-## Core value proposition
-
-Chaser agent helps the operator convert raw research, project notes, product observations, and runtime lessons into structured artifacts that can be evaluated and reviewed. Its value is not “more text”; it is provenance, uncertainty, scoreable behavior, and controlled promotion paths.
-
-## Why eval-first matters
-
-Eval-first development prevents vague “agent quality” claims. Every feature should have:
-
-- an input shape;
-- expected output properties;
-- failure modes;
-- a rubric or deterministic check;
-- a regression case;
-- human review criteria when judgement is needed.
-
-A feature is not real until it has an eval, a known failure mode, and a regression check.
+Chaser agent needs practical foundations: Git/repo hygiene, Python, operating systems, data structures, JSONL, probability, precision/recall, embeddings, ranking, and later optimization. These foundations make harness work explainable instead of magical.
 
 ## Why human review matters
 
-Human review prevents automatic promotion from becoming hidden authority. Chaser agent can propose memory, actions, skill edits, roadmap impacts, or research signals, but an operator must decide whether they are correct, useful, safe, and aligned with ChaseOS.
+Human review protects taste, context, safety, memory promotion, roadmap decisions, and public claims. Chaser agent proposes; the operator decides.
 
 ## Why fine-tuning comes later
 
-Fine-tuning, LoRA, PEFT, and model editing require high-quality training examples, stable evals, privacy discipline, and known failure patterns. Chaser agent must first build golden datasets, result logs, and human-reviewed examples. Training before eval evidence would amplify unknown errors.
+Fine-tuning should only happen after reviewed datasets, failure evidence, evals, and privacy rules exist. Training too early would amplify undefined behavior.
 
 ## Public positioning
 
-Publicly, Chaser agent should be described as a governed AI-agent evaluation and source-intelligence project. It should not be marketed as production autonomy, self-modifying intelligence, or a canonical memory brain until those capabilities exist and have been reviewed.
+Publicly, Chaser agent can be described as a scaffolded, governed, source-intelligence and harness-development repo. It must not claim production autonomy, canonical memory, full runtime integration, or fine-tuned intelligence.
 
-## Implementation status labels
-
-Use these labels consistently:
+## Current status labels
 
 | Label | Meaning |
 |---|---|
-| Scaffolded | File/module exists but behavior is starter-level. |
-| Planned | Spec exists; implementation not started. |
-| Active V0 | Small implementation exists and is covered by tests. |
-| Human-reviewed | Output requires operator judgement before promotion. |
-| Later | Intentionally deferred. |
-| Not active | Explicitly blocked for the current phase. |
+| Layer 0 defined | Behavior contract exists. |
+| V0 planned | First source-intelligence loop is specified. |
+| Smoke/schema | Test proves structure or imports only. |
+| Contract eval | Test proves Layer 0 behavior. |
+| Product-quality eval | Human/evidence-backed evaluation of useful behavior. |
+| Later | Deferred until foundations exist. |
+| Not active | Explicitly blocked in current phase. |
 
-## Current phase non-goals
+## Non-goals
 
-Phase 0C does not:
-
-- activate provider calls;
-- implement Hermes/OpenClaw runtime adapters;
-- add browser/computer-use authority;
-- create private datasets;
-- fine-tune or prepare LoRA data;
-- mutate ChaseOS canonical docs;
-- claim all 17 layers are implemented.
+No provider calls, no browser authority, no Hermes/OpenClaw activation, no private dataset ingestion, no automatic memory promotion, no fine-tuning, no broad autonomy, and no ChaseOS canonical mutation in the current phase.

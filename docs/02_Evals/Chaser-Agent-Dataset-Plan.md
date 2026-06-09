@@ -1,97 +1,43 @@
 # Chaser agent Dataset Plan
 
-Datasets are the evidence base for Chaser agent behavior. They must be small, reviewable, privacy-aware, and connected to evals before they become candidates for training.
+## Current reset classification
 
-## Why JSONL
+Existing `evals/datasets/golden/*.jsonl` files are safe starter examples and smoke/schema data. They are not yet product-quality eval datasets because Layer 0 and V0 behavior are only now being defined.
 
-JSONL stores one JSON object per line. It is easy to append, diff, validate, stream, sample, and split into train/eval sets later. Chaser agent uses JSONL for golden eval cases, result logs, human-review rows, and future fine-tuning candidates.
+## JSONL explanation
+
+JSONL stores one JSON object per line. It is good for examples, result logs, regression rows, review data, and future training candidates. JSONL is a format, not proof.
 
 ## Dataset classes
 
-| Class | Purpose | Location | Commit policy |
-|---|---|---|---|
-| Safe toy datasets | Tiny synthetic examples for scaffolding and smoke tests. | `evals/datasets/golden/*.jsonl` while toy-sized. | Commit allowed. |
-| Public golden datasets | Scrubbed public examples with stable expected behavior. | `evals/datasets/golden/`. | Commit allowed after review. |
-| Private operator datasets | Sensitive tasks, private notes, market examples, or user-specific logs. | `evals/datasets/private/` or local ignored path. | Never commit raw private data. |
-| Regression datasets | Failure cases that must not reappear. | `evals/datasets/regression/` when created. | Commit only if public/scrubbed. |
-| Fine-tuning candidates | High-quality reviewed input/output examples. | future `datasets/training_candidates/` or private store. | Do not create yet; strict review required. |
+| Class | Purpose | Commit policy |
+|---|---|---|
+| Smoke/schema toy rows | Prove parsing and shape. | Commit if public/safe. |
+| Layer 0 contract rows | Prove behavior boundaries. | Next after V0 loop. |
+| Product-quality golden rows | Human-reviewed examples of useful behavior. | Later after review. |
+| Private operator rows | Sensitive examples. | Never commit raw. |
+| Regression rows | Past failures that must not return. | Commit only if scrubbed. |
+| Fine-tuning candidates | Reviewed examples for possible training. | Not active. |
 
-## Folder structure
+## Required fields for future contract rows
 
-```text
-evals/datasets/golden/      # public/scrubbed golden eval rows
-evals/datasets/private/     # ignored/private guidance only, no raw dumps
-evals/datasets/regression/  # future scrubbed failure cases
-evals/rubrics/              # YAML or Markdown scoring rubrics
-logs/runs/                  # timestamped eval outputs, no secrets
-```
-
-## Required JSONL fields
-
-Minimum fields for eval rows:
-
-- `id`: stable case identifier;
-- `task`: eval family or task name;
-- `input`: source text, prompt, or structured source packet;
-- `expected`: required output properties, not always exact text;
-- `rubric`: rubric identifier or scoring notes;
-- `privacy`: public, scrubbed, private, sensitive, or secret;
-- `failure_modes`: known ways the system could fail;
-- `human_review_required`: boolean for judgement-heavy cases.
-
-Result rows should include:
-
-- `id`;
-- `task`;
-- `passed`;
-- `score`;
-- `failure_reasons`;
-- `output`;
-- `timestamp`;
-- `runner_version`.
+- `id`
+- `task`
+- `input`
+- `expected_behavior`
+- `forbidden_behavior`
+- `privacy`
+- `human_review_required`
+- `failure_modes`
 
 ## Privacy rules
 
-Never commit:
+Never commit secrets, raw personal logs, credentials, private datasets, account data, wallet/trading private data, cookies, tokens, or proprietary material without approval.
 
-- `.env` files, credentials, tokens, cookies, SSH keys, API keys;
-- raw personal logs or private Discord/Telegram/DM exports;
-- account-specific trading data, wallet details, PnL, or private business records;
-- proprietary docs without explicit approval;
-- screenshots or browser captures containing private identifiers unless scrubbed and approved.
+## Human review remains mandatory
 
-## Human review labels
+Human review is required before any row becomes product-quality data or future training data.
 
-Use these labels in registers and future review rows:
+## Fine-tuning boundary
 
-- `needs_source_review`;
-- `accepted_signal`;
-- `rejected_signal`;
-- `converted_to_spec`;
-- `converted_to_eval`;
-- `dataset_candidate`;
-- `training_candidate_later`;
-- `archived`.
-
-## Deletion / removal process
-
-If a dataset row is unsafe, wrong, private, or no longer allowed:
-
-1. remove it from the JSONL file;
-2. record why in the build log or private review note;
-3. add a scrubbed replacement if the eval coverage is still needed;
-4. never preserve the sensitive value in Git history intentionally;
-5. rotate credentials if a secret was ever committed.
-
-## Connection to future LoRA / PEFT / fine-tuning
-
-Fine-tuning candidates come only after:
-
-- source data is classified;
-- evals catch known failures;
-- examples are human-reviewed;
-- privacy rules are satisfied;
-- training/eval splits are planned;
-- an operator approves the fine-tuning decision.
-
-Phase 0C does not create training data.
+Fine-tuning comes only after reviewed failure data, contract evals, privacy checks, and operator approval. Phase 0C does not create training data.

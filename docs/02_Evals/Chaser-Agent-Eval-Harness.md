@@ -1,17 +1,44 @@
 # Chaser agent Eval Harness
 
-Eval-driven development means features are built against explicit examples before they are treated as real.
+## Current classification
 
-Golden sets are reviewed examples that represent expected behavior. JSONL stores one case per line. Pass/fail results show whether a feature met minimum requirements. Human review catches nuance that automated scores miss. Regression tests prevent old failures from returning. Score logs preserve what changed and why.
+The existing tests and JSONL files are **smoke/schema checks** unless they explicitly test Layer 0 behavior.
 
-Outputs should improve prompts, skills, harnesses, adapter contracts, and eventually datasets. They should not jump straight to training.
+They currently prove useful basics:
 
-> A Chaser agent feature is not considered real until it has an eval, a failure mode, and a regression check.
+- the Python package imports;
+- JSONL files parse;
+- simple deterministic stubs return expected shapes;
+- pytest can run locally.
 
-## Minimal loop
-1. Add or select a golden case.
-2. Run the deterministic or model-backed candidate.
-3. Score required fields and rubric properties.
-4. Record failures honestly.
-5. Improve code/prompt/skill.
-6. Re-run as a regression check.
+They do **not** yet prove product-quality Chaser agent behavior.
+
+## Eval levels
+
+| Level | Meaning | Current status |
+|---|---|---|
+| Smoke test | Does the command/import/file parse? | Active. |
+| Schema check | Does output have required fields? | Active/starter. |
+| Contract eval | Does output obey Layer 0 behavior? | Next after V0 loop is implemented. |
+| Product-quality eval | Does it help a human operator in realistic work? | Later, human-reviewed. |
+| Training eval | Can it guide model training/fine-tuning? | Not active. |
+
+## Why JSONL is not proof by itself
+
+JSONL is a data format. A JSONL row proves only that an example exists and can be parsed. It becomes eval evidence only when the expected behavior, scoring method, failure modes, and review criteria are defined.
+
+## Layer 0 contract eval targets
+
+Future contract evals should test whether Chaser agent:
+
+- separates source claims from inferences;
+- labels uncertainty;
+- refuses automatic memory promotion;
+- treats actions as review candidates;
+- avoids external API/tool use by default;
+- preserves evidence snippets;
+- records blocked promotion reasons.
+
+## Current next step
+
+Do not deepen eval implementation again until Layer 0 and V0 source-summary behavior are locked. The next implementation pass should be Source Card Harness V0, followed by contract evals.
