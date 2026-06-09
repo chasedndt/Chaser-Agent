@@ -19,23 +19,29 @@ Nothing in the source-summary loop is canonical without ChaseOS governance.
 
 ## V0 behaviour implementation
 
-The first V0 behavior implementation is:
+The first V0 behavior implementation is available through the deterministic local Source Card Harness V0:
+
+```bash
+.venv/bin/python -m chaser_agent.cli source-card --input examples/sources/toy_website_design_note.md --out logs/runs
+```
+
+The command writes a unique run folder under `logs/runs/` and produces:
 
 ```text
 safe source input
 → intake metadata
-→ source card
-→ claims table
-→ evidence snippets
-→ uncertainty labels
-→ contradiction scan
-→ action candidates
-→ memory candidates
-→ human review packet
-→ run log
+→ source_card.json
+→ claims_table.json
+→ evidence_snippets.json
+→ uncertainty_labels.json
+→ contradiction notes inside source_card.json
+→ action_candidates.json
+→ memory_candidates.json
+→ human_review_packet.json
+→ run_log.json
 ```
 
-The implementation must be local, deterministic where possible, review-only, and provider-free until a later approved pass changes that boundary.
+The implementation is local, deterministic, review-only, and provider-free until a later approved pass changes that boundary. It uses transparent stub logic only: first-sentence/character-limited summaries, keyword-based source-claim extraction, copied evidence snippets, fixed uncertainty labels for missing design metrics/context, review-only action candidates, and candidate-only memory suggestions.
 
 ## Output status
 

@@ -23,4 +23,25 @@ Current local repo path: `C:\Users\chaseos\Documents\Projects\chaser-agent`.
 
 WSL path: `/mnt/c/Users/chaseos/Documents/Projects/chaser-agent`.
 
-Eval harness v0.2 is not the immediate next step anymore. The next implementation pass is **Phase 1 — Source Card Harness V0**, based on the V0 Blueprint.
+## Source Card Harness V0
+
+Run the deterministic local Phase 1 harness from the repo root:
+
+```bash
+.venv/bin/python -m chaser_agent.cli source-card --input examples/sources/toy_website_design_note.md --out logs/runs
+```
+
+The command prints the unique run folder under `logs/runs/`. The run folder contains the V0 artifact loop as JSON:
+
+- `source_card.json` — central review artifact with source claims separated from inferences;
+- `claims_table.json` — source-claim rows and supporting evidence links;
+- `evidence_snippets.json` — copied snippets from the safe local source;
+- `uncertainty_labels.json` — missing-context/review/promotion-boundary labels;
+- `action_candidates.json` — review-only possible next moves, not executed actions;
+- `memory_candidates.json` — candidate-only memory suggestions, not promoted memory;
+- `human_review_packet.json` — operator review checklist scaffold;
+- `run_log.json` — provenance and boundary record showing no providers/APIs/runtime adapters/MCP/browser/training were used.
+
+Outputs are deterministic, local, review-only, and not LLM-powered. They do not mutate ChaseOS canonical truth and do not claim production readiness.
+
+Eval harness v0.2 is not the immediate next step anymore. The next pass after Source Card Harness V0 should be Source Card Harness Review or Contract Eval Seeds.

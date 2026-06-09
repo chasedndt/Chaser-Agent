@@ -1,8 +1,13 @@
 from __future__ import annotations
 from chaser_agent.schemas import SourceInput, SourceCard, Claim, MemoryCandidate
 
+
 def build_source_card(source: SourceInput) -> SourceCard:
-    """Build a deterministic placeholder source card without LLM calls."""
+    """Build a deterministic placeholder source card without LLM calls.
+
+    This compatibility wrapper preserves the original smoke-test API. The Phase 1
+    harness lives in `chaser_agent.source_card` and writes full V0 artifacts.
+    """
     text = " ".join(source.text.split())
     first_sentence = text.split(".")[0].strip() if text else ""
     summary = first_sentence + ("." if first_sentence and not first_sentence.endswith(".") else "")

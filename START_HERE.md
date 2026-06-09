@@ -21,13 +21,32 @@ Read in this order:
 
 ## Current truth
 
-The repo exists and tests run, but existing JSONL/tests are smoke/schema checks unless they test Layer 0 behavior. The V0 Blueprint now defines the implementation-ready loop. Eval harness v0.2 is not the immediate next step anymore.
+The repo exists and tests run, but existing JSONL/tests are smoke/schema checks unless they test Layer 0 behavior. The V0 Blueprint defines the implementation-ready loop, and Phase 1 now provides the first deterministic local Source Card Harness V0. Eval harness v0.2 is not the immediate next step.
+
+## Source Card Harness V0
+
+Run the deterministic local harness from the repo root:
+
+```bash
+.venv/bin/python -m chaser_agent.cli source-card --input examples/sources/toy_website_design_note.md --out logs/runs
+```
+
+The command prints the unique run folder under `logs/runs/`. That folder contains:
+
+- `source_card.json`
+- `claims_table.json`
+- `evidence_snippets.json`
+- `uncertainty_labels.json`
+- `action_candidates.json`
+- `memory_candidates.json`
+- `human_review_packet.json`
+- `run_log.json`
+
+These outputs are deterministic, local, review-only artifacts. They are not LLM/provider output, not memory, not actions, not ChaseOS canonical truth, and not production-readiness proof.
 
 ## Next implementation pass
 
-**Phase 1 — Source Card Harness V0**
-
-Implement the first deterministic source-card loop from the V0 Blueprint. Do not start provider/API calls, Hermes/OpenClaw adapters, MCP tooling, browser/computer-use runtime, fine-tuning, or ChaseOS canonical mutation.
+After Phase 1, the next pass should be **Source Card Harness Review** or **Contract Eval Seeds**. Do not jump to provider/API calls, Hermes/OpenClaw adapters, MCP tooling, browser/computer-use runtime, fine-tuning, or ChaseOS canonical mutation.
 
 ## Verification
 

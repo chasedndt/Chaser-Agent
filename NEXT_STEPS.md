@@ -22,28 +22,21 @@ Chaser agent is reset to the correct thinking order: Layer 0 first, V0 Definitio
 
 ## Current next implementation pass
 
-**Phase 1 — Source Card Harness V0**
+**Phase 1 — Source Card Harness V0 is implemented.**
 
-Implement the exact V0 loop defined in `docs/01_Product/Chaser-Agent-V0-Blueprint.md`:
+Run it from the repo root:
 
-```text
-safe source input
-→ intake metadata
-→ source card
-→ claims table
-→ evidence snippets
-→ uncertainty labels
-→ contradiction notes
-→ action candidates
-→ memory candidates
-→ human review packet
-→ run log
-→ no automatic canonical promotion
+```bash
+.venv/bin/python -m chaser_agent.cli source-card --input examples/sources/toy_website_design_note.md --out logs/runs
 ```
+
+It writes a unique `logs/runs/source-card-.../` folder containing source-card, claims-table, evidence-snippet, uncertainty-label, action-candidate, memory-candidate, human-review-packet, and run-log JSON artifacts.
+
+The artifacts prove the local V0 shape only. They are deterministic and not LLM-powered. They remain review-only and do not promote memory, execute actions, call providers/APIs, activate runtime adapters/MCP/browser/computer-use, fine-tune models, mutate ChaseOS canonical truth, or claim production readiness.
 
 ## Not next anymore
 
-Eval harness v0.2 is not the immediate next step. Deeper eval code should wait until Source Card Harness V0 exists and can produce the artifact shape described in the V0 Blueprint.
+Eval harness v0.2 is not the immediate next step. The next pass after Source Card Harness V0 should be **Source Card Harness Review** or **Contract Eval Seeds**, using the generated artifacts as the first shape proof.
 
 ## Not now
 

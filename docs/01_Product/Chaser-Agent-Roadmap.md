@@ -93,13 +93,24 @@ This roadmap restarts the thinking order from Layer 0. Evals and implementation 
 
 ## Phase 1 — Source Card Harness V0
 
-**Purpose:** Implement the first source-card loop.
+**Purpose:** Implement the first deterministic local source-card loop.
 
-**Deliverables:** schemas, deterministic source card artifact, tests.
+**Deliverables:**
 
-**Definition of done:** source facts, inferences, uncertainty, actions, and memory candidates are separated.
+- `src/chaser_agent/cli.py` `source-card` command;
+- `src/chaser_agent/source_card.py` deterministic artifact builder;
+- `src/chaser_agent/run_artifacts.py` JSON writer/run-log helpers;
+- `examples/sources/toy_website_design_note.md` safe toy source;
+- JSON artifacts under unique `logs/runs/source-card-.../` folders;
+- tests covering artifact creation, required fields, review/promotion boundaries, JSON parsing, and missing-input failure.
 
-**Out of scope:** LLM/provider calls.
+**Definition of done:** source facts, inferences, uncertainty, actions, and memory candidates are separated; `review_status` is `pending_review`; `promotion_status` is `not_promoted`; run logs record no provider/API/runtime/MCP/browser/fine-tuning activity.
+
+**Out of scope:** LLM/provider calls, Hermes/OpenClaw adapter activation, MCP tools, browser/computer-use runtime, private datasets, ChaseOS canonical mutation, and production-readiness claims.
+
+**Status:** implemented as deterministic local V0 shape proof.
+
+**Next pass after this:** Source Card Harness Review or Contract Eval Seeds.
 
 ## Phase 2 — Contract Evals
 

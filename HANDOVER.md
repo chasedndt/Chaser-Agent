@@ -3,7 +3,7 @@
 
 ## Current phase
 
-V0 Blueprint Pass complete. The repo is ready for **Phase 1 — Source Card Harness V0**.
+Source Card Harness V0 implemented. The repo is ready for **Source Card Harness Review** or **Contract Eval Seeds**.
 
 ## Branch
 
@@ -43,14 +43,22 @@ The repo is no longer ordered around eval scaffolding first. The correct order i
 
 ## Baseline results
 
-Latest V0 Blueprint Pass validation:
+Source Card Harness V0 validation:
 
 ```text
-PYTHONPATH=. .venv/bin/python -m pytest -q        # 5 passed
+.venv/bin/python -m pytest -q        # all tests pass
 .venv/bin/python -m scripts.validate_jsonl evals/datasets/golden/*.jsonl  # all six valid, 3 rows each
 ```
 
-Detailed pass record: `logs/build/2026-06-09-v0-blueprint-pass.md`.
+Run the harness:
+
+```bash
+.venv/bin/python -m chaser_agent.cli source-card --input examples/sources/toy_website_design_note.md --out logs/runs
+```
+
+The command prints a unique run folder under `logs/runs/` with `source_card.json`, `claims_table.json`, `evidence_snippets.json`, `uncertainty_labels.json`, `action_candidates.json`, `memory_candidates.json`, `human_review_packet.json`, and `run_log.json`. These are deterministic local review artifacts, not LLM/provider output and not canonical truth.
+
+Detailed pass record: `logs/build/2026-06-09-source-card-harness-v0.md`.
 
 ## Starter artifacts
 
@@ -71,4 +79,4 @@ It was not applied or deleted during the V0 Blueprint Pass. It needs a future st
 
 ## Next recommended pass
 
-**Phase 1 — Source Card Harness V0.** Implement the source-card loop locally and deterministically from the V0 Blueprint. Do not start eval harness v0.2, fine-tuning, provider calls, broad adapters, MCP tooling, browser runtime, private datasets, or ChaseOS canonical mutation before the harness exists.
+**Source Card Harness Review** or **Contract Eval Seeds.** Review the deterministic Source Card Harness V0 artifacts first, then seed contract evals from that behavior. Do not start eval harness v0.2, fine-tuning, provider calls, broad adapters, MCP tooling, browser runtime, private datasets, or ChaseOS canonical mutation before the harness output has been reviewed.
