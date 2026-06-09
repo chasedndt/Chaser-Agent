@@ -1,20 +1,29 @@
+
 # Chaser agent Source Summary Spec
+
+## Required upstream docs
+
+Source summary is the first V0 behaviour implementation. Read these docs before changing source-summary behavior:
+
+1. `docs/01_Product/Chaser-Agent-Layer-0-Behaviour-Contract.md`
+2. `docs/01_Product/Chaser-Agent-V0-Definition.md`
+3. `docs/01_Product/Chaser-Agent-V0-Blueprint.md`
+4. `docs/03_Summary_Intelligence/Chaser-Agent-V0-Source-Card-Schema.md`
+5. `docs/02_Evals/Chaser-Agent-V0-Human-Review-Packet.md`
 
 ## Layer 0 inheritance
 
-Source summary is the first V0 behavior implementation. It must obey `docs/01_Product/Chaser-Agent-Layer-0-Behaviour-Contract.md`.
+Source summary must obey Layer 0. It turns safe source input into a structured review artifact that separates source claims, Chaser agent inferences, uncertainty, actions, memory candidates, and non-promotion notes.
 
-All outputs are review-only until a human/operator decides otherwise. Memory candidates are review-only. Actions are review-only. Roadmap impact is a suggestion, not an automatic update. Nothing becomes canonical without ChaseOS governance.
+Nothing in the source-summary loop is canonical without ChaseOS governance.
 
-## Purpose
+## V0 behaviour implementation
 
-Turn safe source input into a structured review artifact that separates source claims, Chaser agent inferences, uncertainty, actions, memory candidates, and non-promotion notes.
-
-## V0 pipeline
+The first V0 behavior implementation is:
 
 ```text
 safe source input
-→ source metadata
+→ intake metadata
 → source card
 → claims table
 → evidence snippets
@@ -26,21 +35,41 @@ safe source input
 → run log
 ```
 
+The implementation must be local, deterministic where possible, review-only, and provider-free until a later approved pass changes that boundary.
+
+## Output status
+
+All outputs are review-only:
+
+- source summaries are review-only;
+- roadmap impact is review-only;
+- memory candidates are review-only;
+- action candidates are review-only;
+- contradiction notes are review-only;
+- human review packets are review aids, not automatic approvals;
+- run logs are provenance records, not production-readiness proof.
+
 ## Source card fields
 
+Use `docs/03_Summary_Intelligence/Chaser-Agent-V0-Source-Card-Schema.md` as the concrete schema source. Minimum fields:
+
 - `source_id`
+- `source_title`
 - `source_type`
-- `title`
+- `source_origin`
 - `privacy_class`
-- `source_says`
-- `chaser_agent_infers`
-- `uncertainties`
-- `evidence_snippets`
-- `contradictions`
+- `trust_state`
+- `source_summary`
+- `source_claims`
+- `chaser_agent_inferences`
+- `uncertainty_labels`
+- `contradiction_notes`
 - `action_candidates`
 - `memory_candidates`
-- `do_not_promote`
-- `human_review_required`
+- `review_status`
+- `promotion_status`
+- `created_at`
+- `run_id`
 
 ## Review-only boundaries
 
@@ -49,6 +78,19 @@ safe source input
 - Roadmap impacts do not automatically update the roadmap.
 - Source summaries do not become public claims.
 - Generated text is not canonical truth.
+- Chaser agent does not mutate ChaseOS canonical docs.
+- ChaseOS governance owns canonical promotion.
+
+## Forbidden in this V0 source-summary path
+
+- provider/API calls by default;
+- web browsing by default;
+- Hermes/OpenClaw adapter activation;
+- MCP tool/resource activation;
+- fine-tuning, LoRA, PEFT, or training;
+- secrets/private dataset ingestion;
+- writes outside declared output/log folders;
+- production-readiness claims.
 
 ## Failure modes to test later
 
@@ -58,4 +100,6 @@ safe source input
 - actions written as commands rather than candidates;
 - private data leakage;
 - treating a weak source as authoritative;
-- confusing Chaser agent notes with ChaseOS governance.
+- confusing Chaser agent notes with ChaseOS governance;
+- using generated output as canonical truth;
+- failing to record blocked promotion/tool/provider behavior.

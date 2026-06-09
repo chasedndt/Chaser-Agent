@@ -72,6 +72,25 @@ This roadmap restarts the thinking order from Layer 0. Evals and implementation 
 
 **Out of scope:** deepening eval implementation.
 
+
+## Phase 0C.5 — V0 Blueprint Pass
+
+**Purpose:** Lock the exact implementation-ready V0 loop before deeper eval/code work.
+
+**Deliverables:**
+
+- V0 Blueprint;
+- V0 Source Card Schema;
+- V0 Human Review Packet;
+- updated Source Summary Spec;
+- build log.
+
+**Definition of done:** V0 interface, input contract, output contract, schemas, folder targets, and pass/fail criteria are defined; no provider calls added; no runtime adapters activated; no fine-tuning; no ChaseOS canonical mutation.
+
+**Out of scope:** eval harness v0.2, provider/API integration, Hermes/OpenClaw adapters, MCP tools, browser/computer-use authority, private datasets, and model training.
+
+**Next pass after this:** Phase 1 — Source Card Harness V0.
+
 ## Phase 1 — Source Card Harness V0
 
 **Purpose:** Implement the first source-card loop.
