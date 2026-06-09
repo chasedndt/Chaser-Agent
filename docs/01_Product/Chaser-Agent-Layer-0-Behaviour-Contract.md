@@ -6,6 +6,8 @@ Layer 0 defines what Chaser agent is allowed to mean before any implementation l
 
 Without Layer 0, the repo can accidentally confuse scaffold tests with product proof, notes with implementation, research signals with truth, or runtime adapter docs with live authority.
 
+Layer 0 also carries the ChaseOS control-plane philosophy into Chaser agent before Chaser agent becomes powerful: agents need defined permissions, approvals, read boundaries, output targets, writeback rules, trust tiers, and failure handling before they are allowed to operate with meaningful authority. This is especially important after observing the OpenClaw-style risk pattern where a high-privilege local agent can collapse trust boundaries across filesystem, shell, browser, SaaS, credentials, and persistent state if boundaries are not defined first.
+
 ## What Chaser agent V0 is
 
 Chaser agent V0 is a small, bounded, review-first source-intelligence and harness-foundation loop.

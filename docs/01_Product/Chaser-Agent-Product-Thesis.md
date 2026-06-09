@@ -48,7 +48,7 @@ JSONL and pytest are not product proof by themselves. Product-quality evals must
 
 ## Why maths and CS foundations matter
 
-Chaser agent needs practical foundations: Git/repo hygiene, Python, operating systems, data structures, JSONL, probability, precision/recall, embeddings, ranking, and later optimization. These foundations make harness work explainable instead of magical.
+Chaser agent needs practical foundations in the correct order: terminal/shell/Git, Python package structure, filesystems and operating systems, sets/functions/vectors/matrices, probability and conditional probability, embeddings and similarity, prompt engineering, harness engineering, JSONL as a data format, evals conceptually, RAG/retrieval, memory consolidation, MCP/tool-use later, runtime governance, and PEFT/LoRA/fine-tuning only after reviewed data exists. These foundations make harness work explainable instead of magical.
 
 ## Why human review matters
 
