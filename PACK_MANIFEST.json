@@ -1,0 +1,42 @@
+[
+  {
+    "file": "CHASEOS_SIDE_FILES_TO_ADD_OR_UPDATE.md",
+    "bytes": 3026,
+    "sha256": "184bfb2ed8454463"
+  },
+  {
+    "file": "CHASER_AGENT_OPERATOR_START_HERE.md",
+    "bytes": 2849,
+    "sha256": "11317a5dc46edbdb"
+  },
+  {
+    "file": "CHASER_AGENT_REPOSITORY_BLUEPRINT.md",
+    "bytes": 2112,
+    "sha256": "bca5a42645ca3db3"
+  },
+  {
+    "file": "Chaser_Agent_Research_Eval_Register.xlsx",
+    "bytes": 19007,
+    "sha256": "0aa7be8e92d5225b"
+  },
+  {
+    "file": "HARNESS_ENGINEERING_GLOSSARY.md",
+    "bytes": 3897,
+    "sha256": "0e78f631a2b81a5b"
+  },
+  {
+    "file": "NEXT_STEPS_OPERATOR_GUIDE.md",
+    "bytes": 1831,
+    "sha256": "16316e7fa1d1d05f"
+  },
+  {
+    "file": "PROMPT_FOR_HERMES__BUILD_CHASER_AGENT_REPO.md",
+    "bytes": 20257,
+    "sha256": "0f6dba498cfaaf9a"
+  },
+  {
+    "file": "README_STARTER_PACK.md",
+    "bytes": 1139,
+    "sha256": "1589adecd8bcd877"
+  }
+]

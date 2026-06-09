@@ -1,45 +1,38 @@
 # Chaser agent Next Steps
 
-> Status: post-scaffold, post-reference-doc pass. Repo path: `C:\Users\chaseos\Documents\Projects\chaser-agent`.
+> Status: Phase 0C spec-deepening pass on `docs/spec-deepening-pass`. Repo path: `C:\Users\chaseos\Documents\Projects\chaser-agent`.
 
 ## Current state
 
-The standalone Chaser agent repo now has the scaffold, eval foundation, ChaseOS-aligned reference docs, JSONL golden toy datasets, rubrics, starter skills, and a minimal importable Python package.
+The standalone Chaser agent repo has scaffold docs, expanded core specs, toy JSONL golden datasets, rubrics, starter skills, a minimal importable Python package, and a working local WSL test environment.
 
 ChaseOS remains the parent control plane and canonical governance layer. Chaser agent is the focused product/runtime implementation and eval lab. No ChaseOS canonical files should be changed from this repo without a separate explicit ChaseOS-side approval pass.
 
-## Completed checklist
+## Phase 0C completed/active checklist
 
-- [x] Repo exists at the real Windows project path.
-- [x] Git remote is configured for `git@github.com:chasedndt/Chaser-Agent.git`.
-- [x] Scaffold docs, package, datasets, rubrics, skills, tests, and build log exist.
-- [x] Missing Chaser agent reference docs from the starter-pack plan exist inside this repo.
-- [x] JSONL validator passes across all golden datasets.
-- [x] Import and deterministic eval-runner smoke pass.
-- [x] Repo has been pushed to GitHub.
+- [x] Product thesis expanded into useful framing.
+- [x] Roadmap expanded into phased deliverables and done criteria.
+- [x] 17-layer architecture rewritten from placeholder text into concrete layer specs.
+- [x] Dataset plan expanded with JSONL schema, privacy classes, dataset lifecycle, and future fine-tuning boundary.
+- [x] Source-summary spec expanded with pipeline, schemas, examples, failure modes, and eval criteria.
+- [x] Memory states expanded with transitions and authority boundaries.
+- [x] Runtime competitor map strengthened without granting adapter authority.
+- [x] Skill system expanded with lifecycle, quarantine, review, eval, rollback, and supply-chain guardrails.
+- [x] Research register clarified as Markdown mirror of the Excel operator register.
+- [x] ChaseOS website alignment placeholder created for later manual review.
 
-## Immediate next step: make the test environment real
+## Validation baseline
 
-Before building new features, create a local venv and run the full test suite with pytest. The current system Python does not have `pytest`, so use an isolated environment:
+WSL `.venv` was created with uv and dev dependencies installed. Baseline after environment creation:
 
-```bash
-cd /mnt/c/Users/chaseos/Documents/Projects/chaser-agent
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install -e .[dev]
-python -m scripts.validate_jsonl evals/datasets/golden/*.jsonl
-python -m pytest -q
+```text
+python -m scripts.validate_jsonl evals/datasets/golden/*.jsonl  # all six files valid, 3 rows each
+PYTHONPATH=. .venv/bin/python -m pytest -q                         # 5 passed
 ```
 
-Definition of done:
+## Next implementation pass: Eval harness v0.2
 
-- `pytest` runs without missing-package errors.
-- All scaffold tests pass, or failures are documented honestly.
-- `HANDOVER.md` and the build log are updated with real pytest results.
-
-## Next build pass: eval harness v0.2
-
-After pytest is real, the next implementation pass should upgrade the eval harness from scaffold smoke tests to useful product instrumentation.
+After this docs/log pass is reviewed and committed/pushed as appropriate, move to eval harness v0.2.
 
 ### Scope
 
@@ -59,28 +52,18 @@ After pytest is real, the next implementation pass should upgrade the eval harne
    - `score`
    - `failure_reasons`
    - `output`
+   - `timestamp`
+   - `runner_version`
 5. Keep all logic deterministic for now. No LLM calls yet.
 
-Definition of done:
+### Definition of done
 
-- All six golden JSONL files can be run through the eval runner.
+- All six golden JSONL files run through the eval runner.
 - Each run writes a valid JSONL result file.
-- Tests cover the runner and failure reasons.
+- Tests cover the runner, result schema, and failure reasons.
 - No private data, secrets, external API calls, or ChaseOS canonical writes occur.
 
-## Next documentation pass: ChaseOS-side proposal packet
-
-The starter pack also recommends ChaseOS-side files under `06_AGENTS/`. That should be a separate proposal/approval pass, not an automatic write from this repo.
-
-Recommended next document artifact inside this repo:
-
-```text
-docs/09_ChaseOS_Alignment/ChaseOS-Side-Proposal-Packet.md
-```
-
-That packet should list the proposed ChaseOS-side files, why each matters, whether it should become canonical, and what approval is needed. Only after operator approval should ChaseOS itself be modified.
-
-## Do not do yet
+## Still do not do yet
 
 - Do not fine-tune.
 - Do not prepare LoRA/PEFT data.
@@ -88,11 +71,9 @@ That packet should list the proposed ChaseOS-side files, why each matters, wheth
 - Do not add external API/provider calls.
 - Do not mutate ChaseOS canonical docs.
 - Do not add broad autonomous runtime behavior.
+- Do not activate Hermes/OpenClaw adapters.
+- Do not start UI/Studio work.
 
-## Operator decision needed
+## Artifact policy decision
 
-Choose the next lane:
-
-1. **Recommended:** run venv + pytest and update handover/build log with real results.
-2. Build eval harness v0.2 after pytest is verified.
-3. Draft a ChaseOS-side proposal packet for the `06_AGENTS/` docs.
+`Chaser_Agent_Research_Eval_Register.xlsx` should be committed as an operator-facing planning artifact because it contains no detected secrets in the inspected workbook and directly maps research signals to evals, dataset plans, repo boundaries, and human rubrics. `PACK_MANIFEST.json` should also be committed as starter-pack provenance, with the understanding that some listed files were absorbed into current docs rather than preserved at the repo root.

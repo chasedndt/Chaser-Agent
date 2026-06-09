@@ -1,36 +1,36 @@
 # Harness Engineering Glossary
 
-- **agent**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **adapter**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **artifact**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **audit log**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **benchmark**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **canonical truth**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **citation grounding**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **dataset**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **embedding**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **eval**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **fine-tuning**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **golden set**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **gradient descent**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **ground truth**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **harness**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **JSONL**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **LoRA**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **MCP**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **memory candidate**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **model editing**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **PEFT**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **prompt**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **prompt injection**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **RAG**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **regression**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **rubric**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **runtime**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **sandbox**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **schema**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **skill file**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **source card**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **tool call**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **vector**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
-- **writeback**: A core Chaser agent concept; define it operationally in relation to source-grounded, governed AI work.
+- **agent**: A system that can interpret instructions and produce actions or artifacts. In Chaser agent, agent behavior stays bounded by evals, review, and ChaseOS governance.
+- **adapter**: A boundary layer that lets Chaser agent talk to a runtime/provider/tool shape. Adapters remain mock or inactive until evals and approval exist.
+- **artifact**: A produced file, source card, eval result, log, dataset row, or review packet.
+- **audit log**: A record of commands, outputs, decisions, and changed files that proves what happened.
+- **benchmark**: A repeatable measurement suite used to compare behavior across versions or models.
+- **canonical truth**: Durable governed knowledge owned by ChaseOS, not silently promoted by Chaser agent.
+- **citation grounding**: The practice of tying claims to source snippets, line ranges, URLs, or files.
+- **dataset**: A collection of examples used for evals, regression checks, human review, or future training candidates.
+- **embedding**: A vector representation of text or data used for retrieval or similarity; later, not active in Phase 0C.
+- **eval**: A repeatable test of an AI behavior with input, expected properties, rubric, result, and failure modes.
+- **fine-tuning**: Training a model on examples to change behavior; deferred until reviewed datasets and eval evidence exist.
+- **golden set**: A stable set of examples used to catch regressions and measure expected behavior.
+- **gradient descent**: Optimization method used in model training; learning concept only for current Chaser agent phases.
+- **ground truth**: The expected or reviewed answer against which behavior is measured.
+- **harness**: Code and data that run eval cases, score outputs, and write result logs.
+- **JSONL**: One JSON object per line; Chaser agent uses it for eval rows and future review/training candidates.
+- **LoRA**: A parameter-efficient fine-tuning method; not active until later dataset/eval approval.
+- **MCP**: Model Context Protocol; relevant to future tool/resource/prompt evaluation and least-authority adapter design.
+- **memory candidate**: A proposed durable fact or preference that requires evidence and review before promotion.
+- **model editing**: Directly changing model knowledge/behavior; later research topic, not current implementation.
+- **PEFT**: Parameter-efficient fine-tuning family, including LoRA; future-only for now.
+- **prompt**: Task instruction text, usually one-off or less governed than a versioned skill.
+- **prompt injection**: Untrusted content attempting to override instructions or authority boundaries.
+- **RAG**: Retrieval-augmented generation; future retrieval/evidence layer pattern.
+- **regression**: A previously fixed failure returning; regression datasets prevent this.
+- **rubric**: Scoring criteria for evals or human review.
+- **runtime**: An execution surface such as Hermes, OpenClaw, Codex, Ollama, or a future Chaser agent process.
+- **sandbox**: Boundary that limits file, tool, network, or write authority.
+- **schema**: Structured field contract for data such as source cards, eval rows, or result logs.
+- **skill file**: Versioned reusable task procedure or prompt asset that needs review and evals before trusted use.
+- **source card**: Reviewable summary packet preserving source metadata, claims, evidence, uncertainty, actions, and memory candidates.
+- **tool call**: A request to an external or local capability; must obey least authority and schema validation.
+- **vector**: Numeric representation used by embeddings and retrieval systems; later, not Phase 0C.
+- **writeback**: Writing outputs to files, memory, docs, or external systems. Chaser agent writeback must be scoped, logged, and approved where needed.
