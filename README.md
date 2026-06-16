@@ -163,6 +163,17 @@ research sources -> normalized paper cards -> ranked weekly digest -> RFC candid
 
 See `docs/07_Research/ChaseOS-Weekly-Research-Upgrade-Setup-Order.md` for the implementation order and approval gates.
 
+Phase 1B has started with bounded arXiv API ingestion:
+
+```bash
+PYTHONPATH=. .venv/bin/python -m research_intake.ingest \
+  --max-results 25 \
+  --query 'cat:cs.AI AND (agent OR harness OR tool use)' \
+  --out research_intake/data
+```
+
+This writes ignored local artifacts under `research_intake/data/arxiv-ingest-*` and keeps provider/model calls, candidate implementation, PR/merge automation, permission expansion, and canonical promotion disabled.
+
 ## Run Source Card Harness V0
 
 ```bash

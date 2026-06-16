@@ -6,6 +6,12 @@ evals/datasets/private/*
 !evals/datasets/private/README.md
 logs/runs/*
 !logs/runs/.gitkeep
+research_intake/data/*
+!research_intake/data/.gitkeep
+!research_intake/data/raw/
+!research_intake/data/raw/.gitkeep
+!research_intake/data/normalized/
+!research_intake/data/normalized/.gitkeep
 *.key
 *.pem
 secrets/

@@ -11,3 +11,23 @@ Start with:
 ```
 
 Then inspect the generated `logs/runs/weekly-research-intake-dry-run-*/manifest.json` and `digest.md`.
+
+## Phase 1B arXiv ingestion
+
+Phase 1B starts with bounded public arXiv ingestion only:
+
+```bash
+PYTHONPATH=. .venv/bin/python -m research_intake.ingest \
+  --max-results 25 \
+  --query 'cat:cs.AI AND (agent OR harness OR tool use)' \
+  --out research_intake/data
+```
+
+It writes per-run artifacts under ignored timestamped folders:
+
+- `research_intake/data/arxiv-ingest-*/raw/arxiv_api.xml`
+- `research_intake/data/arxiv-ingest-*/normalized/raw_records.jsonl`
+- `research_intake/data/arxiv-ingest-*/normalized/papers.jsonl`
+- `research_intake/data/arxiv-ingest-*/manifest.json`
+
+Control-plane boundary remains closed for providers, credentials, candidate implementation, branch/PR automation, canonical promotion, and permission expansion.
