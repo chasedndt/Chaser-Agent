@@ -3,7 +3,7 @@
 **Date:** 2026-06-16  
 **Runtime lane:** Hermes/Optimus operating under ChaseOS Agent Control Plane  
 **Repo:** Chaser Agent  
-**Status:** Phase 1 setup scaffold; no live self-upgrade authority
+**Status:** Phase 1A complete; bounded dry-run cron active; Phase 1B next
 
 ## Control-plane boundary
 
@@ -39,12 +39,13 @@ Blocked until explicit approval and eval proof:
 
 ## Recommended implementation order
 
-1. **Phase 1A — deterministic intake scaffold**
+1. **Phase 1A — deterministic intake scaffold** ✅ complete
    - Create source/query/ranking configs.
    - Add a dry-run script that validates configs and writes a run artifact.
+   - Register bounded script-backed Hermes cron for local dry-run reporting.
    - Do not fetch network or call providers yet.
 
-2. **Phase 1B — primary-source ingestion**
+2. **Phase 1B — primary-source ingestion** ⏭ next
    - Add arXiv API/RSS ingestion first.
    - Normalize to JSONL paper records.
    - Dedupe by arXiv ID/DOI/title hash.
@@ -85,11 +86,22 @@ Blocked until explicit approval and eval proof:
 - `scripts/weekly_research_intake_dry_run.py`
 - `tests/test_weekly_research_intake_config.py`
 
-## First approval checkpoint
+## Phase 1A completion gate
 
-After dry-run proof passes, operator can approve one live Hermes cron registration:
+Phase 1A is complete when all of these are true:
+
+- source/query/ranking/cron configs validate;
+- the local dry-run writes `manifest.json` and `digest.md` artifacts;
+- the active Hermes cron is documented as `88bb31188587`;
+- the manifest exposes the next phase as `phase_1b_primary_source_ingestion`;
+- authority boundaries remain closed for network ingestion, providers, credentials, candidate implementation, PR/merge automation, permission expansion, and canonical promotion.
+
+## Completed approval checkpoint
+
+The first bounded Hermes cron registration is active:
 
 ```text
+Job ID: 88bb31188587
 Schedule: 0 5 * * 1
 Mode: script-backed no_agent=true
 Command: .venv/bin/python scripts/weekly_research_intake_dry_run.py --out logs/runs
@@ -97,3 +109,7 @@ Delivery: origin summary only
 ```
 
 That approval does not authorize network ingestion, provider use, candidate branches, PRs, or merges.
+
+## Next approval checkpoint — Phase 1B
+
+Phase 1B should add arXiv API/RSS ingestion behind an explicit command and tests. The next approval should remain bounded to network reads from public research sources only, with no provider/model calls and no candidate implementation authority.

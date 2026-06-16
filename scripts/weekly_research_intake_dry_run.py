@@ -74,6 +74,12 @@ def build_manifest(repo_root: Path) -> dict[str, Any]:
     proposed = loaded["research_intake/cron_proposal.yaml"].get("proposed_jobs", {})
     if not proposed:
         errors.append("cron_proposal.yaml must contain proposed_jobs")
+    active_cron = loaded["research_intake/sources.yaml"].get("run_policy", {}).get("active_local_cron", {})
+    dry_run_cron = proposed.get("weekly_research_intake_dry_run", {})
+    if active_cron.get("hermes_job_id") != "88bb31188587":
+        errors.append("run_policy.active_local_cron.hermes_job_id must document active Phase 1A cron")
+    if dry_run_cron.get("activation_status") != "active_bounded_phase_1a":
+        errors.append("weekly_research_intake_dry_run cron must be marked active_bounded_phase_1a")
 
     enabled_sources = [
         name
@@ -86,6 +92,27 @@ def build_manifest(repo_root: Path) -> dict[str, Any]:
         "status": "pass" if not errors else "fail",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "phase": "phase_1a_deterministic_config_dry_run",
+        "phase_1a_completion": {
+            "status": "complete" if not errors else "blocked",
+            "active_cron_job_id": active_cron.get("hermes_job_id"),
+            "active_cron_schedule": active_cron.get("schedule"),
+            "next_phase": "phase_1b_primary_source_ingestion",
+            "authority_boundaries": [
+                "no_network_ingestion",
+                "no_provider_or_credential_activation",
+                "no_candidate_implementation",
+                "no_branch_or_pr_automation",
+                "no_canonical_promotion",
+                "no_permission_expansion",
+            ],
+            "phase_1b_entry_gate": [
+                "add arXiv API/RSS fetch behind explicit ingestion command",
+                "write raw responses under research_intake/data/raw/",
+                "normalize to JSONL records under research_intake/data/normalized/",
+                "dedupe by arXiv ID, DOI, and normalized title hash",
+                "keep candidate implementation disabled",
+            ],
+        },
         "control_plane": {
             "parent": "ChaseOS",
             "authority": "research artifacts only",
@@ -112,11 +139,20 @@ def write_digest(run_dir: Path, manifest: dict[str, Any]) -> None:
         f"- Enabled sources: {', '.join(manifest['enabled_sources']) or 'none'}",
         f"- arXiv query count: {manifest['arxiv_query_count']}",
         f"- Proposed cron jobs: {', '.join(manifest['proposed_cron_jobs']) or 'none'}",
+        f"- Phase 1A completion: `{manifest['phase_1a_completion']['status']}`",
+        f"- Active Hermes cron: `{manifest['phase_1a_completion']['active_cron_job_id']}`",
+        f"- Next phase: `{manifest['phase_1a_completion']['next_phase']}`",
+        "",
+        "## Phase 1B entry gate",
+        "",
+    ]
+    lines.extend(f"- {item}" for item in manifest["phase_1a_completion"]["phase_1b_entry_gate"])
+    lines.extend([
         "",
         "## Control-plane boundary",
         "",
         "This dry run validates local config only. It does not fetch network sources, call providers, activate credentials, create branches, open PRs, merge changes, or promote ChaseOS canonical truth.",
-    ]
+    ])
     if manifest["errors"]:
         lines.extend(["", "## Errors", ""])
         lines.extend(f"- {error}" for error in manifest["errors"])

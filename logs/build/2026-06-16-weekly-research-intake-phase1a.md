@@ -44,6 +44,17 @@ Not performed:
 4. Add paper scoring and weekly digest writer.
 5. Build private eval foundation before any candidate implementation.
 
+## Phase 1A closeout update — 2026-06-16
+
+Phase 1A is now marked complete in repo documentation and dry-run artifacts. The manifest now includes:
+
+- `phase_1a_completion.status = complete`
+- `active_cron_job_id = 88bb31188587`
+- `next_phase = phase_1b_primary_source_ingestion`
+- explicit authority boundaries for no network ingestion, no providers/credentials, no candidate implementation, no PR/merge automation, no permission expansion, and no canonical promotion
+
+Phase 1B should start with arXiv API/RSS ingestion only, behind an explicit command and tests.
+
 ## Verification
 
 Verification should run:
@@ -81,11 +92,20 @@ Control-plane: no canonical promotion, no candidate implementation, no provider/
 Full post-activation verification:
 
 ```text
-1 passed in 0.53s
-logs/runs/weekly-research-intake-dry-run-20260616T222601Z
+5 passed in 0.87s
+logs/runs/weekly-research-intake-dry-run-20260616T223602Z
 Chaser Agent weekly research intake dry-run: pass
-Artifact: logs/runs/weekly-research-intake-dry-run-20260616T222602Z
-12 passed in 3.87s
+Artifact: logs/runs/weekly-research-intake-dry-run-20260616T223603Z
+14 passed in 5.51s
+```
+
+Latest closeout manifest proof:
+
+```text
+status: pass
+phase_1a_completion.status: complete
+active_cron_job_id: 88bb31188587
+next_phase: phase_1b_primary_source_ingestion
 ```
 
 Hermes cron wrapper created and active bounded cron registered:

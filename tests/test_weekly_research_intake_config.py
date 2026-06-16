@@ -17,6 +17,29 @@ def test_weekly_research_intake_configs_are_control_plane_bounded():
     assert manifest["arxiv_query_count"] >= 1
 
 
+def test_weekly_research_intake_phase_1a_completion_gate_is_explicit():
+    root = Path(__file__).resolve().parents[1]
+    manifest = build_manifest(root)
+
+    completion = manifest["phase_1a_completion"]
+    assert completion["status"] == "complete"
+    assert completion["active_cron_job_id"] == "88bb31188587"
+    assert completion["next_phase"] == "phase_1b_primary_source_ingestion"
+    assert "no_network_ingestion" in completion["authority_boundaries"]
+    assert "no_candidate_implementation" in completion["authority_boundaries"]
+
+
+def test_weekly_research_intake_active_cron_is_documented_in_configs():
+    root = Path(__file__).resolve().parents[1]
+    sources = yaml.safe_load(root.joinpath("research_intake/sources.yaml").read_text(encoding="utf-8"))
+    cron = yaml.safe_load(root.joinpath("research_intake/cron_proposal.yaml").read_text(encoding="utf-8"))
+
+    active = sources["run_policy"]["active_local_cron"]
+    assert active["hermes_job_id"] == "88bb31188587"
+    assert active["scope"] == "phase_1a_config_dry_run_only"
+    assert cron["proposed_jobs"]["weekly_research_intake_dry_run"]["activation_status"] == "active_bounded_phase_1a"
+
+
 def test_weekly_research_intake_ranking_weights_sum_to_one():
     root = Path(__file__).resolve().parents[1]
     ranking = yaml.safe_load(root.joinpath("research_intake/ranking.yaml").read_text(encoding="utf-8"))

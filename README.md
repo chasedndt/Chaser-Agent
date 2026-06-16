@@ -132,7 +132,7 @@ PYTHONPATH=. .venv/bin/python -m pytest -q
 
 Chaser Agent now has a ChaseOS-governed weekly research-intake lane for discovering agent-harness, coding-agent, computer-use, memory/context, tool-routing, and eval research that could become future harness RFCs.
 
-Current state is **Phase 1A: deterministic dry-run only**:
+Current state is **Phase 1A complete: deterministic dry-run + bounded Hermes cron active**:
 
 ```bash
 .venv/bin/python scripts/weekly_research_intake_dry_run.py --out logs/runs

@@ -1,6 +1,6 @@
 # Research Intake
 
-Phase 1A scaffold for the ChaseOS/Chaser Agent weekly research upgrade loop.
+Phase 1A completed scaffold for the ChaseOS/Chaser Agent weekly research upgrade loop.
 
 This directory is config-first and control-plane bounded. It defines what to monitor and how to score it, but it does not by itself activate network ingestion, provider use, candidate implementation, branch creation, PRs, merges, or ChaseOS canonical promotion.
 
