@@ -8,6 +8,7 @@ import urllib.parse
 import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET
@@ -151,6 +152,40 @@ def parse_arxiv_atom(xml_text: str, source_query: str) -> list[PaperRecord]:
     return records
 
 
+def parse_rss_date(value: str) -> str:
+    if not value:
+        return ""
+    return parsedate_to_datetime(value).date().isoformat()
+
+
+def parse_arxiv_rss(xml_text: str, source_query: str) -> list[PaperRecord]:
+    root = ET.fromstring(xml_text)
+    records: list[PaperRecord] = []
+    for item in root.findall("./channel/item"):
+        link = clean_text(item.findtext("link", default=""))
+        base_id = arxiv_base_id(link)
+        records.append(
+            PaperRecord(
+                paper_id=f"arxiv:{base_id}",
+                title=clean_text(item.findtext("title", default="")),
+                authors=[],
+                published_date=parse_rss_date(clean_text(item.findtext("pubDate", default=""))),
+                source="arxiv_rss",
+                primary_url=canonical_abs_url(base_id),
+                pdf_url=canonical_pdf_url(base_id),
+                categories=[],
+                abstract=clean_text(item.findtext("description", default="")),
+                source_query=source_query,
+            )
+        )
+    return records
+
+
+def title_hash(title: str) -> str:
+    normalized = re.sub(r"[^a-z0-9]+", " ", title.lower()).strip()
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
 def dedupe_records(records: list[PaperRecord]) -> list[PaperRecord]:
     by_key: dict[str, PaperRecord] = {}
     for record in records:
@@ -221,6 +256,102 @@ def write_ingest_outputs(xml_text: str, out_root: Path, source_query: str, fetch
     return manifest
 
 
+def write_rss_outputs(xml_text: str, out_root: Path, source_query: str, fetch_mode: str) -> dict[str, Any]:
+    stamp = utc_stamp()
+    run_dir = out_root / f"arxiv-rss-ingest-{stamp}"
+    if run_dir.exists():
+        for index in range(1, 1000):
+            candidate = out_root / f"arxiv-rss-ingest-{stamp}-{index:03d}"
+            if not candidate.exists():
+                run_dir = candidate
+                break
+    raw_dir = run_dir / "raw"
+    normalized_dir = run_dir / "normalized"
+    raw_dir.mkdir(parents=True, exist_ok=False)
+    normalized_dir.mkdir(parents=True, exist_ok=True)
+    raw_path = raw_dir / "arxiv_rss.xml"
+    raw_path.write_text(xml_text, encoding="utf-8")
+    raw_records = parse_arxiv_rss(xml_text, source_query=source_query)
+    deduped = dedupe_records(raw_records)
+    raw_jsonl = normalized_dir / "raw_records.jsonl"
+    papers_jsonl = normalized_dir / "papers.jsonl"
+    write_jsonl(raw_jsonl, [asdict(record) for record in raw_records])
+    write_jsonl(papers_jsonl, [record.to_chase_schema() for record in deduped])
+    manifest = {
+        "status": "pass",
+        "phase": "phase_1b_primary_source_ingestion",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "fetch_mode": fetch_mode,
+        "source": "arxiv_rss",
+        "source_query": source_query,
+        "raw_count": len(raw_records),
+        "deduped_count": len(deduped),
+        "raw_path": raw_path.as_posix(),
+        "raw_records_jsonl": raw_jsonl.as_posix(),
+        "papers_jsonl": papers_jsonl.as_posix(),
+        "control_plane": {
+            "parent": "ChaseOS",
+            "authority": "public research source read + local artifacts only",
+            "no_candidate_implementation": True,
+            "no_branch_or_pr_automation": True,
+            "no_provider_or_credential_activation": True,
+            "no_canonical_promotion": True,
+        },
+    }
+    write_manifest(run_dir, manifest)
+    return manifest
+
+
+def run_batch_fixture_ingest(fixture_path: Path, out_root: Path, queries: list[dict[str, Any]]) -> dict[str, Any]:
+    xml_text = fixture_path.read_text(encoding="utf-8")
+    stamp = utc_stamp()
+    run_dir = out_root / f"arxiv-batch-ingest-{stamp}"
+    if run_dir.exists():
+        for index in range(1, 1000):
+            candidate = out_root / f"arxiv-batch-ingest-{stamp}-{index:03d}"
+            if not candidate.exists():
+                run_dir = candidate
+                break
+    raw_dir = run_dir / "raw"
+    normalized_dir = run_dir / "normalized"
+    raw_dir.mkdir(parents=True, exist_ok=False)
+    normalized_dir.mkdir(parents=True, exist_ok=True)
+
+    all_records: list[PaperRecord] = []
+    for query in queries:
+        name = query["name"]
+        raw_path = raw_dir / f"{name}.xml"
+        raw_path.write_text(xml_text, encoding="utf-8")
+        all_records.extend(parse_arxiv_atom(xml_text, source_query=query["search_query"]))
+
+    deduped = dedupe_records(all_records)
+    raw_records_jsonl = normalized_dir / "raw_records.jsonl"
+    consolidated_papers_jsonl = normalized_dir / "papers.jsonl"
+    write_jsonl(raw_records_jsonl, [asdict(record) for record in all_records])
+    write_jsonl(consolidated_papers_jsonl, [record.to_chase_schema() for record in deduped])
+    manifest = {
+        "status": "pass",
+        "phase": "phase_1b_primary_source_ingestion",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "fetch_mode": "fixture_batch",
+        "query_count": len(queries),
+        "raw_count": len(all_records),
+        "deduped_count": len(deduped),
+        "raw_records_jsonl": raw_records_jsonl.as_posix(),
+        "consolidated_papers_jsonl": consolidated_papers_jsonl.as_posix(),
+        "control_plane": {
+            "parent": "ChaseOS",
+            "authority": "public research source read + local artifacts only",
+            "no_candidate_implementation": True,
+            "no_branch_or_pr_automation": True,
+            "no_provider_or_credential_activation": True,
+            "no_canonical_promotion": True,
+        },
+    }
+    write_manifest(run_dir, manifest)
+    return manifest
+
+
 def build_arxiv_query_url(search_query: str, max_results: int) -> str:
     params = {
         "search_query": search_query,
@@ -233,21 +364,29 @@ def build_arxiv_query_url(search_query: str, max_results: int) -> str:
 
 def fetch_arxiv(search_query: str, max_results: int, timeout: int = 30) -> str:
     url = build_arxiv_query_url(search_query, max_results=max_results)
+    return fetch_url(url, timeout=timeout)
+
+
+def fetch_url(url: str, timeout: int = 30) -> str:
     request = urllib.request.Request(url, headers={"User-Agent": "Chaser-Agent-Research-Intake/0.1"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:  # nosec B310: bounded public arXiv API read
+    with urllib.request.urlopen(request, timeout=timeout) as response:  # nosec B310: bounded public research source read
         return response.read().decode("utf-8")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Phase 1B bounded arXiv API/RSS research ingestion.")
     parser.add_argument("--fixture", type=Path, help="Parse a local arXiv Atom fixture instead of fetching network data.")
-    parser.add_argument("--query", default='cat:cs.AI AND (agent harness OR tool use OR computer use)', help="arXiv search_query value.")
+    parser.add_argument("--rss-url", help="Fetch an arXiv RSS/Atom category feed URL instead of using the search API.")
+    parser.add_argument("--query", default='cat:cs.AI AND (agent harness OR tool use OR computer use)', help="arXiv search_query value or RSS source label.")
     parser.add_argument("--max-results", type=int, default=25, help="Maximum arXiv records to fetch for one bounded run.")
     parser.add_argument("--out", type=Path, default=Path("research_intake/data"), help="Output root for raw/normalized artifacts.")
     args = parser.parse_args()
 
     if args.fixture:
         manifest = run_fixture_ingest(args.fixture, args.out, source_query=args.query)
+    elif args.rss_url:
+        xml_text = fetch_url(args.rss_url)
+        manifest = write_rss_outputs(xml_text, args.out, source_query=args.query, fetch_mode="arxiv_rss")
     else:
         xml_text = fetch_arxiv(args.query, max_results=args.max_results)
         manifest = write_ingest_outputs(xml_text, args.out, source_query=args.query, fetch_mode="arxiv_api")

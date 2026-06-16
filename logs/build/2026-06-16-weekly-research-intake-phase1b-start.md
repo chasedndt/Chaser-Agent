@@ -20,8 +20,10 @@ Added the first Phase 1B ingestion slice:
 ## Capabilities added
 
 - Parse arXiv Atom XML into normalized `PaperRecord` objects.
+- Parse arXiv RSS category feeds into normalized `PaperRecord` objects.
 - Canonicalize arXiv IDs and URLs without version suffixes.
 - Dedupe records by base arXiv ID.
+- Run fixture-backed multi-query consolidation.
 - Write local per-run artifacts:
   - raw `arxiv_api.xml`
   - `raw_records.jsonl`
@@ -62,7 +64,14 @@ PYTHONPATH=. .venv/bin/python -m pytest tests/test_research_intake_ingest.py tes
 8 passed in 1.49s
 
 PYTHONPATH=. .venv/bin/python -m pytest tests/test_research_intake_ingest.py tests/test_weekly_research_intake_config.py tests/test_source_card_harness.py -q
-10 passed in 1.44s
+12 passed in 1.81s
+
+PYTHONPATH=. .venv/bin/python -m research_intake.ingest --rss-url https://rss.arxiv.org/rss/cs.AI --query rss:cs.AI --out research_intake/data
+status: pass
+phase: phase_1b_primary_source_ingestion
+raw_count: 664
+deduped_count: 664
+papers_jsonl: research_intake/data/arxiv-rss-ingest-20260616T225028Z/normalized/papers.jsonl
 
 bash /home/chaseos/runtimes/hermes-home/scripts/chaser_agent_weekly_research_intake_dry_run.sh
 Chaser Agent weekly research intake dry-run: pass
@@ -76,7 +85,6 @@ Full `pytest -q` currently includes unrelated uncommitted SkillGate worktree fil
 
 ## Remaining Phase 1B work
 
-- Add arXiv RSS feed ingestion.
-- Add multi-query batch runner over `research_intake/queries.yaml`.
-- Add DOI/title-hash dedupe beyond arXiv ID.
+- Add multi-query batch runner over `research_intake/queries.yaml` for live API/RSS runs.
+- Add DOI extraction and DOI-based dedupe when metadata includes it.
 - Add weekly consolidated `research_intake/data/papers.jsonl` output once batch ingestion exists.

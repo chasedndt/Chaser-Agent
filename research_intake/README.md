@@ -16,10 +16,21 @@ Then inspect the generated `logs/runs/weekly-research-intake-dry-run-*/manifest.
 
 Phase 1B starts with bounded public arXiv ingestion only:
 
+Search API:
+
 ```bash
 PYTHONPATH=. .venv/bin/python -m research_intake.ingest \
   --max-results 25 \
   --query 'cat:cs.AI AND (agent OR harness OR tool use)' \
+  --out research_intake/data
+```
+
+RSS category feed:
+
+```bash
+PYTHONPATH=. .venv/bin/python -m research_intake.ingest \
+  --rss-url https://rss.arxiv.org/rss/cs.AI \
+  --query rss:cs.AI \
   --out research_intake/data
 ```
 

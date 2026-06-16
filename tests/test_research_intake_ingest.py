@@ -3,7 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from research_intake.ingest import PaperRecord, dedupe_records, parse_arxiv_atom, run_fixture_ingest
+from research_intake.ingest import (
+    PaperRecord,
+    dedupe_records,
+    parse_arxiv_atom,
+    parse_arxiv_rss,
+    run_batch_fixture_ingest,
+    run_fixture_ingest,
+)
 
 
 ARXIV_FIXTURE = """<?xml version="1.0" encoding="UTF-8"?>
@@ -35,6 +42,18 @@ ARXIV_FIXTURE = """<?xml version="1.0" encoding="UTF-8"?>
     <link title="pdf" href="http://arxiv.org/pdf/2606.14249v2" rel="related" type="application/pdf"/>
   </entry>
 </feed>
+"""
+ARXIV_RSS_FIXTURE = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>TokenPilot: Context Management for LLM Agents</title>
+      <link>https://arxiv.org/abs/2606.17016</link>
+      <description>Context management framework for long-horizon LLM agents.</description>
+      <pubDate>Mon, 15 Jun 2026 00:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
 """
 
 
@@ -81,3 +100,30 @@ def test_fixture_ingest_writes_raw_normalized_and_papers_jsonl(tmp_path):
     assert rows[0]["paper_id"] == "arxiv:2606.14249"
     assert rows[0]["reproducibility"]["environment_reproducible"] == "unknown"
     assert rows[0]["decision"] == "unread"
+
+
+def test_parse_arxiv_rss_normalizes_feed_item():
+    records = parse_arxiv_rss(ARXIV_RSS_FIXTURE, source_query="rss:cs.AI")
+
+    assert records[0].paper_id == "arxiv:2606.17016"
+    assert records[0].title == "TokenPilot: Context Management for LLM Agents"
+    assert records[0].source == "arxiv_rss"
+    assert records[0].published_date == "2026-06-15"
+    assert records[0].pdf_url == "https://arxiv.org/pdf/2606.17016"
+
+
+def test_batch_fixture_ingest_consolidates_multiple_queries(tmp_path):
+    fixture = tmp_path / "fixture.xml"
+    fixture.write_text(ARXIV_FIXTURE, encoding="utf-8")
+
+    queries = [
+        {"name": "agent_harness_core", "search_query": "agent harness", "max_results": 100},
+        {"name": "memory_context_tools", "search_query": "context management", "max_results": 100},
+    ]
+    manifest = run_batch_fixture_ingest(fixture, tmp_path / "out", queries=queries)
+
+    assert manifest["status"] == "pass"
+    assert manifest["query_count"] == 2
+    assert manifest["raw_count"] == 4
+    assert manifest["deduped_count"] == 1
+    assert Path(manifest["consolidated_papers_jsonl"]).exists()

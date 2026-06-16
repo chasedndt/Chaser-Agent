@@ -45,11 +45,11 @@ Blocked until explicit approval and eval proof:
    - Register bounded script-backed Hermes cron for local dry-run reporting.
    - Do not fetch network or call providers yet.
 
-2. **Phase 1B — primary-source ingestion** ⏳ started
-   - Add arXiv API/RSS ingestion first. ✅ arXiv API bounded ingest added
+2. **Phase 1B — primary-source ingestion** ⏳ in progress
+   - Add arXiv API/RSS ingestion first. ✅ arXiv API + RSS bounded ingest added
    - Normalize to JSONL paper records. ✅ fixture + live-smoke proven
    - Dedupe by arXiv ID/DOI/title hash. ✅ arXiv ID/title fallback dedupe added
-   - Remaining: RSS feed ingestion and multi-query batch runner.
+   - Remaining: multi-query batch runner over `queries.yaml` for live API/RSS runs, then consolidated weekly `papers.jsonl`.
 
 3. **Phase 1C — scholarly metadata enrichment**
    - Add Semantic Scholar and OpenAlex metadata/recommendation enrichment.
