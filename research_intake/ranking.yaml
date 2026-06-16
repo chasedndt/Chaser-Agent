@@ -1,0 +1,35 @@
+score_weights:
+  domain_fit: 0.25
+  empirical_strength: 0.20
+  reproducibility: 0.15
+  implementability: 0.15
+  evalability: 0.10
+  safety_reliability: 0.10
+  novelty: 0.05
+
+penalties:
+  no_eval_possible: -25
+  no_baseline_or_ablation: -15
+  no_code_and_underspecified: -10
+  public_benchmark_only_no_private_transfer: -10
+  suspicious_leaderboard_or_contamination_risk: -15
+  expands_security_or_tool_permissions_without_controls: -30
+  pure_model_release_no_harness_relevance: -20
+  hype_only_social_source: -40
+
+decision_thresholds:
+  implement_now: "score >= 82 and evalable and low_or_medium_risk; disabled until eval foundation exists"
+  write_rfc: "score >= 70"
+  read_deeply: "score >= 60"
+  watch: "score >= 45"
+  ignore: "score < 45"
+
+merge_gate_summary:
+  targeted_suite: ">= +10% relative OR >= +5 absolute points"
+  global_private_suite: ">= -2 absolute point regression maximum"
+  max_cost_increase: "+10% unless manually approved"
+  max_latency_increase: "+20% unless manually approved"
+  repeats_for_stochastic_tasks: 3
+  feature_flag_required: true
+  rollback_plan_required: true
+  no_permission_expansion_without_review: true

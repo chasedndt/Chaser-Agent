@@ -1,0 +1,99 @@
+# ChaseOS Weekly Research Upgrade — Setup Order
+
+**Date:** 2026-06-16  
+**Runtime lane:** Hermes/Optimus operating under ChaseOS Agent Control Plane  
+**Repo:** Chaser Agent  
+**Status:** Phase 1 setup scaffold; no live self-upgrade authority
+
+## Control-plane boundary
+
+This lane is a ChaseOS-governed research/eval pipeline, not an autonomous self-modification loop.
+
+The first bounded Hermes cron is now active on this local ChaseOS machine:
+
+- Name: `Chaser Agent weekly research intake dry-run`
+- Job id: `88bb31188587`
+- Schedule: `0 5 * * 1`
+- Mode: script-backed `no_agent=true`
+- Script: `/home/chaseos/runtimes/hermes-home/scripts/chaser_agent_weekly_research_intake_dry_run.sh`
+- Scope: Phase 1A config validation and local artifact summary only
+
+Allowed now:
+
+- configure research sources and queries;
+- validate source/ranking configs;
+- write local research-intake run logs and draft digests;
+- emit RFC candidates for human review;
+- propose cron registrations.
+
+Blocked until explicit approval and eval proof:
+
+- canonical ChaseOS promotion;
+- credential/provider activation;
+- live browser/account automation;
+- candidate branch implementation;
+- PR creation/merge;
+- permission expansion;
+- production deployment;
+- security/cyber capability changes.
+
+## Recommended implementation order
+
+1. **Phase 1A — deterministic intake scaffold**
+   - Create source/query/ranking configs.
+   - Add a dry-run script that validates configs and writes a run artifact.
+   - Do not fetch network or call providers yet.
+
+2. **Phase 1B — primary-source ingestion**
+   - Add arXiv API/RSS ingestion first.
+   - Normalize to JSONL paper records.
+   - Dedupe by arXiv ID/DOI/title hash.
+
+3. **Phase 1C — scholarly metadata enrichment**
+   - Add Semantic Scholar and OpenAlex metadata/recommendation enrichment.
+   - Keep rate limits explicit.
+   - Store raw responses under `research_intake/data/raw/`, normalized records under `research_intake/data/normalized/`.
+
+4. **Phase 1D — weekly digest and paper cards**
+   - Score papers with the Chase Agent rubric.
+   - Write `paper_cards.jsonl` and `weekly_digests/YYYY-WW.md`.
+   - Mark `implement_now` as advisory only until eval foundation exists.
+
+5. **Phase 2 — eval foundation before implementation**
+   - Build private eval suites for Chaser/ChaseOS task classes.
+   - Establish baseline reports.
+   - Only then allow candidate RFC branches.
+
+6. **Phase 3+ — RFC/candidate loop**
+   - Generate top RFCs.
+   - Implement isolated candidate branches only after human approval.
+   - Merge only when the eval gate passes.
+
+## Cron order
+
+1. First cron should be **script-backed dry-run only**: validate config and write local run artifact.
+2. Second cron can summarize the latest verified artifact into a short Discord digest.
+3. Network ingestion cron comes after the dry-run artifact proves local paths/configs.
+4. Candidate implementation cron remains disabled/manual-dispatch until eval gates are mature.
+
+## Files introduced by this setup pass
+
+- `research_intake/sources.yaml`
+- `research_intake/queries.yaml`
+- `research_intake/ranking.yaml`
+- `research_intake/cron_proposal.yaml`
+- `scripts/weekly_research_intake_dry_run.py`
+- `tests/test_weekly_research_intake_config.py`
+
+## First approval checkpoint
+
+After dry-run proof passes, operator can approve one live Hermes cron registration:
+
+```text
+Schedule: 0 5 * * 1
+Mode: script-backed no_agent=true
+Command: .venv/bin/python scripts/weekly_research_intake_dry_run.py --out logs/runs
+Delivery: origin summary only
+```
+
+That approval does not authorize network ingestion, provider use, candidate branches, PRs, or merges.

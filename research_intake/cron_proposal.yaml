@@ -1,0 +1,19 @@
+# Proposal only: do not treat this file as an active scheduler registration.
+# Live Hermes cron activation requires operator approval after dry-run proof.
+proposed_jobs:
+  weekly_research_intake_dry_run:
+    cadence: "0 5 * * 1"
+    intended_local_time: "Monday 06:00 Europe/London"
+    runtime: "Hermes cron, script-backed, no_agent=true"
+    command: ".venv/bin/python scripts/weekly_research_intake_dry_run.py --out logs/runs"
+    delivery: "origin"
+    authority: "research artifact/log only; no canonical promotion; no candidate implementation"
+    activation_status: "active_bounded_phase_1a"
+    hermes_job_id: 88bb31188587
+  weekly_research_digest_reasoning:
+    cadence: "after dry-run artifact exists"
+    runtime: "Hermes cron, agent reasoning over verified local artifact"
+    context_from: "weekly_research_intake_dry_run latest output"
+    delivery: "origin summary plus local digest path"
+    authority: "summarize and rank only; no branch, PR, merge, or provider/permission changes"
+    activation_status: "defer_until_phase_1_dry_run_passes"

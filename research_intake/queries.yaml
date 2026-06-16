@@ -1,0 +1,29 @@
+arxiv_queries:
+  - name: agent_harness_core
+    search_query: '(cat:cs.AI OR cat:cs.LG OR cat:cs.CL OR cat:cs.SE OR cat:cs.MA) AND ("agent harness" OR "model harness" OR "runtime harness" OR "harness optimization" OR "agent runtime")'
+    max_results: 100
+  - name: computer_use_agents
+    search_query: '(cat:cs.AI OR cat:cs.LG OR cat:cs.HC OR cat:cs.RO) AND ("computer use" OR "browser agent" OR "GUI agent" OR "OS agent" OR "desktop agent")'
+    max_results: 100
+  - name: coding_agents_evals
+    search_query: '(cat:cs.SE OR cat:cs.AI OR cat:cs.LG OR cat:cs.CL) AND ("coding agent" OR "software engineering agent" OR "SWE-bench" OR "Terminal-Bench" OR "program repair")'
+    max_results: 100
+  - name: memory_context_tools
+    search_query: '(cat:cs.AI OR cat:cs.LG OR cat:cs.CL) AND ("context management" OR "memory retrieval" OR "tool routing" OR "function calling" OR MCP OR verifier OR planner)'
+    max_results: 100
+
+positive_terms:
+  agent_harness: [agent harness, model harness, auto-harness, meta-harness, harness engineering, harness optimization, runtime harness, execution scaffold, tool-use scaffold, agent runtime, agent operating system, agent framework, orchestration, workflow search]
+  self_improvement: [self-improving agents, self-evolving agents, automated harness engineering, trace-driven evolution, trajectory optimization, execution feedback, replay buffer, process supervision, verifier-guided, reward model, online adaptation, continual learning]
+  computer_use: [computer use, web agent, browser agent, GUI agent, OS agent, terminal agent, desktop agent, multimodal agent, action space, observation space, environment interaction]
+  coding_agents: [coding agent, software engineering agent, repository agent, program repair, issue resolution, codebase navigation, test generation, patch validation, long-horizon software engineering]
+  memory_context_tools: [context management, prompt compression, memory retrieval, skill library, tool routing, function calling, MCP, sandbox, permission model, reflection, planner, verifier, critic, multi-agent, swarm]
+  evals_benchmarks: [SWE-bench, SWE-bench Verified, SWE-bench Pro, Terminal-Bench, LiveCodeBench, WebArena, VisualWebArena, BrowserGym, OSWorld, GAIA, WebShop, ALFWorld, tau-bench, BFCL, AgentBench, TheAgentCompany, Harness-Bench]
+negative_terms:
+  - pure image generation
+  - pure video diffusion
+  - pure recommender systems
+  - medical diagnosis only
+  - chip design only
+  - unrelated vision benchmark
+  - incremental LLM leaderboard only

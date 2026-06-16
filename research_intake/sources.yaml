@@ -1,0 +1,86 @@
+run_policy:
+  cadence: weekly
+  intended_local_time: "Monday 06:00 Europe/London"
+  cron_utc: "0 5 * * 1"
+  max_papers_per_source: 250
+  max_full_reads_per_week: 25
+  max_rfcs_per_week: 5
+  max_auto_implementation_candidates_per_week: 0
+  require_eval_gate: true
+  phase: "phase_1_research_ingestion_only"
+  live_candidate_implementation_enabled: false
+  active_local_cron:
+    name: Chaser Agent weekly research intake dry-run
+    hermes_job_id: 88bb31188587
+    schedule: "0 5 * * 1"
+    script: chaser_agent_weekly_research_intake_dry_run.sh
+    mode: script_backed_no_agent
+    scope: phase_1a_config_dry_run_only
+  require_human_review_for:
+    - security_sensitive
+    - permission_model
+    - sandbox_escape_surface
+    - data_retention
+    - tool_access_expansion
+    - production_deployment
+
+control_plane:
+  parent: ChaseOS
+  runtime_lane: chaser_agent_research_intake
+  authority_boundary: "research artifacts and RFC candidates only"
+  blocked_actions:
+    - canonical_promotion
+    - provider_or_credential_activation
+    - browser_or_account_automation
+    - production_deployment
+    - autonomous_merge
+    - permission_expansion
+  allowed_outputs:
+    - research_intake/data/normalized/papers.jsonl
+    - research_intake/data/paper_cards.jsonl
+    - research_intake/data/weekly_digests/
+    - harness_upgrades/rfcs/
+    - logs/runs/weekly-research-intake-*/
+
+sources:
+  arxiv_api:
+    enabled: true
+    base_url: https://export.arxiv.org/api/query
+    categories: [cs.AI, cs.LG, cs.CL, cs.SE, cs.MA, cs.CR, cs.PL, cs.HC, cs.RO, cs.SY, cs.OS, cs.DC, stat.ML]
+    sort_by: submittedDate
+    sort_order: descending
+  arxiv_rss:
+    enabled: true
+    feeds:
+      - https://rss.arxiv.org/rss/cs.AI
+      - https://rss.arxiv.org/rss/cs.LG
+      - https://rss.arxiv.org/rss/cs.CL
+      - https://rss.arxiv.org/rss/cs.SE
+      - https://rss.arxiv.org/rss/cs.MA
+      - https://rss.arxiv.org/rss/cs.CR
+      - https://rss.arxiv.org/rss/cs.PL
+      - https://rss.arxiv.org/rss/cs.HC
+  openreview:
+    enabled: false
+    api_version: 2
+    enable_after_phase: "phase_1b"
+    venues_to_track: [ICLR, ICML, NeurIPS, COLM, ACL, EMNLP, AAAI, IJCAI, CoRL, IROS, UIST, CHI]
+  semantic_scholar:
+    enabled: false
+    enable_after_phase: "phase_1b"
+    base_url: https://api.semanticscholar.org/graph/v1
+    use_recommendations: true
+  openalex:
+    enabled: false
+    enable_after_phase: "phase_1b"
+    base_url: https://api.openalex.org/works
+  huggingface_papers:
+    enabled: false
+    enable_after_phase: "phase_1c"
+    url: https://huggingface.co/papers
+  codesota:
+    enabled: false
+    enable_after_phase: "phase_1c"
+  lab_pages:
+    enabled: false
+    enable_after_phase: "phase_1c"

@@ -128,6 +128,41 @@ From the repo root:
 PYTHONPATH=. .venv/bin/python -m pytest -q
 ```
 
+## Weekly research-upgrade workflow
+
+Chaser Agent now has a ChaseOS-governed weekly research-intake lane for discovering agent-harness, coding-agent, computer-use, memory/context, tool-routing, and eval research that could become future harness RFCs.
+
+Current state is **Phase 1A: deterministic dry-run only**:
+
+```bash
+.venv/bin/python scripts/weekly_research_intake_dry_run.py --out logs/runs
+```
+
+This validates:
+
+- `research_intake/sources.yaml`
+- `research_intake/queries.yaml`
+- `research_intake/ranking.yaml`
+- `research_intake/cron_proposal.yaml`
+
+The active Hermes cron is script-backed and bounded:
+
+- Name: `Chaser Agent weekly research intake dry-run`
+- Schedule: `0 5 * * 1`
+- Hermes job id on the local ChaseOS machine: `88bb31188587`
+- Wrapper: `/home/chaseos/runtimes/hermes-home/scripts/chaser_agent_weekly_research_intake_dry_run.sh`
+- Output: `logs/runs/weekly-research-intake-dry-run-*/manifest.json` and `digest.md`
+
+Control-plane boundary: this cron validates local config and reports a short artifact summary only. It does **not** fetch network sources yet, call model providers, activate credentials, create branches, open PRs, merge code, mutate memory, expand permissions, deploy, or promote ChaseOS canonical truth.
+
+The intended upgrade ladder is:
+
+```text
+research sources -> normalized paper cards -> ranked weekly digest -> RFC candidates -> isolated candidate branches -> private eval gates -> human/Gate-approved merge
+```
+
+See `docs/07_Research/ChaseOS-Weekly-Research-Upgrade-Setup-Order.md` for the implementation order and approval gates.
+
 ## Run Source Card Harness V0
 
 ```bash
