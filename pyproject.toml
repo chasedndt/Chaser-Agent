@@ -8,6 +8,8 @@ version = "0.1.0"
 description = "Scaffold for Chaser agent: governed source intelligence and eval harness."
 readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "ChaseOS Ltd." }]
 dependencies = []
 
 [project.optional-dependencies]
