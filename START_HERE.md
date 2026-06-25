@@ -46,7 +46,21 @@ These outputs are deterministic, local, review-only artifacts. They are not LLM/
 
 ## Next implementation pass
 
-After Phase 1, the next pass should be **Source Card Harness Review** or **Contract Eval Seeds**. Do not jump to provider/API calls, Hermes/OpenClaw adapters, MCP tooling, browser/computer-use runtime, fine-tuning, or ChaseOS canonical mutation.
+After Phase 1, the next pass should be **Source Card Harness Review**, **Contract Eval Seeds**, or the new **ChaseOS-native review packet V0** when the work needs ChaseOS control-plane handoff shape. Do not jump to provider/API calls, Hermes/OpenClaw adapters, MCP tooling, browser/computer-use runtime, fine-tuning, or ChaseOS canonical mutation.
+
+## ChaseOS-native review packet V0
+
+Run the bounded ChaseOS-native wrapper from the repo root:
+
+```bash
+PYTHONPATH=. .venv/bin/python -m chaser_agent.cli chaseos-native-source-card \
+  --input examples/sources/toy_website_design_note.md \
+  --out logs/runs \
+  --workflow hermes_review_execute \
+  --runtime-lane chaser-agent
+```
+
+This creates the normal Source Card Harness V0 artifacts plus `chaseos_native_packet.json` and `operator_handoff.md`. The packet adds ChaseOS-native routing/review fields while preserving review-only authority boundaries.
 
 ## Verification
 

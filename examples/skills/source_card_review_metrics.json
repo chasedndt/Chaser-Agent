@@ -1,0 +1,7 @@
+{
+  "baseline_score": 0.62,
+  "candidate_score": 0.79,
+  "held_out_split_id": "toy-source-card-review-heldout-v0",
+  "edit_count": 4,
+  "verifier": "deterministic-toy-source-card-fixture"
+}
