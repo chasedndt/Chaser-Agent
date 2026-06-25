@@ -195,6 +195,25 @@ The command prints a unique run folder containing:
 
 Outputs are deterministic, local, and review-only.
 
+## Run the ChaseOS-native review packet V0
+
+```bash
+PYTHONPATH=. .venv/bin/python -m chaser_agent.cli chaseos-native-source-card \
+  --input examples/sources/toy_website_design_note.md \
+  --out logs/runs \
+  --workflow hermes_review_execute \
+  --runtime-lane chaser-agent
+```
+
+This wraps the Source Card Harness V0 output in ChaseOS control-plane fields: runtime lane, workflow, graph links, recommended Agent-Activity slug, authority flags, blocked actions, artifact paths, and an operator handoff. It still does not dispatch Hermes/OpenClaw, consume approvals, promote memory, mutate ChaseOS canonical truth, call providers/APIs, use MCP/browser tools, or claim production autonomy.
+
+Additional outputs:
+
+- `chaseos_native_packet.json`
+- `operator_handoff.md`
+
+See `docs/05_Runtime_Adapters/Chaser-Agent-ChaseOS-Native-Review-Packet.md`.
+
 ## Start reading
 
 Read these first:

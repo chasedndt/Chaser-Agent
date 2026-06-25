@@ -75,6 +75,34 @@ The first skill pack supports:
 
 These skills should be judged by source-summary, citation-grounding, action-extraction, and memory-candidate evals.
 
+## SkillGate V0 — SkillOpt-style review gate now available
+
+Chaser Agent now has a deterministic local `skill-gate` CLI slice inspired by SkillOpt. It does **not** train a model, mutate live skills, or accept autonomous self-edits. It creates review artifacts for an operator to decide whether a candidate skill patch is worth applying.
+
+```bash
+python -m chaser_agent.cli skill-gate \
+  --baseline-skill examples/skills/source_card_review_baseline.SKILL.md \
+  --candidate-skill examples/skills/source_card_review_candidate.SKILL.md \
+  --metrics examples/skills/source_card_review_metrics.json \
+  --out logs/runs
+```
+
+The command checks:
+
+- candidate score strictly improves the held-out validation score;
+- edit count stays within a bounded textual learning-rate budget (`1..8`);
+- protected slow-state sections are preserved exactly;
+- the baseline skill file remains unmodified;
+- provider/API/runtime/MCP/browser/fine-tuning/canonical promotion authority stays closed.
+
+Outputs:
+
+- `skill_gate_packet.json` — decision, scores, hashes, guard results, authority flags;
+- `skill_patch_review.json` — human review questions and blocked actions;
+- `run_log.json` — proof that the run was deterministic, local, and review-only.
+
+This turns the old future SkillOpt-style lane into a bounded first foothold: **SkillGate proposes evidence; the operator decides.**
+
 ## Future SkillOpt-style lane
 
 A later lane may optimize skill text using eval feedback. It must preserve human review, held-out validation, rollback, and quarantine rules. No uncontrolled self-editing.

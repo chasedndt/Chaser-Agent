@@ -172,6 +172,10 @@ This roadmap restarts the thinking order from Layer 0. Evals and implementation 
 
 **Out of scope:** uncontrolled self-editing.
 
+**Status:** first bounded foothold implemented as `skill-gate`: a deterministic local review packet generator for candidate `SKILL.md` patches. It checks strict held-out improvement, bounded edit budget, protected slow-state preservation, and closed authority flags without mutating baseline skills.
+
+**Next pass after this:** connect `skill-gate` to real skill-specific fixture suites and richer diff summaries before any approval-consuming apply path.
+
 ## Phase 8 — reviewed datasets and fine-tuning decision
 
 **Purpose:** Decide whether training is justified.
