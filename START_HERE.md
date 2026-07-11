@@ -1,5 +1,5 @@
 
-# Start Here — Chaser agent
+# Start Here — Chaser Agent
 
 Start with Layer 0. Do not start with eval implementation.
 

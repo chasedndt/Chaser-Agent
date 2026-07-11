@@ -57,7 +57,7 @@ Blocked until explicit approval and eval proof:
    - Store raw responses under `research_intake/data/raw/`, normalized records under `research_intake/data/normalized/`.
 
 4. **Phase 1D — weekly digest and paper cards**
-   - Score papers with the Chase Agent rubric.
+   - Score papers with the Chaser Agent rubric.
    - Write `paper_cards.jsonl` and `weekly_digests/YYYY-WW.md`.
    - Mark `implement_now` as advisory only until eval foundation exists.
 

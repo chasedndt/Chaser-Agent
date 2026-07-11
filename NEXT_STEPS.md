@@ -1,5 +1,5 @@
 
-# Chaser agent Next Steps
+# Chaser Agent Next Steps
 
 ## Current state
 
@@ -33,6 +33,14 @@ Run it from the repo root:
 It writes a unique `logs/runs/source-card-.../` folder containing source-card, claims-table, evidence-snippet, uncertainty-label, action-candidate, memory-candidate, human-review-packet, and run-log JSON artifacts.
 
 The artifacts prove the local V0 shape only. They are deterministic and not LLM-powered. They remain review-only and do not promote memory, execute actions, call providers/APIs, activate runtime adapters/MCP/browser/computer-use, fine-tune models, mutate ChaseOS canonical truth, or claim production readiness.
+
+## Long-range Chaser Agent harness direction
+
+The orchestration/harness product is **Chaser Agent**—not “Chase Agent.” Its future role is the governed agent-harness plane connecting StrikeZone market intelligence, TradeSync simulation/ledger state, independent risk controls, specialist agents, and ChaseOS approvals/audit.
+
+This is a future architecture track, not current execution authority. The progression remains observation-only → structured candidates → paper/digital twin → shadow live → human-approved orders → bounded autonomy, with a separate operator-approved gate at every level.
+
+See [`docs/plans/2026-07-11-autonomous-trading-harness-direction.md`](docs/plans/2026-07-11-autonomous-trading-harness-direction.md). The immediate V0 pass remains Source Card Harness Review or Contract Eval Seeds.
 
 ## Not next anymore
 
