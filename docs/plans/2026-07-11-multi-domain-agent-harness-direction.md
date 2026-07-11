@@ -1,14 +1,18 @@
-# Chaser Agent — Autonomous Trading Harness Direction Plan
+# Chaser Agent — Multi-Domain Agent Harness Direction Plan
 
-**Status:** future architecture direction; Level 0 observation-only today
+**Status:** future multi-domain architecture direction; bounded review-first harness today
 
 **Governance owner:** ChaseOS
 
 **Harness/orchestration product:** **Chaser Agent** (not “Chase Agent”)
 
-## Naming correction
+## Naming and scope correction
 
 All architecture references must use **Chaser Agent** for the agent harness and orchestration layer. “Chase Agent” is not the product/runtime name.
+
+Chaser Agent is not primarily a trading agent. Trading is one governed skill/workflow family among many that Chaser Agent can learn to run through reusable skills, datasets, evals, workflow contracts, tools, and approval boundaries.
+
+Chaser Agent lives on the operator's computer as the personal multi-layer agent harness. Its long-range purpose is to coordinate many domain capabilities without collapsing them into one unrestricted agent.
 
 ## Current truth
 
@@ -16,18 +20,62 @@ Chaser Agent is currently a bounded, local-first, review-first source-intelligen
 
 The current StrikeZone evaluation substrate has only an initial genuine thesis/scenario cohort. That infrastructure produces future training/evaluation data, but it is not literal model training and must not trigger live strategy mutation.
 
+## Multi-domain skill and workflow model
+
+Chaser Agent should grow as a governed library of domain packs rather than as a single-purpose agent. Each pack should have its own:
+
+- skill and workflow contracts;
+- typed inputs, outputs, and artifacts;
+- source/tool allowlists;
+- datasets and evaluation fixtures;
+- failure taxonomy and observability;
+- approval and authority ceiling;
+- review cadence and rollback path;
+- training/fine-tuning decision gate when evidence eventually justifies it.
+
+Initial domain families include:
+
+### Social media growth and control
+
+Research, content strategy, drafting, scheduling proposals, channel analytics, audience/community workflows, brand consistency, and approval-gated publishing. Account mutation and public posting remain separately authorized capabilities.
+
+### Trading and market intelligence
+
+StrikeZone evidence/scenarios, normalized market signals, TradeSync paper/digital-twin state, independent risk controls, and disabled-by-default execution progression. This is one methodology/system pack, not Chaser Agent's primary identity.
+
+### Web and UI design
+
+Product research, information architecture, design systems, prototyping, implementation, accessibility, responsive QA, visual-completion evaluation, and approval-gated deployment.
+
+### Source intelligence and research
+
+The current Source Card Harness, claims/evidence separation, uncertainty, review packets, research intake, and governed memory candidates remain foundational cross-domain capabilities.
+
+### Future packs
+
+Additional personal, business, coding, operations, content, data, and computer-use workflows can be added only through the same skill/eval/authority discipline.
+
+The seed registry is maintained in [`2026-07-11-domain-skill-workflow-registry.md`](2026-07-11-domain-skill-workflow-registry.md).
+
 ## Long-range role
 
-Chaser Agent is the future orchestration and agent-harness plane connecting governed specialist lanes:
+Chaser Agent is the future multi-domain orchestration and agent-harness plane connecting governed specialist lanes. A trading workflow is one example:
 
 ```text
-market-data agents
-→ indicator/signal agents
-→ StrikeZone thesis/scenario agent
-→ independent risk agent
-→ simulation/paper-trading agent
-→ disabled-by-default execution agent
-→ review/evaluation agents
+Chaser Agent multi-domain harness
+├── source intelligence and research
+├── social media strategy and governed publishing
+├── web/UI design, implementation, and visual QA
+├── coding and software-delivery workflows
+├── personal/business operations
+└── trading and market-intelligence pack
+    ├── market-data agents
+    ├── indicator/signal agents
+    ├── StrikeZone thesis/scenario agent
+    ├── independent risk agent
+    ├── TradeSync simulation/paper-trading agent
+    ├── disabled-by-default execution agent
+    └── review/evaluation agents
 ```
 
 Chaser Agent should own:

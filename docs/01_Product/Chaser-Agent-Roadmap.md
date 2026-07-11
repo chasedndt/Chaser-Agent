@@ -186,16 +186,16 @@ This roadmap restarts the thinking order from Layer 0. Evals and implementation 
 
 **Out of scope:** training unless separately approved.
 
-## Phase 9 — Future autonomous-system harness direction
+## Phase 9 — Future multi-domain agent-harness direction
 
-**Purpose:** Define Chaser Agent as the governed orchestration/harness plane for future StrikeZone + TradeSync market, simulation, independent-risk, evaluation, and approval workflows.
+**Purpose:** Define Chaser Agent as the governed, computer-local, multi-domain orchestration harness. Trading is one skill/workflow family alongside source intelligence, social-media growth/control, web and UI design, coding, business operations, and future personal workflows.
 
-**Deliverables:** current repository/system map; normalized signal/thesis/candidate/order contracts; digital-twin integration plan; independent risk-engine contract; disabled-by-default execution-gateway levels; permission and audit model.
+**Deliverables:** multi-domain skill/workflow registry; current repository/system map; per-domain inputs/outputs/tools/datasets/evals/authority contracts; shared permission/audit model; and bounded domain plans. The trading pack additionally covers normalized signal/thesis/candidate/order contracts, TradeSync digital-twin integration, an independent risk-engine contract, and disabled-by-default execution levels.
 
-**Definition of done:** each authority level is separately operator-approved; fast market APIs remain separate from slow browser research; risk cannot be overridden by agent reasoning; evaluation loops cannot self-authorize; no live execution is implied by architecture or code existence.
+**Definition of done:** no domain pack becomes Chaser Agent's primary identity; each skill family has isolated authority and eval gates; each authority level is separately operator-approved; agent reasoning cannot override risk or governance; review loops cannot self-authorize; and implementation existence never implies live authority.
 
-**Out of scope:** current live orders, exchange/wallet credentials, self-training strategy mutation, public publishing, or production-autonomy claims.
+**Out of scope:** unrestricted multi-tool autonomy, current live orders, unapproved social publishing/account mutation, production deployment without approval, exchange/wallet credentials, silent self-training, canonical-memory mutation, or production-autonomy claims.
 
-**Plan:** [`docs/plans/2026-07-11-autonomous-trading-harness-direction.md`](../plans/2026-07-11-autonomous-trading-harness-direction.md)
+**Plan:** [`docs/plans/2026-07-11-multi-domain-agent-harness-direction.md`](../plans/2026-07-11-multi-domain-agent-harness-direction.md) · [`docs/plans/2026-07-11-domain-skill-workflow-registry.md`](../plans/2026-07-11-domain-skill-workflow-registry.md)
 
-**Current status:** future governed track. Immediate work remains bounded V0/eval/harness foundations.
+**Current status:** future governed multi-domain track. Immediate work remains bounded V0 source-intelligence, eval, skill, and harness foundations.

@@ -34,13 +34,15 @@ It writes a unique `logs/runs/source-card-.../` folder containing source-card, c
 
 The artifacts prove the local V0 shape only. They are deterministic and not LLM-powered. They remain review-only and do not promote memory, execute actions, call providers/APIs, activate runtime adapters/MCP/browser/computer-use, fine-tune models, mutate ChaseOS canonical truth, or claim production readiness.
 
-## Long-range Chaser Agent harness direction
+## Long-range Chaser Agent multi-domain harness direction
 
-The orchestration/harness product is **Chaser Agent**—not “Chase Agent.” Its future role is the governed agent-harness plane connecting StrikeZone market intelligence, TradeSync simulation/ledger state, independent risk controls, specialist agents, and ChaseOS approvals/audit.
+The orchestration/harness product is **Chaser Agent**—not “Chase Agent.” Chaser Agent is not primarily a trading agent. It is the governed, computer-local, multi-domain harness for reusable skills, workflows, datasets, evals, tools, and approval boundaries.
 
-This is a future architecture track, not current execution authority. The progression remains observation-only → structured candidates → paper/digital twin → shadow live → human-approved orders → bounded autonomy, with a separate operator-approved gate at every level.
+Trading/StrikeZone is one methodology pack alongside source intelligence, social-media growth/control, web and UI design, coding, business operations, and future personal workflows. Each domain must keep separate authority, evidence, evaluation, review, and rollback contracts.
 
-See [`docs/plans/2026-07-11-autonomous-trading-harness-direction.md`](docs/plans/2026-07-11-autonomous-trading-harness-direction.md). The immediate V0 pass remains Source Card Harness Review or Contract Eval Seeds.
+The overall progression is bounded source/review foundations → evaluated domain skills → governed workflow execution → separately approved higher-authority capabilities. Within the trading pack only, execution progression remains observation-only → structured candidates → paper/digital twin → shadow live → human-approved orders → bounded autonomy.
+
+See [`docs/plans/2026-07-11-multi-domain-agent-harness-direction.md`](docs/plans/2026-07-11-multi-domain-agent-harness-direction.md). The immediate V0 pass remains Source Card Harness Review or Contract Eval Seeds.
 
 ## Not next anymore
 
