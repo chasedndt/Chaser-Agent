@@ -1,4 +1,4 @@
-# Chaser agent Roadmap
+# Chaser Agent Roadmap
 
 This roadmap restarts the thinking order from Layer 0. Evals and implementation deepen only after expected behavior is defined.
 
@@ -185,3 +185,17 @@ This roadmap restarts the thinking order from Layer 0. Evals and implementation 
 **Definition of done:** operator can approve/reject fine-tuning based on evidence.
 
 **Out of scope:** training unless separately approved.
+
+## Phase 9 — Future autonomous-system harness direction
+
+**Purpose:** Define Chaser Agent as the governed orchestration/harness plane for future StrikeZone + TradeSync market, simulation, independent-risk, evaluation, and approval workflows.
+
+**Deliverables:** current repository/system map; normalized signal/thesis/candidate/order contracts; digital-twin integration plan; independent risk-engine contract; disabled-by-default execution-gateway levels; permission and audit model.
+
+**Definition of done:** each authority level is separately operator-approved; fast market APIs remain separate from slow browser research; risk cannot be overridden by agent reasoning; evaluation loops cannot self-authorize; no live execution is implied by architecture or code existence.
+
+**Out of scope:** current live orders, exchange/wallet credentials, self-training strategy mutation, public publishing, or production-autonomy claims.
+
+**Plan:** [`docs/plans/2026-07-11-autonomous-trading-harness-direction.md`](../plans/2026-07-11-autonomous-trading-harness-direction.md)
+
+**Current status:** future governed track. Immediate work remains bounded V0/eval/harness foundations.
