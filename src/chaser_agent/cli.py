@@ -26,6 +26,7 @@ from chaser_agent.skillgate import (
     utc_now_iso as skill_gate_utc_now_iso,
     write_skill_gate_run,
 )
+from chaser_agent.visual_completion import build_visual_eval_run
 
 
 def _repo_root() -> Path:
@@ -149,6 +150,20 @@ def run_chaseos_native_source_card_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_visual_eval_command(args: argparse.Namespace) -> int:
+    input_path = Path(args.input)
+    if not input_path.exists() or not input_path.is_file():
+        print(f"error: input file not found: {input_path}", file=sys.stderr)
+        return 2
+    try:
+        run_folder = build_visual_eval_run(input_path=input_path, out_root=Path(args.out))
+    except (json.JSONDecodeError, ValueError) as exc:
+        print(f"error: invalid visual eval input: {exc}", file=sys.stderr)
+        return 2
+    print(run_folder.as_posix())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="chaser-agent", description="Chaser agent local deterministic harness CLI")
     subparsers = parser.add_subparsers(dest="command")
@@ -198,6 +213,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Privacy class to stamp on artifacts; defaults to public_toy.",
     )
     chaseos_native.set_defaults(func=run_chaseos_native_source_card_command)
+
+    visual_eval = subparsers.add_parser(
+        "visual-eval",
+        help="Run deterministic review-only visual/computer-use completion evals over JSONL evidence cases.",
+    )
+    visual_eval.add_argument("--input", required=True, help="JSONL file of visual completion evidence cases.")
+    visual_eval.add_argument("--out", required=True, help="Output root directory for unique visual eval run folders.")
+    visual_eval.set_defaults(func=run_visual_eval_command)
     return parser
 
 
