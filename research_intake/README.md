@@ -14,7 +14,19 @@ Then inspect the generated `logs/runs/weekly-research-intake-dry-run-*/manifest.
 
 ## Phase 1B arXiv ingestion
 
-Phase 1B starts with bounded public arXiv ingestion only:
+Phase 1B starts with bounded public arXiv ingestion plus explicit configuration for public industry-practice sources. Industry links are research inputs only; they do not authorize browser automation, provider calls, paid access, MCP activation, monetization changes, or candidate implementation.
+
+### Industry-practice source queue
+
+`research_intake/sources.yaml` now includes `industry_practice_blogs` for public-web research sources such as Cloudflare. The first priority URL is:
+
+- https://blog.cloudflare.com/monetization-gateway/
+
+These sources should produce source cards / monetization-risk notes before any implementation. Any payment, x402, billing, wallet, stablecoin, MCP activation, customer-facing, or production action requires separate human approval.
+
+### arXiv ingestion
+
+Bounded public arXiv ingestion:
 
 Search API:
 

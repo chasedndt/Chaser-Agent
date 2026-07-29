@@ -40,6 +40,20 @@ def test_weekly_research_intake_active_cron_is_documented_in_configs():
     assert cron["proposed_jobs"]["weekly_research_intake_dry_run"]["activation_status"] == "active_bounded_phase_1a"
 
 
+def test_weekly_research_intake_includes_industry_practice_sources():
+    root = Path(__file__).resolve().parents[1]
+    sources = yaml.safe_load(root.joinpath("research_intake/sources.yaml").read_text(encoding="utf-8"))
+
+    industry = sources["sources"]["industry_practice_blogs"]
+    assert industry["enabled"] is True
+    assert industry["authority"] == "public_web_research_only"
+    assert industry["requires_human_review_for_monetization_or_payment_changes"] is True
+    assert any(source["name"] == "Cloudflare Blog" for source in industry["sources"])
+    cloudflare = next(source for source in industry["sources"] if source["name"] == "Cloudflare Blog")
+    assert "https://blog.cloudflare.com/" in cloudflare["url"]
+    assert "https://blog.cloudflare.com/monetization-gateway/" in cloudflare["priority_urls"]
+
+
 def test_weekly_research_intake_ranking_weights_sum_to_one():
     root = Path(__file__).resolve().parents[1]
     ranking = yaml.safe_load(root.joinpath("research_intake/ranking.yaml").read_text(encoding="utf-8"))

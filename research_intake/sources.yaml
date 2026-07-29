@@ -84,3 +84,27 @@ sources:
   lab_pages:
     enabled: false
     enable_after_phase: "phase_1c"
+  industry_practice_blogs:
+    enabled: true
+    authority: public_web_research_only
+    enable_after_phase: "phase_1b"
+    requires_human_review_for_monetization_or_payment_changes: true
+    sources:
+      - name: Cloudflare Blog
+        url: https://blog.cloudflare.com/
+        feed_url: https://blog.cloudflare.com/rss/
+        topics:
+          - ai agents
+          - monetization
+          - MCP tools
+          - x402
+          - bot management
+          - usage-based pricing
+        priority_urls:
+          - https://blog.cloudflare.com/monetization-gateway/
+      - name: Cloudflare AI and bots announcements
+        url: https://blog.cloudflare.com/tag/ai/
+        topics:
+          - AI crawler policy
+          - agent traffic
+          - content monetization
