@@ -36,12 +36,15 @@ The command writes a unique `logs/runs/chaseos-native-source-card-.../` folder c
 
 ## Allowed workflow stamps
 
-The CLI fail-closes to a small ChaseOS workflow allowlist:
+The CLI fail-closes to a small ChaseOS workflow allowlist, mirroring the active Hermes-family entries in the canonical ChaseOS workflow registry (`chaseos_obsidian/b/s/runtime/workflows/registry/`):
 
 - `hermes_review_execute`
-- `hermes_operator_today_shadow`
 - `hermes_watch`
-- `chaser_agent_review_packet`
+- `hermes_research_synthesis`
+- `hermes_skill_review`
+- `chaser_agent_review_packet` (Chaser Agent's own review lane, not a registry entry)
+
+`hermes_operator_today_shadow` was removed on 2026-08-02: it is deprecated in the canonical registry. `hermes_promote_note` is excluded while its registry status is `draft`.
 
 These are labels for review packet routing. They do not activate Hermes/OpenClaw, consume approvals, dispatch runtime actions, or mutate canonical docs.
 
