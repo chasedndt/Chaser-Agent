@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from chaser_agent.schemas import EvalCase, EvalResult, SourceInput
 from chaser_agent.summary.source_card import build_source_card
-from chaser_agent.evals.rubric import score_required_includes
+from chaser_agent.evals.rubric import find_forbidden_phrases, score_required_includes
 
 def read_jsonl(path: str | Path) -> list[dict]:
     rows=[]
@@ -26,10 +26,16 @@ def run_case(row: dict) -> EvalResult:
     card=build_source_card(source)
     output_text=" ".join([card.summary]+[c.text for c in card.claims])
     passed, score=score_required_includes(output_text, list(case.expected.get("must_include", [])))
+    notes="deterministic placeholder evaluation"
+    forbidden_hits=find_forbidden_phrases(output_text, list(case.expected.get("must_not_include", [])))
+    if forbidden_hits:
+        passed=False
+        score=0.0
+        notes=f"forbidden phrase(s) present in output: {', '.join(forbidden_hits)}"
     if case.expected.get("requires_uncertainty_label") and not card.uncertainty_labels:
         passed=False
         score=min(score,0.5)
-    return EvalResult(id=case.id, task=case.task, passed=passed, score=score, notes="deterministic placeholder evaluation", output={"summary": card.summary, "uncertainty_labels": card.uncertainty_labels})
+    return EvalResult(id=case.id, task=case.task, passed=passed, score=score, notes=notes, output={"summary": card.summary, "uncertainty_labels": card.uncertainty_labels})
 
 def run_jsonl_eval(input_path: str | Path, output_path: str | Path | None = None) -> list[EvalResult]:
     results=[run_case(row) for row in read_jsonl(input_path)]
