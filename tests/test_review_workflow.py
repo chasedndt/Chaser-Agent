@@ -8,6 +8,7 @@ import pytest
 
 from chaser_agent.cli import main
 from chaser_agent.governance.local import LocalGovernance
+from chaser_agent.memory.sqlite_store import SQLiteMemoryStore
 from chaser_agent.reviews.models import ReviewRecord
 from chaser_agent.reviews.service import artifact_hashes, create_review_record
 from chaser_agent.reviews.sqlite_store import DuplicateReviewError, SQLiteReviewStore
@@ -131,6 +132,8 @@ def test_review_cli_persists_record_without_promotion(tmp_path: Path, capsys):
     output = json.loads(capsys.readouterr().out)
     assert result == 0
     assert output["memory_promotion"] == "not_performed"
+    assert len(output["memory_records_created"]) == 1
+    assert SQLiteMemoryStore(database).get(output["memory_records_created"][0]).status == "reviewed"
     assert output["original_artifacts_unchanged"] is True
     assert len(SQLiteReviewStore(database).list_for_run("run-1")) == 1
     assert artifact_hashes(folder) == before

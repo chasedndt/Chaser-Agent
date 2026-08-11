@@ -31,11 +31,12 @@ class LocalGovernance:
         return bool(candidate) and candidate.get("promotion_status", "candidate_only") == "candidate_only"
 
     def can_memory_be_promoted(self, memory: Any, review: Any) -> bool:
+        candidate_id = getattr(memory, "metadata_json", {}).get("candidate_id", getattr(memory, "memory_id", None))
         return (
             getattr(memory, "status", None) == "reviewed"
             and getattr(review, "reviewer_id", None) == self.operator_id
             and getattr(review, "decision", None) == "pass"
-            and getattr(memory, "memory_id", None) in set(getattr(review, "accepted_memory_ids", ()))
+            and candidate_id in set(getattr(review, "accepted_memory_ids", ()))
         )
 
     def can_action_be_executed(self, action: Mapping[str, Any]) -> bool:

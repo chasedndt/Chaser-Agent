@@ -1,8 +1,16 @@
-MEMORY_STATES=["raw context","candidate memory","reviewed memory","promoted memory","stale memory","disputed memory","archived memory","rejected memory"]
+"""Compatibility helpers for the original scaffold memory API."""
+
+from chaser_agent.memory.lifecycle import VALID_TRANSITIONS
+from chaser_agent.memory.models import MEMORY_STATUSES
+
+MEMORY_STATES = list(MEMORY_STATUSES)
+
 
 def next_review_state(current: str) -> str:
-    if current == "raw context":
-        return "candidate memory"
-    if current == "candidate memory":
-        return "reviewed memory"
-    return current
+    compatibility = {"raw context": "candidate", "candidate memory": "reviewed"}
+    normalized = compatibility.get(current, current.replace(" memory", ""))
+    if normalized == "raw":
+        return "candidate"
+    if normalized == "candidate":
+        return "reviewed"
+    return normalized if normalized in VALID_TRANSITIONS else current
