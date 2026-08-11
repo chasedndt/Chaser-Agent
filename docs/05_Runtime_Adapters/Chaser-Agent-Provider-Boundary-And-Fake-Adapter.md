@@ -16,6 +16,8 @@ Secondary benefits: the deterministic test suite stays deterministic, free, and 
 
 **What a fake cannot tell you:** whether a model is any good at the task, real latency, real cost, or failure modes nobody thought to script. It de-risks the harness, not the intelligence. It is a prerequisite, not a substitute.
 
+Each of those three limits has since been narrowed as far as it can be without a live call — see [Narrowing the limits](#narrowing-the-limits) below. What remains is only the irreducible residue: real numbers require a real provider.
+
 ## The three-part boundary
 
 ```text
@@ -74,10 +76,44 @@ Model output is **untrusted input**. `quarantine_response()` classifies a reply 
 
 `tests/test_fake_provider_adapter.py` — 35 tests: envelope determinism, credential and privacy refusals, purpose allowlist, adapter determinism and request recording, every failure status proven unusable, and — parametrised across **every** hostile payload — proof that the governance fingerprint is unchanged, `review_status` stays `pending_review`, and `promotion_status` stays `not_promoted`.
 
+## Narrowing the limits
+
+### Limit 1 — failure modes nobody imagined
+
+**The problem with the first design:** `detect_governance_claims()` is pattern-based. A blacklist is enumerable, and an enumerable defence is always incomplete — the attack you did not imagine walks through it.
+
+**The patch: structural containment.** `MERGE_WRITABLE_KEYS` whitelists the only three keys any merge may create or change, anywhere in the artifact set: `model_inference_candidates`, `model_output_rejections`, `model_governance_claims_ignored`. `assert_only_whitelisted_changes()` performs a full recursive diff of the artifact tree before and after the merge and raises `GovernanceDrift` if a single change lands outside that whitelist — **including a field nobody has ever thought of**. Pattern detection is demoted to advisory labelling for the operator; containment no longer depends on it.
+
+**Plus randomised fuzzing.** `test_random_hostile_output_never_moves_governance` assembles 400 seeded-random payloads from hostile fragments, forged JSON, unicode direction overrides, null bytes, format-string and traversal strings, and empty input, then asserts the invariant holds for every one. Example-based tests cover attacks somebody imagined; a property-based test asserts the property itself.
+
+**Residue:** a novel attack could still produce *misleading candidate text* a human then believes. Containment stops it changing state; it cannot stop it being wrong. That is what human review is for.
+
+### Limit 2 — cost, latency, and rate limits
+
+**The patch: enforced ceilings, not estimates of trust.** `budget.py` adds a `BudgetPolicy` (prompt characters, output tokens, deadline, requests per run, projected cost) and a `BudgetLedger` that refuses a request *before it is sent* when a ceiling would break — verified by asserting `adapter.request_count == 0` after a refusal. `enforce_deadline()` converts a late reply into a `timeout` on the harness side, so a slow provider is never treated as a success just because bytes eventually arrived. Every call is recorded with estimated tokens, latency, and cost; the fake simulates latency and rate limiting so all of it is exercised now.
+
+Token counts use a ~4-characters-per-token heuristic and are labelled `token_counts_are_estimates: true` everywhere they surface.
+
+**Residue:** the real price, real speed, and real rate limits are unknown until a live call. But the ceiling machinery, the ledger, and the deadline enforcement already exist and are tested — the unknown is now a number to fill in, not a system to build.
+
+### Limit 3 — unknown model quality
+
+**The patch: calibrate the ruler before weighing the object.** `evals/comparison.py` scores a model-assisted run against its deterministic baseline: statement-level grounding against the source vocabulary, unsupported-statement counts, uncertainty preservation, governance-violation count, and a composite `quality_score`. Governance violations or unusable output force a score of zero — a hostile reply cannot score well by being eloquent.
+
+The calibration is the point: `test_ruler_ranks_known_quality_outputs_in_the_correct_order` scripts three outputs whose quality is *known in advance* — well-grounded, partly grounded, wholly fabricated — and requires the ruler to rank them in that order. Calibrating a scale with known weights is not the same as weighing an unknown object, but an uncalibrated scale makes the later weighing meaningless.
+
+**Residue:** whether a real model produces good analysis is genuinely unknowable until it is called. What is no longer unknown is whether we can *tell*.
+
+### Graceful degradation
+
+`assisted_review.py` builds the deterministic artifacts first and treats provider output as strictly additive. A refused envelope, a breached budget, a timeout, a refusal, or malformed output all leave the deterministic result standing, with `degraded: true` recorded. Degradation is structural, not error handling that might be forgotten.
+
 ## What is still out of scope
 
 No live provider, no credential handling, no network path, no provider router or fallback logic, no model-assisted Layer 7 wiring, no cost/latency budgeting, no LLM-as-judge scoring, no training. Activating a real provider is authority expansion under Layer 0 and needs explicit operator approval.
 
 ## Recommended next step
 
-Wire a model-assisted path through `general_source_review` using the fake, then build the deterministic-vs-model comparison harness on reviewed AI-engineering examples. Only once that comparison rig is proven does a live provider become a cheap, well-instrumented experiment.
+The model-assisted path and the comparison rig now exist and are calibrated. The remaining work before a live provider is a **dataset** question, not an engineering one: assemble reviewed AI-engineering research examples so the comparison runs on cases whose correct answer an operator has judged, and reach the coverage bar in the [Contract Eval Design](../02_Evals/Chaser-Agent-Contract-Eval-Design.md).
+
+Only then does activating a real provider become a cheap, well-instrumented experiment — with ceilings enforced, degradation graceful, containment structural, and a ruler already proven to rank quality correctly.
