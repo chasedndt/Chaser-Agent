@@ -122,6 +122,8 @@ This roadmap restarts the thinking order from Layer 0. Evals and implementation 
 
 **Out of scope:** broad benchmark claims.
 
+**Status:** PARTIAL. A deterministic artifact-field runner and one public-safe seed per initial Layer 0 family were implemented on 2026-08-08. The seeds are labelled `pending_operator_review`; one case per family is wiring proof, not coverage. Source-trust grading, per-instance packs, metamorphic cases, and the target of at least five reviewed cases per family remain unbuilt.
+
 ## Phase 3 — Source Summary Engine
 
 **Purpose:** Improve the source-summary loop with richer review packets.

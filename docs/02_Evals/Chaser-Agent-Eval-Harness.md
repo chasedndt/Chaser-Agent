@@ -19,7 +19,7 @@ They do **not** yet prove product-quality Chaser agent behavior.
 |---|---|---|
 | Smoke test | Does the command/import/file parse? | Active. |
 | Schema check | Does output have required fields? | Active/starter. |
-| Contract eval | Does output obey Layer 0 behavior? | Next after V0 loop is implemented. |
+| Contract eval | Does output obey Layer 0 behavior? | PARTIAL: deterministic runner + six pending-review seeds. |
 | Product-quality eval | Does it help a human operator in realistic work? | Later, human-reviewed. |
 | Training eval | Can it guide model training/fine-tuning? | Not active. |
 
@@ -41,4 +41,4 @@ Future contract evals should test whether Chaser agent:
 
 ## Current next step
 
-Do not deepen eval implementation again until Layer 0 and V0 source-summary behavior are locked. The next implementation pass should be Source Card Harness V0, followed by contract evals.
+Review the six contract seeds with the operator, then expand each family from one wiring case toward at least five reviewed cases. Add regression and metamorphic cases before claiming family coverage. Do not add provider, browser, tool, or runtime authority as part of that work.

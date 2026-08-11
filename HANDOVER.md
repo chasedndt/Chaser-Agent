@@ -3,11 +3,11 @@
 
 ## Current phase
 
-Source Card Harness V0 implemented. The repo is ready for **Source Card Harness Review** or **Contract Eval Seeds**.
+Source Card Harness V0 is implemented. Phase 2 is now **PARTIAL**: the deterministic contract assertion runner and six public-safe Layer 0 seeds are implemented, but the seed labels remain pending operator review.
 
 ## Branch
 
-`main`
+`codex/2026-08-08-chaseos-instance-eval-continuation`
 
 ## Repo path
 
@@ -60,6 +60,16 @@ The command prints a unique run folder under `logs/runs/` with `source_card.json
 
 Detailed pass record: `logs/build/2026-06-09-source-card-harness-v0.md`.
 
+Contract eval command:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m chaser_agent.cli contract-eval \
+  --input evals/datasets/contract/layer0_contract_seed.jsonl \
+  --out logs/runs/contract-eval-results.jsonl
+```
+
+This runs the real artifact builder in memory and emits Layer 0 clause plus assertion-level detail. The six current cases are one-per-family wiring seeds, not reviewed coverage.
+
 ## Starter artifacts
 
 The Excel research/eval register and pack manifest remain on `main` under:
@@ -79,4 +89,4 @@ It was not applied or deleted during the V0 Blueprint Pass. It needs a future st
 
 ## Next recommended pass
 
-**Source Card Harness Review** or **Contract Eval Seeds.** Review the deterministic Source Card Harness V0 artifacts first, then seed contract evals from that behavior. Do not start eval harness v0.2, fine-tuning, provider calls, broad adapters, MCP tooling, browser runtime, private datasets, or ChaseOS canonical mutation before the harness output has been reviewed.
+**Operator review of the six contract seeds**, followed by bounded expansion toward at least five reviewed cases per family. Then add regression and metamorphic cases. Source-trust grading from the instance-eval thesis remains a separate proposed pass. Do not start fine-tuning, provider calls, broad adapters, MCP tooling, browser runtime, private datasets, or ChaseOS canonical mutation.

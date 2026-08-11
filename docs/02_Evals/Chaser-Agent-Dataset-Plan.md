@@ -4,6 +4,8 @@
 
 Existing `evals/datasets/golden/*.jsonl` files are safe starter examples and smoke/schema data. They are not yet product-quality eval datasets because Layer 0 and V0 behavior are only now being defined.
 
+`evals/datasets/contract/layer0_contract_seed.jsonl` now contains one executable public-safe case for each of the six initial Layer 0 contract families. These are Codex-authored wiring seeds with `human_review_required: true` and `provenance.review_status: pending_operator_review`; they are not operator-reviewed golden data and do not establish coverage.
+
 ## JSONL explanation
 
 JSONL stores one JSON object per line. It is good for examples, result logs, regression rows, review data, and future training candidates. JSONL is a format, not proof.

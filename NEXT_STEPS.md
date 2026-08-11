@@ -42,11 +42,11 @@ Trading/StrikeZone is one methodology pack alongside source intelligence, social
 
 The overall progression is bounded source/review foundations → evaluated domain skills → governed workflow execution → separately approved higher-authority capabilities. Within the trading pack only, execution progression remains observation-only → structured candidates → paper/digital twin → shadow live → human-approved orders → bounded autonomy.
 
-See [`docs/plans/2026-07-11-multi-domain-agent-harness-direction.md`](docs/plans/2026-07-11-multi-domain-agent-harness-direction.md). The immediate V0 pass remains Source Card Harness Review or Contract Eval Seeds.
+See [`docs/plans/2026-07-11-multi-domain-agent-harness-direction.md`](docs/plans/2026-07-11-multi-domain-agent-harness-direction.md). The Source Card Harness is implemented and the first Contract Eval Seeds now exist. The immediate pass is operator review of those six seeds, then bounded family expansion.
 
-## Not next anymore
+## Current Phase 2 boundary
 
-Eval harness v0.2 is not the immediate next step. The next pass after Source Card Harness V0 should be **Source Card Harness Review** or **Contract Eval Seeds**, using the generated artifacts as the first shape proof.
+The artifact assertion runner and one public-safe seed per initial Layer 0 family are implemented. The seeds remain `pending_operator_review`, so they prove wiring only. Next: review their labels and expected behavior, then grow each family toward at least five reviewed cases and add regression/metamorphic variants. Do not describe one seed per family as coverage.
 
 ## Not now
 

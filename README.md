@@ -49,7 +49,7 @@ The output is intentionally review-only. It does not call an LLM provider, brows
 
 ## Current status
 
-Current work has completed **Phase 1 — Source Card Harness V0**.
+Current work has completed **Phase 1 — Source Card Harness V0** and has a **PARTIAL Phase 2 — Contract Eval seed** awaiting operator review.
 
 What exists now:
 
@@ -57,10 +57,12 @@ What exists now:
 - V0 Definition and Blueprint defining the first useful source-intelligence loop;
 - a deterministic local Source Card Harness V0 under `src/chaser_agent/`;
 - schema/smoke JSONL datasets under `evals/datasets/golden/`;
+- a deterministic artifact-field contract runner under `src/chaser_agent/evals/contract_runner.py`;
+- six public-safe Layer 0 contract seeds under `evals/datasets/contract/`, all explicitly marked `pending_operator_review`;
 - tests that verify the local harness and contract-shaped outputs;
 - review-only run artifacts under `logs/runs/<run_id>/` when the harness is executed.
 
-What this means: Chaser Agent can already run a local toy source through the V0 source-card loop and produce structured review artifacts. It is still a bounded harness foundation, not a live autonomous runtime.
+What this means: Chaser Agent can run a local toy source through the V0 source-card loop, produce structured review artifacts, and deterministically test their governance fields. One case per initial contract family is a seed, not coverage. The repo is still a bounded harness foundation, not a live autonomous runtime.
 
 ## Core capabilities
 
@@ -127,6 +129,16 @@ From the repo root:
 .venv/bin/python -m scripts.validate_jsonl evals/datasets/golden/*.jsonl
 PYTHONPATH=. .venv/bin/python -m pytest -q
 ```
+
+Run the public-safe Layer 0 contract seed:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m chaser_agent.cli contract-eval \
+  --input evals/datasets/contract/layer0_contract_seed.jsonl \
+  --out logs/runs/contract-eval-results.jsonl
+```
+
+The command executes the real deterministic source-card artifact builder in memory, resolves field assertions such as `artifact.json:path.to.items[*]`, and emits assertion-level JSONL results. It does not call providers, browse, activate adapters, consume approvals, or promote memory. The six cases require operator review before they can be described as reviewed golden data.
 
 ## Weekly research-upgrade workflow
 

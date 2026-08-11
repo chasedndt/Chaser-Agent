@@ -13,6 +13,7 @@ from chaser_agent.chaseos_native import (
     validate_chaseos_workflow,
     write_chaseos_native_run,
 )
+from chaser_agent.evals.contract_runner import run_contract_jsonl_eval
 from chaser_agent.run_artifacts import build_run_log, write_artifact_set
 from chaser_agent.source_card import (
     build_source_card_artifacts,
@@ -164,6 +165,21 @@ def run_visual_eval_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_contract_eval_command(args: argparse.Namespace) -> int:
+    input_path = Path(args.input)
+    if not input_path.exists() or not input_path.is_file():
+        print(f"error: input file not found: {input_path}", file=sys.stderr)
+        return 2
+    output_path = Path(args.out)
+    try:
+        results = run_contract_jsonl_eval(input_path, output_path, repo_root=_repo_root())
+    except (json.JSONDecodeError, ValueError) as exc:
+        print(f"error: invalid contract eval input: {exc}", file=sys.stderr)
+        return 2
+    print(output_path.as_posix())
+    return 0 if all(result.passed for result in results) else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="chaser-agent", description="Chaser agent local deterministic harness CLI")
     subparsers = parser.add_subparsers(dest="command")
@@ -221,6 +237,14 @@ def build_parser() -> argparse.ArgumentParser:
     visual_eval.add_argument("--input", required=True, help="JSONL file of visual completion evidence cases.")
     visual_eval.add_argument("--out", required=True, help="Output root directory for unique visual eval run folders.")
     visual_eval.set_defaults(func=run_visual_eval_command)
+
+    contract_eval = subparsers.add_parser(
+        "contract-eval",
+        help="Run deterministic Layer 0 artifact assertions over public-safe contract cases.",
+    )
+    contract_eval.add_argument("--input", required=True, help="JSONL file of Layer 0 contract cases.")
+    contract_eval.add_argument("--out", required=True, help="JSONL destination for assertion-level eval results.")
+    contract_eval.set_defaults(func=run_contract_eval_command)
     return parser
 
 
