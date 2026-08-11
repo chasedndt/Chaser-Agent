@@ -11,7 +11,7 @@
 7. `01_Product/Chaser-Agent-Roadmap.md`
 8. `01_Product/Chaser-Agent-17-Layer-Architecture.md`
 
-## Implementation and review order
+## Implemented P0.1 review order
 
 1. domain-neutral source review and profiles;
 2. immutable operator review;
@@ -20,6 +20,8 @@
 5. knowledge-map provenance;
 6. exact test-matrix visibility;
 7. optional inactive ChaseOS integration.
+
+All seven surfaces are implemented on `codex/standalone-first-memory-realignment` and covered by the current 55-test suite. They remain pre-alpha review-branch work pending operator acceptance and merge.
 
 ## Truth boundary
 

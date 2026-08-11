@@ -37,35 +37,29 @@ See:
 
 ## Current maturity
 
-Chaser agent is a **P0 / pre-alpha deterministic harness foundation** with an approved P0.1 redesign under review.
+Chaser agent is a **P0.1 / pre-alpha standalone deterministic harness** on the review branch. The implementation is locally verified but not merged or released; promotion terminology and operator acceptance remain open.
 
-Verified before P0.1 implementation:
+Verified P0.1 implementation:
 
-- deterministic local Source Card Harness V0;
+- domain-neutral deterministic Source Card Harness with explicit workflow profiles;
 - source card, claims, evidence, uncertainty, action, memory-candidate, review-packet, and run-log artifacts;
-- optional ChaseOS-shaped review packet with no dispatch;
+- immutable human-review records in SQLite;
+- accepted/rejected memory-candidate writeback with append-only lifecycle history;
+- governance-gated local promotion and audit records;
+- lexical, scope, type, tag, status, and recency memory retrieval without embeddings;
+- SQLite provenance nodes, edges, and source-to-memory trace queries;
+- optional inactive ChaseOS proposal adapter with no dispatch;
 - artifact-field Layer 0 contract runner;
 - six public-safe contract seeds, all `pending_operator_review`;
 - bounded SkillGate;
 - metadata-only visual-completion evaluator;
 - explicit public arXiv ingestion and separate config-only weekly research dry run;
-- 33 deterministic tests;
+- 55 deterministic tests;
 - seven golden JSONL files with three rows each;
-- one six-row Layer 0 contract seed file.
+- one six-row Layer 0 contract seed file;
+- generated [current test matrix](docs/02_Evals/Chaser-Agent-Current-Test-Matrix.md) with exact values and honest maturity labels.
 
-P0.1 approved target:
-
-- domain-neutral source-review core;
-- explicit workflow profiles;
-- immutable local operator-review records;
-- standalone local governance;
-- SQLite memory lifecycle outside the repository;
-- lexical/tag retrieval without embeddings;
-- provenance-first SQLite knowledge map;
-- optional inactive ChaseOS adapter;
-- exact test-matrix export.
-
-P0.1 implementation status must be taken from the current branch/build log, not inferred from this target list.
+The test count proves the current deterministic contracts, not product-quality intelligence. The six Layer 0 cases remain wiring seeds pending operator review.
 
 ## Core utility
 
@@ -138,8 +132,25 @@ Run the deterministic source-review path:
 ```bash
 .venv/bin/python -m chaser_agent.cli source-card \
   --input examples/sources/toy_website_design_note.md \
-  --out logs/runs
+  --out logs/runs \
+  --profile website_design_review
 ```
+
+Persist a human review into an explicit local database without modifying the run folder:
+
+```bash
+.venv/bin/python -m chaser_agent.cli review logs/runs/<run-id> \
+  --database /safe/local/path/chaser-agent.db \
+  --reviewer-id <local-operator-id> \
+  --source-fidelity-score 3 \
+  --inference-separation-score 3 \
+  --uncertainty-handling-score 2 \
+  --action-usefulness-score 2 \
+  --memory-safety-score 3 \
+  --decision pass
+```
+
+The default database is `~/.chaser-agent/chaser-agent.db`. Review may create reviewed/rejected memory records for explicitly selected candidate IDs, but it never promotes them.
 
 Run the Layer 0 contract seed:
 

@@ -4,20 +4,15 @@
 
 Chaser agent is standalone-first, local-first, open-source, domain-neutral, and human-governed. ChaseOS is an optional enhancement through adapters rather than a dependency of the core.
 
-## Active P0.1 pass
+## Active P0.1 acceptance pass
 
-Build and prove, in order:
+The standalone foundations are implemented and locally verified on the review branch. Before any new authority or model work:
 
-1. protocol boundaries for governance, reviews, memory, knowledge, and profiles;
-2. domain-neutral deterministic source review;
-3. `general_source_review`, `ai_engineering_research_review`, and `website_design_review` profile isolation;
-4. immutable human-review persistence;
-5. standalone local governance with no external side effects;
-6. SQLite memory lifecycle outside the repository;
-7. lexical/tag retrieval without embeddings;
-8. provenance-first SQLite knowledge map;
-9. optional inactive ChaseOS packet adapter;
-10. exact current test-matrix export.
+1. inspect a real local review record, reviewed/rejected memory history, and provenance trace;
+2. accept or revise the proposed review threshold and durable-state terminology;
+3. decide the first official domain pack and profile-discovery direction;
+4. add human-reviewed product-quality cases beyond the six contract wiring seeds;
+5. decide export/deletion and retention semantics before exposing management commands.
 
 ## Operator gates
 
@@ -43,4 +38,4 @@ See `docs/01_Product/Chaser-Agent-P0.1-Open-Decisions.md`.
 
 ## Later bounded pass
 
-After operator review of P0.1, the likely next pass is a provider-neutral fake adapter plus reviewed AI-engineering examples and a first product-quality eval set. Do not start it automatically.
+After operator acceptance of P0.1, the likely next pass is a provider-neutral fake adapter plus reviewed AI-engineering examples and a first product-quality eval set. Do not start it automatically.

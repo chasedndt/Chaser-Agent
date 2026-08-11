@@ -124,7 +124,7 @@ This roadmap follows Layer 0 and the approved standalone-first product direction
 
 **Status:** PARTIAL. A deterministic artifact-field runner and one public-safe seed per initial Layer 0 family were implemented on 2026-08-08. The seeds are labelled `pending_operator_review`; one case per family is wiring proof, not coverage. Source-trust grading, per-instance packs, metamorphic cases, and the target of at least five reviewed cases per family remain unbuilt.
 
-## Active P0.1 — Standalone Core, Review, Memory, and Knowledge Foundations
+## P0.1 — Standalone Core, Review, Memory, and Knowledge Foundations
 
 **Purpose:** Make the open-source core independently useful without ChaseOS while preserving human governance and deterministic auditability.
 
@@ -145,7 +145,7 @@ This roadmap follows Layer 0 and the approved standalone-first product direction
 
 **Out of scope:** FastAPI/UI, live providers/models, RAG embeddings/vector databases, MCP/tools/browser execution, autonomous loops, public actions, credentials, ChaseOS Gate consumption, and training.
 
-**Status:** APPROVED target under implementation on `codex/standalone-first-memory-realignment`. Do not infer completion without the linked code/tests/build log.
+**Status:** IMPLEMENTED AND LOCALLY VERIFIED on `codex/standalone-first-memory-realignment`: 55 tests pass and all 27 public JSONL rows validate. Operator acceptance, merge, release, product-quality eval depth, threshold terminology, and lifecycle-policy decisions remain open.
 
 ## Phase 3 — Model-Assisted Source Intelligence
 

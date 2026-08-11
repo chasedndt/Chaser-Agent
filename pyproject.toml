@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "chaser-agent"
 version = "0.1.0"
-description = "Scaffold for Chaser agent: governed source intelligence and eval harness."
+description = "Standalone-first governed source review, memory, provenance, and eval harness."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"

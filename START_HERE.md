@@ -16,14 +16,17 @@ Chaser agent is standalone-first and ChaseOS-enhanced. Read the product definiti
 10. `docs/01_Product/Chaser-Agent-17-Layer-Architecture.md`
 11. `docs/03_Summary_Intelligence/Chaser-Agent-V0-Source-Card-Schema.md`
 12. `docs/02_Evals/Chaser-Agent-V0-Human-Review-Packet.md`
-13. `docs/08_Learning/AI-Engineering-Learning-Map.md`
+13. `docs/02_Evals/Chaser-Agent-Current-Test-Matrix.md`
+14. `docs/08_Learning/AI-Engineering-Learning-Map.md`
 
 ## Current truth
 
 - The deterministic Source Card Harness exists.
 - The six-family Layer 0 contract seed exists locally and remains pending operator review.
-- The current default builder is not yet domain-neutral until the P0.1 profile migration is verified.
-- Standalone review persistence, governed local memory, and a provenance map are approved P0.1 work, not capabilities to infer without code/tests.
+- The canonical builder is domain-neutral by default and domain behavior is isolated in three explicit profiles.
+- Immutable review persistence, append-only governed memory, lexical/tag retrieval, and the provenance map are implemented locally in SQLite.
+- Review writes accepted/rejected candidate state but does not promote memory; promotion remains a separate governance operation.
+- The current suite has 55 passing deterministic tests and the exact 27-row seed matrix is exported for inspection.
 - ChaseOS integration is optional and inactive by default.
 - Providers, tools, MCP, browsers, FastAPI, embeddings, autonomous loops, and training remain outside P0.1.
 
@@ -42,4 +45,4 @@ P0.1 redesign work is reviewed on:
 codex/standalone-first-memory-realignment
 ```
 
-Do not infer that review-branch work is merged or released.
+Do not infer that review-branch work is merged, released, or operator-accepted.

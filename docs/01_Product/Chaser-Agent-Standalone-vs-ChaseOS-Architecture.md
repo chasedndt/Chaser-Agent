@@ -1,6 +1,6 @@
 # Chaser agent Standalone and ChaseOS-Integrated Architecture
 
-**Status:** APPROVED P0.1 architecture; implementation tracked on `codex/standalone-first-memory-realignment`.
+**Status:** IMPLEMENTED AND LOCALLY VERIFIED on `codex/standalone-first-memory-realignment`; operator acceptance and merge remain open.
 
 ## Product rule
 
@@ -64,7 +64,8 @@ core -> browser runtime
 
 ```text
 src/chaser_agent/
-  core/             domain-neutral review models and deterministic extraction
+  core/             dependency protocols with no ChaseOS import
+  source_card.py    canonical domain-neutral deterministic builder
   workflows/        non-authorising workflow profiles
   governance/       protocol plus standalone local policy
   reviews/          immutable operator-review records
@@ -102,13 +103,13 @@ Original run artifacts are immutable. Reviews, feedback, promotion, staleness, d
 
 | Surface | P0.1 status |
 |---|---|
-| Deterministic source review | Implement in core |
-| Local human review persistence | Implement |
-| Local governance | Implement without side effects |
-| Local memory lifecycle | Implement with SQLite |
-| Local knowledge map | Implement with SQLite |
-| Lexical/tag retrieval | Implement; no embeddings |
-| ChaseOS packet conversion | Implement as optional inactive adapter |
+| Deterministic source review | IMPLEMENTED: canonical builder plus three profiles |
+| Local human review persistence | IMPLEMENTED: immutable insert-only SQLite records |
+| Local governance | IMPLEMENTED: no external action authority |
+| Local memory lifecycle | IMPLEMENTED: append-only SQLite versions and transition validation |
+| Local knowledge map | IMPLEMENTED: SQLite nodes, edges, and provenance queries |
+| Lexical/tag retrieval | IMPLEMENTED: no embeddings |
+| ChaseOS packet conversion | IMPLEMENTED: optional inactive adapter; no dispatch |
 | ChaseOS Gate consumption | NOT ACTIVE |
 | Providers, tools, MCP, browser, autonomous loop | NOT BUILT / forbidden in P0.1 |
 

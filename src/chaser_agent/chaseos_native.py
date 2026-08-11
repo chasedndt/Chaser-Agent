@@ -10,7 +10,7 @@ from chaser_agent.source_card import PROMOTION_WARNING
 
 # Mirrors the active Hermes-family entries in the canonical ChaseOS workflow
 # registry (chaseos_obsidian/b/s/runtime/workflows/registry/*.yaml), plus the
-# Chaser Agent review lane. Deprecated registry entries must not appear here.
+# Chaser agent review lane. Deprecated registry entries must not appear here.
 ALLOWED_CHASEOS_WORKFLOWS = {
     "hermes_review_execute",
     "hermes_watch",
@@ -116,7 +116,7 @@ def build_operator_handoff(packet: dict[str, Any]) -> str:
     artifact_paths = packet["artifact_paths"]
     authority = packet["authority"]
     blocked = "\n".join(f"- {item}" for item in packet["blocked_actions"])
-    return f"""# Chaser Agent ChaseOS-Native Source Card Handoff
+    return f"""# Chaser agent ChaseOS-Native Source Card Handoff
 
 Runtime lane: `{packet['runtime_lane']}`
 Workflow: `{packet['workflow']}`
@@ -125,7 +125,7 @@ Graph links: {links}
 
 ## Verdict
 
-`pending_operator_review` — Chaser Agent produced a ChaseOS-native review packet, not canonical truth.
+`pending_operator_review` — Chaser agent produced a ChaseOS-native review packet, not canonical truth.
 
 ## Source
 
@@ -191,7 +191,7 @@ def build_chaseos_native_run_log(
         "approval_consumed": False,
         "canonical_mutation_performed": False,
         "review_required": True,
-        "notes": "Deterministic local ChaseOS-native Chaser Agent review packet. No external authority activated.",
+        "notes": "Deterministic local ChaseOS-native Chaser agent review packet. No external authority activated.",
     }
 
 

@@ -22,6 +22,18 @@ The repo should integrate LLM foundations from the beginning, but not by jumping
 | 14. Runtime governance | Permission boundaries, audit, approval, trust tiers, failure handling. | Keeps adapters from collapsing boundaries across shell, browser, filesystem, credentials, SaaS, and persistent state. | Hermes/OpenClaw adapter experiments later. | Write a blocked-action reason for a forbidden tool call. |
 | 15. PEFT / LoRA / fine-tuning later | Training or adapting model behavior. | Only useful after reviewed data exists. | Future fine-tuning decision. | Explain why one reviewed example is not enough to train. |
 
+## P0.1 implementation checkpoint
+
+The current branch turns several learning topics into executable examples:
+
+- protocols and dependency inversion: `core/protocols.py`;
+- finite-state transitions: `memory/lifecycle.py`;
+- relational database constraints and append-only history: `reviews/sqlite_store.py` and `memory/sqlite_store.py`;
+- graph identity and traversal: `knowledge/models.py` and `knowledge/sqlite_store.py`;
+- evaluation maturity: `scripts/export_test_matrix.py` and the generated current matrix.
+
+These are deterministic foundations. They teach how to preserve evidence, human authority, and provenance before introducing probabilistic model behavior.
+
 ## MCP stays later
 
 MCP should remain a later topic. It can expose useful resources/tools/prompts, but it does not replace product definition, domain logic, eval design, trust boundaries, or review discipline. Chaser agent should learn MCP after Layer 0, V0 behavior, source-card artifacts, and contract eval concepts are understood.

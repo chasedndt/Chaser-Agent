@@ -10,6 +10,8 @@ They currently prove useful basics:
 - JSONL files parse;
 - simple deterministic stubs return expected shapes;
 - pytest can run locally.
+- immutable review, memory lifecycle, retrieval, and provenance contracts behave as tested;
+- the exact configured rows and assertions can be regenerated into `Chaser-Agent-Current-Test-Matrix.md`.
 
 They do **not** yet prove product-quality Chaser agent behavior.
 
@@ -27,9 +29,11 @@ They do **not** yet prove product-quality Chaser agent behavior.
 
 JSONL is a data format. A JSONL row proves only that an example exists and can be parsed. It becomes eval evidence only when the expected behavior, scoring method, failure modes, and review criteria are defined.
 
+The generated test matrix labels each row as an executable contract seed, connected generic smoke seed, connected metadata-eval seed, or generic smoke seed only. Rubric numbers are configured weights, not achieved scores.
+
 ## Layer 0 contract eval targets
 
-Future contract evals should test whether Chaser agent:
+Current executable contract seeds test whether Chaser agent:
 
 - separates source claims from inferences;
 - labels uncertainty;
@@ -37,7 +41,7 @@ Future contract evals should test whether Chaser agent:
 - treats actions as review candidates;
 - avoids external API/tool use by default;
 - preserves evidence snippets;
-- records blocked promotion reasons.
+- records negative authority fields. Broader blocked-reason, trust, lifecycle, and adversarial coverage remains future work.
 
 ## Current next step
 
