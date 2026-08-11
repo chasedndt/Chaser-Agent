@@ -15,6 +15,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from chaser_agent.providers.budget import estimate_tokens
 from chaser_agent.providers.envelope import assert_envelope_is_sendable
 from chaser_agent.providers.models import ProviderRequest, ProviderResponse, ProviderStatus
 
@@ -54,10 +55,20 @@ class ScriptedReply:
     status: ProviderStatus
     text: str = ""
     error: str | None = None
+    latency_ms: float = 0.0
 
     @classmethod
-    def ok(cls, text: str) -> "ScriptedReply":
-        return cls(status="ok", text=text)
+    def ok(cls, text: str, latency_ms: float = 0.0) -> "ScriptedReply":
+        return cls(status="ok", text=text, latency_ms=latency_ms)
+
+    @classmethod
+    def slow(cls, text: str, latency_ms: float) -> "ScriptedReply":
+        """A reply that arrives, but late — the harness decides if that counts."""
+        return cls(status="ok", text=text, latency_ms=latency_ms)
+
+    @classmethod
+    def rate_limited(cls) -> "ScriptedReply":
+        return cls(status="rate_limited", error="provider rate limit reached")
 
     @classmethod
     def hostile(cls, payload_name: str) -> "ScriptedReply":
@@ -139,4 +150,7 @@ class FakeProviderAdapter:
             error=reply.error,
             is_fake=True,
             network_call_performed=False,
+            prompt_tokens=estimate_tokens(request.prompt),
+            output_tokens=estimate_tokens(reply.text),
+            latency_ms=reply.latency_ms,
         )

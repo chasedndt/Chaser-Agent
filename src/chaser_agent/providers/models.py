@@ -7,8 +7,16 @@ import json
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
-ProviderStatus = Literal["ok", "refused", "timeout", "malformed", "truncated", "error"]
-PROVIDER_STATUSES: tuple[ProviderStatus, ...] = ("ok", "refused", "timeout", "malformed", "truncated", "error")
+ProviderStatus = Literal["ok", "refused", "timeout", "malformed", "truncated", "error", "rate_limited"]
+PROVIDER_STATUSES: tuple[ProviderStatus, ...] = (
+    "ok",
+    "refused",
+    "timeout",
+    "malformed",
+    "truncated",
+    "error",
+    "rate_limited",
+)
 
 # Least authority: a provider may only be asked to analyse. There is deliberately
 # no purpose for executing an action, promoting memory, approving work, or
@@ -74,6 +82,11 @@ class ProviderResponse:
     error: str | None = None
     is_fake: bool = True
     network_call_performed: bool = False
+    # Usage is reported by the adapter so cost and latency accounting exists
+    # before any live provider does. For the fake these are simulated values.
+    prompt_tokens: int = 0
+    output_tokens: int = 0
+    latency_ms: float = 0.0
 
     def __post_init__(self) -> None:
         if self.status not in PROVIDER_STATUSES:
