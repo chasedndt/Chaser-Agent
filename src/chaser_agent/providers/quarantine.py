@@ -115,6 +115,57 @@ class GovernanceDrift(Exception):
     """Raised if merging model output would change a governance field."""
 
 
+# The only keys the merge may create or change, anywhere in the artifact set.
+# This is a whitelist by design. Pattern detection (above) is enumerable and
+# therefore always incomplete — a hostile output nobody imagined slips through a
+# blacklist. Structural containment does not depend on imagining the attack: if
+# a change lands outside these keys, the merge fails regardless of its content.
+MERGE_WRITABLE_KEYS: frozenset[str] = frozenset(
+    {
+        "model_inference_candidates",
+        "model_output_rejections",
+        "model_governance_claims_ignored",
+    }
+)
+
+
+def _changed_paths(before: Any, after: Any, prefix: str = "") -> list[str]:
+    """Return dotted paths whose value differs between two artifact trees."""
+    if isinstance(before, dict) and isinstance(after, dict):
+        changes: list[str] = []
+        for key in sorted(set(before) | set(after)):
+            path = f"{prefix}.{key}" if prefix else str(key)
+            if key not in before or key not in after:
+                changes.append(path)
+            else:
+                changes.extend(_changed_paths(before[key], after[key], path))
+        return changes
+    if isinstance(before, list) and isinstance(after, list):
+        if len(before) != len(after):
+            return [prefix]
+        changes = []
+        for index, (old, new) in enumerate(zip(before, after)):
+            changes.extend(_changed_paths(old, new, f"{prefix}[{index}]"))
+        return changes
+    return [] if before == after else [prefix]
+
+
+def assert_only_whitelisted_changes(before: dict[str, Any], after: dict[str, Any]) -> list[str]:
+    """Fail unless every change lands on a whitelisted key.
+
+    Complete containment: this holds for any model output whatsoever, including
+    failure modes that were never anticipated or scripted.
+    """
+    offending: list[str] = []
+    for path in _changed_paths(before, after):
+        segments = [segment.split("[")[0] for segment in path.split(".")]
+        if not any(segment in MERGE_WRITABLE_KEYS for segment in segments):
+            offending.append(path)
+    if offending:
+        raise GovernanceDrift(f"model merge changed non-whitelisted paths: {', '.join(sorted(offending))}")
+    return _changed_paths(before, after)
+
+
 def apply_model_candidates(artifacts: dict[str, Any], outcome: ProviderOutcome) -> dict[str, Any]:
     """Return new artifacts with model output added as a quarantined candidate.
 
@@ -150,4 +201,7 @@ def apply_model_candidates(artifacts: dict[str, Any], outcome: ProviderOutcome) 
     after = governance_fingerprint(merged)
     if before != after:
         raise GovernanceDrift(f"model output changed governance fields: {before!r} -> {after!r}")
+    # Complete structural check: nothing outside the writable whitelist moved,
+    # in any artifact, for any output — imagined or not.
+    assert_only_whitelisted_changes(artifacts, merged)
     return merged
