@@ -19,6 +19,8 @@ from chaser_agent.reviews.service import artifact_hashes, create_review_record
 from chaser_agent.reviews.sqlite_store import SQLiteReviewStore
 from chaser_agent.memory.service import reviewed_memories_from_review
 from chaser_agent.memory.sqlite_store import SQLiteMemoryStore
+from chaser_agent.knowledge.service import index_reviewed_run
+from chaser_agent.knowledge.sqlite_store import SQLiteKnowledgeMapStore
 from chaser_agent.source_card import (
     build_source_card_artifacts,
     make_run_id,
@@ -218,6 +220,7 @@ def run_review_command(args: argparse.Namespace) -> int:
         store = SQLiteReviewStore(args.database)
         store.add(review)
         memory_records = reviewed_memories_from_review(SQLiteMemoryStore(args.database), run_folder, review)
+        graph_counts = index_reviewed_run(SQLiteKnowledgeMapStore(args.database), run_folder, review, memory_records)
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -235,6 +238,7 @@ def run_review_command(args: argparse.Namespace) -> int:
                 "original_artifacts_unchanged": True,
                 "memory_promotion": "not_performed",
                 "memory_records_created": [record.memory_id for record in memory_records],
+                "knowledge_map_entries": graph_counts,
             },
             sort_keys=True,
         )
