@@ -46,11 +46,16 @@ def run_source_card_command(args: argparse.Namespace) -> int:
     run_folder = out_root / run_id
 
     source = source_input_from_file(input_path, privacy_class=args.privacy_class)
-    artifacts = build_source_card_artifacts(source, input_path, run_id, created_at)
+    try:
+        artifacts = build_source_card_artifacts(source, input_path, run_id, created_at, profile_id=args.profile)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     planned_output_paths = [run_folder / filename for filename in [*artifacts.keys(), "run_log.json"]]
-    command = "python -m chaser_agent.cli source-card --input {input} --out {out}".format(
+    command = "python -m chaser_agent.cli source-card --input {input} --out {out} --profile {profile}".format(
         input=input_path.as_posix(),
         out=out_root.as_posix(),
+        profile=args.profile,
     )
     run_log = build_run_log(
         run_id=run_id,
@@ -194,6 +199,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--privacy-class",
         default="public_toy",
         help="Privacy class to stamp on artifacts; defaults to public_toy for the Phase 1 toy harness.",
+    )
+    source_card.add_argument(
+        "--profile",
+        default="general_source_review",
+        help="Workflow profile ID; defaults to general_source_review.",
     )
     source_card.set_defaults(func=run_source_card_command)
 

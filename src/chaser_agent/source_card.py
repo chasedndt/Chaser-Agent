@@ -1,33 +1,31 @@
+"""Canonical deterministic source-review builder.
+
+Domain-specific review behaviour lives in explicit workflow profiles. This module
+owns source parsing, evidence linkage, artifact assembly, and authority stamps.
+"""
+
 from __future__ import annotations
 
 import hashlib
 import re
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
-from chaser_agent.schemas import SourceInput
+from chaser_agent.core.protocols import WorkflowProfile
+from chaser_agent.schemas import Claim, SourceCard, SourceInput
+from chaser_agent.workflows import get_profile
 
-DESIGN_KEYWORDS = (
-    "design",
-    "contrast",
-    "dark mode",
-    "keywords",
-    "keyword",
-    "hierarchy",
-    "readability",
-    "user intent",
-    "spacing",
-    "restraint",
-    "hero",
-    "white",
-    "overdecorated",
-)
 
 PROMOTION_WARNING = (
-    "This artifact is review-only. It does not promote memory, mutate ChaseOS canonical truth, "
-    "update the roadmap, create tasks, activate adapters, call providers, or prove production readiness. "
-    "Canonical promotion requires ChaseOS governance."
+    "This artifact is review-only. It does not promote memory, modify approved durable local state, "
+    "mutate ChaseOS canonical truth, update a roadmap, create tasks, activate adapters, call providers, "
+    "or prove production readiness. Promotion requires an explicit governance decision."
 )
+
+_HEADING = re.compile(r"^\s{0,3}#{1,6}\s+")
+_LIST_PREFIX = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)")
+_SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+")
 
 
 def utc_now_iso() -> str:
@@ -53,21 +51,26 @@ def title_for_path(input_path: Path) -> str:
 
 
 def sentence_chunks(text: str) -> list[str]:
-    normalized = " ".join(text.split())
-    if not normalized:
-        return []
-    chunks = re.split(r"(?<=[.!?])\s+|\n+", normalized)
-    return [chunk.strip() for chunk in chunks if chunk.strip()]
+    """Return content sentences without treating Markdown headings as claims."""
+    chunks: list[str] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or _HEADING.match(line):
+            continue
+        line = _LIST_PREFIX.sub("", line).strip()
+        if line.startswith(">"):
+            line = line[1:].strip()
+        if not line:
+            continue
+        chunks.extend(part.strip() for part in _SENTENCE_BOUNDARY.split(line) if part.strip())
+    return chunks
 
 
 def source_summary(text: str) -> str:
-    sentences = sentence_chunks(text)
-    summary = " ".join(sentences[:3]).strip()
+    summary = " ".join(sentence_chunks(text)[:3]).strip()
     if not summary:
         return "No source text provided."
-    if len(summary) > 500:
-        summary = summary[:497].rstrip() + "..."
-    return summary
+    return summary if len(summary) <= 500 else summary[:497].rstrip() + "..."
 
 
 def _line_location(text: str, needle: str) -> str:
@@ -78,32 +81,42 @@ def _line_location(text: str, needle: str) -> str:
     return "approximate source text"
 
 
-def extract_claims(text: str, privacy_class: str) -> tuple[list[dict], list[dict]]:
-    sentences = sentence_chunks(text)
-    selected: list[str] = []
-    for sentence in sentences:
-        lowered = sentence.lower()
-        if any(keyword in lowered for keyword in DESIGN_KEYWORDS):
-            selected.append(sentence)
-    if not selected and sentences:
-        selected = sentences[:3]
+def classify_claim_type(sentence: str) -> str:
+    """Classify how the source presents a statement, never its global truth."""
+    lowered = sentence.lower()
+    if any(marker in lowered for marker in ("reported", "the study found", "results show", "outperformed", "measured")):
+        return "reported_result"
+    if any(marker in lowered for marker in ("must", "should", "needs", "need to", "required", "requirement")):
+        return "requirement"
+    if any(marker in lowered for marker in ("recommend", "best practice", "favours", "prefer")):
+        return "recommendation"
+    if any(marker in lowered for marker in ("is defined as", "means", "refers to", "definition")):
+        return "definition"
+    if any(marker in lowered for marker in ("we decided", "decision:", "will use", "chosen")):
+        return "decision"
+    if any(marker in lowered for marker in ("i think", "we think", "believe", "in my view", "opinion")):
+        return "opinion"
+    if any(marker in lowered for marker in ("cannot", "can't", "may not", "only", "limited to", "without")):
+        return "constraint"
+    return "unknown"
 
-    claims = []
-    evidence = []
-    for index, sentence in enumerate(selected, start=1):
+
+def extract_claims(text: str, privacy_class: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    claims: list[dict[str, Any]] = []
+    evidence: list[dict[str, Any]] = []
+    for index, sentence in enumerate(sentence_chunks(text)[:8], start=1):
         claim_id = f"claim-{index:03d}"
         snippet_id = f"evidence-{index:03d}"
         location = _line_location(text, sentence)
-        claim_type = "constraint" if any(word in sentence.lower() for word in ("should", "need", "can hurt", "must")) else "fact"
         claims.append(
             {
                 "claim_id": claim_id,
                 "claim_text": sentence,
                 "evidence_snippet_id": snippet_id,
                 "source_location": location,
-                "claim_type": claim_type,
+                "claim_type": classify_claim_type(sentence),
                 "confidence": "high",
-                "review_note": "Deterministically extracted from source text; human review still required.",
+                "review_note": "Verbatim deterministic extraction; the confidence describes extraction, not source truth.",
             }
         )
         evidence.append(
@@ -119,91 +132,35 @@ def extract_claims(text: str, privacy_class: str) -> tuple[list[dict], list[dict
     return claims, evidence
 
 
-def build_uncertainties(claim_ids: list[str]) -> list[dict]:
+def contradiction_notes() -> list[dict[str, Any]]:
     return [
         {
-            "uncertainty_id": "uncertainty-001",
-            "label": "requires_review",
-            "explanation": "This deterministic harness preserves source claims but does not judge design quality; human/design review is required.",
-            "related_claim_ids": claim_ids,
-        },
-        {
-            "uncertainty_id": "uncertainty-002",
-            "label": "missing_context",
-            "explanation": "The source does not include screenshots, metrics, user research, implementation details, or measured accessibility results.",
-            "related_claim_ids": claim_ids,
-        },
-        {
-            "uncertainty_id": "uncertainty-003",
-            "label": "promotion_blocked",
-            "explanation": "No source-card output may be promoted automatically to memory, tasks, roadmap, or ChaseOS canonical truth.",
-            "related_claim_ids": claim_ids,
-        },
-    ]
-
-
-def build_inferences(claim_ids: list[str]) -> list[dict]:
-    return [
-        {
-            "inference_id": "inference-001",
-            "inference_text": "A review packet for this source should check hierarchy, spacing, contrast, restraint, readability, subtle emphasis, and user intent before recommending design changes.",
-            "based_on_claim_ids": claim_ids,
-            "confidence": "medium",
-            "uncertainty_label_ids": ["uncertainty-001", "uncertainty-002"],
+            "status": "not_evaluated",
+            "explanation": "No profile rule requested a reliable deterministic contradiction check.",
+            "related_claim_ids": [],
         }
     ]
 
 
-def build_action_candidates(claim_ids: list[str]) -> list[dict]:
-    return [
-        {
-            "action_id": "action-001",
-            "action_text": "Review the generated source card and decide whether this toy website-design scenario should become a future contract-eval seed.",
-            "source_claim_ids": claim_ids,
-            "rationale": "The source contains concrete review criteria but V0 may only propose review-only next steps.",
-            "risk_level": "low",
-            "requires_approval": True,
-            "blocked_reason": None,
-            "suggested_owner": "human_operator",
-        },
-        {
-            "action_id": "action-002",
-            "action_text": "If useful, compare future website-design outputs against source-grounded hierarchy, contrast, readability, restraint, and user-intent checks.",
-            "source_claim_ids": claim_ids,
-            "rationale": "This is a candidate review idea, not an executed redesign or roadmap mutation.",
-            "risk_level": "low",
-            "requires_approval": True,
-            "blocked_reason": None,
-            "suggested_owner": "human_operator",
-        },
-    ]
+def build_source_card_artifacts(
+    source: SourceInput,
+    input_path: Path,
+    run_id: str,
+    created_at: str,
+    profile_id: str = "general_source_review",
+) -> dict[str, dict[str, Any]]:
+    profile: WorkflowProfile = get_profile(profile_id)
+    if source.source_type not in profile.allowed_input_types:
+        allowed = ", ".join(profile.allowed_input_types)
+        raise ValueError(f"profile {profile.profile_id} does not allow input type {source.source_type!r}; allowed: {allowed}")
 
-
-def build_memory_candidates(evidence: list[dict], privacy_class: str) -> list[dict]:
-    first_evidence_id = evidence[0]["snippet_id"] if evidence else "evidence-000"
-    return [
-        {
-            "memory_candidate_id": "memory-001",
-            "candidate_text": "Chaser agent website-design review may need to preserve hierarchy, spacing, contrast, restraint, readability, subtle keyword emphasis, and user intent as review criteria.",
-            "evidence_snippet_id": first_evidence_id,
-            "scope": "workflow",
-            "stability": "likely_stable",
-            "privacy_class": privacy_class,
-            "promotion_status": "candidate_only",
-            "review_required": True,
-            "rejection_reason": None,
-        }
-    ]
-
-
-def build_source_card_artifacts(source: SourceInput, input_path: Path, run_id: str, created_at: str) -> dict[str, dict | list]:
     claims, evidence = extract_claims(source.text, source.privacy_class)
     claim_ids = [claim["claim_id"] for claim in claims]
-    uncertainties = build_uncertainties(claim_ids)
-    inferences = build_inferences(claim_ids)
-    actions = build_action_candidates(claim_ids)
-    memories = build_memory_candidates(evidence, source.privacy_class)
-    contradictions: list[dict] = []
+    uncertainties = profile.build_uncertainties(claim_ids, source.text)
+    inferences = profile.build_inferences(claim_ids, source.text)
+    actions = profile.build_actions(claim_ids, source.text)
+    memories = profile.build_memories(claims, evidence, source.privacy_class)
+    contradictions = contradiction_notes()
 
     source_card = {
         "source_id": source.id,
@@ -211,6 +168,8 @@ def build_source_card_artifacts(source: SourceInput, input_path: Path, run_id: s
         "source_type": source.source_type,
         "source_origin": source.source_origin,
         "privacy_class": source.privacy_class,
+        "workflow_profile": profile.profile_id,
+        "workflow_profile_version": profile.version,
         "trust_state": "unreviewed",
         "source_summary": source_summary(source.text),
         "source_claims": claims,
@@ -228,6 +187,8 @@ def build_source_card_artifacts(source: SourceInput, input_path: Path, run_id: s
     human_review_packet = {
         "run_id": run_id,
         "source_id": source.id,
+        "workflow_profile": profile.profile_id,
+        "required_review_dimensions": list(profile.required_review_dimensions),
         "operator_review_status": "pending_review",
         "scores": {
             "source_fidelity": None,
@@ -239,8 +200,8 @@ def build_source_card_artifacts(source: SourceInput, input_path: Path, run_id: s
         "checklists": {
             "source_fidelity": ["pending: human must verify summary and claims are source-grounded"],
             "inference_separation": ["pending: human must verify inferences remain separate from source claims"],
-            "uncertainty": ["pending: missing context and promotion boundaries are labeled"],
-            "action_usefulness": ["pending: action candidates require approval and do not execute anything"],
+            "uncertainty": ["pending: human must verify missing context and promotion boundaries"],
+            "action_usefulness": ["pending: action candidates require approval and execute nothing"],
             "memory_safety": ["pending: memory candidates are candidate_only and review_required"],
         },
         "canonical_promotion_warning": PROMOTION_WARNING,
@@ -270,22 +231,40 @@ def source_input_from_file(input_path: Path, privacy_class: str = "public_toy") 
         privacy_class=privacy_class,
     )
 
-# Backward-compatible placeholder API used by older smoke tests.
-def build_source_card(source: SourceInput):
-    from chaser_agent.schemas import Claim, SourceCard
 
-    text = " ".join(source.text.split())
-    first_sentence = text.split(".")[0].strip() if text else ""
-    summary = first_sentence + ("." if first_sentence and not first_sentence.endswith(".") else "")
-    if not summary:
-        summary = "No source text provided."
-    evidence = source.text[:240]
-    claims = [Claim(text=summary, evidence=evidence, uncertainty="requires_review")]
+def build_source_card(source: SourceInput, profile_id: str = "general_source_review") -> SourceCard:
+    """Compatibility API backed by the canonical artifact builder."""
+    artifacts = build_source_card_artifacts(
+        source,
+        Path(f"{source.id}.txt"),
+        run_id=f"compat-{source.id}",
+        created_at="1970-01-01T00:00:00Z",
+        profile_id=profile_id,
+    )
+    artifact = artifacts["source_card.json"]
+    claims = [
+        Claim(
+            text=row["claim_text"],
+            evidence=row["claim_text"],
+            uncertainty="requires_review",
+        )
+        for row in artifact["source_claims"]
+    ]
+    from chaser_agent.schemas import MemoryCandidate
+
+    memories = [
+        MemoryCandidate(
+            text=row["candidate_text"],
+            evidence=row["evidence_snippet_id"],
+            state="candidate",
+        )
+        for row in artifact["memory_candidates"]
+    ]
     return SourceCard(
         source_id=source.id,
         title=source.title,
-        summary=summary,
+        summary=artifact["source_summary"],
         claims=claims,
-        memory_candidates=[],
-        uncertainty_labels=["requires_review"],
+        memory_candidates=memories,
+        uncertainty_labels=[row["label"] for row in artifact["uncertainty_labels"]],
     )
