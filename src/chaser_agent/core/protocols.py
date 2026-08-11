@@ -67,6 +67,23 @@ class KnowledgeMapStore(Protocol):
 
 
 @runtime_checkable
+class ProviderAdapter(Protocol):
+    """Provider-neutral inference boundary (Layer 12).
+
+    The core depends on this protocol only. It never imports a concrete adapter,
+    so no provider SDK, credential, or network dependency can reach core packages.
+    An adapter answers analysis requests; it is never asked for an authority
+    decision, and its output is untrusted until quarantined.
+    """
+
+    provider_id: str
+    is_fake: bool
+    network_access: bool
+
+    def complete(self, request: Any) -> Any: ...
+
+
+@runtime_checkable
 class GovernanceBackend(Protocol):
     def can_candidate_be_reviewed(self, candidate: Mapping[str, Any]) -> bool: ...
 

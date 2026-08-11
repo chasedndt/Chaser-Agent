@@ -22,6 +22,7 @@ CORE_PACKAGES = ("core", "workflows", "governance", "reviews", "memory", "knowle
 # Import prefixes forbidden inside the core packages.
 FORBIDDEN_CORE_IMPORTS = (
     "chaser_agent.integrations",
+    "chaser_agent.providers",
     "chaseos",
     "openai",
     "anthropic",
@@ -85,6 +86,25 @@ def test_optional_chaseos_adapter_is_inactive_and_cannot_dispatch():
 
     with pytest.raises(RuntimeError):
         adapter.dispatch(packet)
+
+
+def test_provider_package_imports_no_provider_sdk():
+    """The fake adapter must stay fake: no SDK may appear in the provider package."""
+    sdk_prefixes = ("openai", "anthropic", "ollama", "httpx", "requests", "aiohttp", "urllib.request", "socket")
+    offenders: list[str] = []
+    for path in _module_files("providers"):
+        for imported in _imported_names(path):
+            for forbidden in sdk_prefixes:
+                if imported == forbidden or imported.startswith(forbidden + "."):
+                    offenders.append(f"{path.relative_to(SRC_ROOT).as_posix()} imports {imported}")
+    assert not offenders, "provider package must make no network calls: " + "; ".join(offenders)
+
+
+def test_fake_adapter_satisfies_the_provider_protocol():
+    from chaser_agent.core.protocols import ProviderAdapter
+    from chaser_agent.providers.fake import FakeProviderAdapter
+
+    assert isinstance(FakeProviderAdapter(), ProviderAdapter)
 
 
 def test_local_governance_never_authorizes_action_execution():
