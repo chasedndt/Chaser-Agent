@@ -1,8 +1,23 @@
 # Chaser agent 17-Layer Architecture
 
+## Standalone-first interpretation
+
+The layers are a governed dependency map, not a checklist or implementation claim. The Chaser agent core must run without ChaseOS. Standalone deployments use local human governance and user-owned durable state; ChaseOS-integrated deployments may add shared governance, canonical state, policy, routing, approvals, and orchestration through optional adapters.
+
+No core layer may import ChaseOS. Workflow profiles specialise analysis but never grant authority. See `Chaser-Agent-Standalone-vs-ChaseOS-Architecture.md` for the P0.1 package and protocol boundary.
+
+| Concern | Standalone P0.1 | ChaseOS enhancement |
+|---|---|---|
+| Approval | Local human operator plus local governance | ChaseOS Gate/policy |
+| Durable state | Human-approved durable local state | Shared ChaseOS-governed canonical state |
+| Review | Immutable local records | Shared approval/review queues |
+| Memory | SQLite lifecycle and lexical/tag retrieval | Shared/cross-project memory |
+| Knowledge | Local provenance map | Cross-project graph intelligence |
+| Execution | None in P0.1 | Future separately approved orchestration |
+
 ## Layer 0 — Behaviour Contract / Product Constitution
 
-Layer 0 is not a runtime layer. It defines expected behavior, boundaries, public claims, and review requirements before the 17 architecture layers are interpreted. Every layer below must obey Layer 0: Chaser agent proposes reviewable artifacts; it does not silently promote canonical truth, activate tools, or claim production readiness.
+Layer 0 is not a runtime layer. It defines expected behaviour, boundaries, public claims, and review requirements before the 17 architecture layers are interpreted. Every layer must obey it: Chaser agent creates reviewable artifacts and may persist only human-reviewed, governance-approved deployment-scoped state. It never silently promotes, activates tools, or claims production readiness.
 
 Current Layer 0 artifact: `docs/01_Product/Chaser-Agent-Layer-0-Behaviour-Contract.md`.
 
@@ -16,13 +31,13 @@ Current Layer 0 artifact: `docs/01_Product/Chaser-Agent-Layer-0-Behaviour-Contra
 
 **What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
 
-**Current status:** planned.
+**Current status:** partial review scaffold; P0.1 persisted-review implementation target.
 
-**V0 relevance:** operator review is mandatory for promotion and public claims.
+**V0 relevance:** operator review is mandatory; review and promotion are separate records.
 
 **First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
 
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
+**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing deployment governance.
 
 ## 2. Studio / Interface Layer
 

@@ -1,136 +1,147 @@
-# Chaser Agent
+# Chaser agent
 
-**Source intelligence. Review-first artifacts. Human-governed memory.**
+**Standalone-first. Local-first. Evidence-linked. Human-governed. ChaseOS-enhanced.**
 
-Chaser Agent is a governed, local-first source-intelligence and harness-development repo derived from ChaseOS. It turns safe source inputs into structured review artifacts that separate what the source says, what the agent infers, what remains uncertain, what actions might follow, and what memory candidates may be worth human review.
+Chaser agent is an open-source agent harness for turning goals and sources into evidence-linked, reviewable work. It runs independently, learns from explicit human review, preserves approved local memory, and curates a user-owned provenance map. Optional ChaseOS integration adds shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory.
 
-ChaseOS remains the parent operating system/control plane and canonical governance owner. Chaser Agent is the focused product/runtime implementation and learning lab. It is not a foundation model, not production-ready autonomy, not a canonical truth engine, and not a replacement for ChaseOS.
+> Chaser agent is an open-source, standalone-first, local-first agent harness that turns goals and sources into evidence-linked work, learns from human review, preserves approved memory, and curates a user-owned knowledge map. It works independently and becomes more powerful when connected to ChaseOS.
 
----
+## Product boundary
 
-## What is Chaser Agent?
+The MIT-licensed core must run without ChaseOS. It must not import ChaseOS, a provider SDK, MCP runtime, or browser runtime.
 
-Chaser Agent is the first focused agent product lane extracted from the broader ChaseOS control-plane work. Its current job is deliberately small: build a trustworthy source-to-review loop before adding live providers, runtime adapters, browser authority, fine-tuning, or autonomous execution.
-
-The core idea is simple: an agent should not turn sources into a confident blob of prose. It should preserve evidence, label uncertainty, distinguish claims from inferences, propose next actions without taking them, and leave memory/canonical promotion to the human-governed ChaseOS layer.
-
-## Why Chaser Agent exists
-
-Modern AI workflows often collapse too many things into one answer: source facts, model guesses, recommended actions, memory updates, and public claims. That makes it hard to know what is grounded, what is speculative, what is safe to act on, and what should become durable knowledge.
-
-Chaser Agent exists to make that boundary visible. It is a practical harness for learning and building agent systems where source fidelity, uncertainty, human review, evals, and governance come before power.
-
-## The problem: ungoverned agent output
-
-Most agent demos optimize for speed and autonomy. Chaser Agent starts from the opposite direction: before an agent can be useful at scale, it needs a behavior contract, safe input boundaries, clear output types, reviewable artifacts, and tests that prove the contract.
-
-Without those boundaries, a repo can easily confuse smoke tests with product proof, source notes with truth, generated suggestions with memory, or future adapter docs with live authority.
-
-## The solution: a review-first source loop
-
-Chaser Agent V0 takes safe, reviewable source input and produces a deterministic local packet for human review:
+Deployment-scoped durable state:
 
 ```text
-safe source input
-→ intake metadata
-→ source card
-→ claims table
-→ evidence snippets
-→ uncertainty labels
-→ contradiction notes
-→ action candidates
-→ memory candidates
-→ human review packet
-→ run log
-→ no automatic canonical promotion
+standalone: human-approved durable local state
+ChaseOS-integrated: ChaseOS-governed shared canonical state
 ```
 
-The output is intentionally review-only. It does not call an LLM provider, browse the web, mutate memory, edit ChaseOS canonical docs, or claim production readiness.
+In both modes:
 
-## Current status
+```text
+generated output != approved truth
+memory candidate != memory
+action candidate != action
+review packet != approval
+integration packet != dispatch
+agent confidence != authority
+```
 
-Current work has completed **Phase 1 — Source Card Harness V0** and has a **PARTIAL Phase 2 — Contract Eval seed** awaiting operator review.
+See:
 
-What exists now:
+- [Product narrative and utility](docs/01_Product/Chaser-Agent-Product-Narrative-and-Utility.md)
+- [Standalone and ChaseOS architecture](docs/01_Product/Chaser-Agent-Standalone-vs-ChaseOS-Architecture.md)
+- [Layer 0 Behaviour Contract](docs/01_Product/Chaser-Agent-Layer-0-Behaviour-Contract.md)
+- [P0.1 open decisions](docs/01_Product/Chaser-Agent-P0.1-Open-Decisions.md)
 
-- Layer 0 Behaviour Contract defining the product constitution;
-- V0 Definition and Blueprint defining the first useful source-intelligence loop;
-- a deterministic local Source Card Harness V0 under `src/chaser_agent/`;
-- schema/smoke JSONL datasets under `evals/datasets/golden/`;
-- a deterministic artifact-field contract runner under `src/chaser_agent/evals/contract_runner.py`;
-- six public-safe Layer 0 contract seeds under `evals/datasets/contract/`, all explicitly marked `pending_operator_review`;
-- tests that verify the local harness and contract-shaped outputs;
-- review-only run artifacts under `logs/runs/<run_id>/` when the harness is executed.
+## Current maturity
 
-What this means: Chaser Agent can run a local toy source through the V0 source-card loop, produce structured review artifacts, and deterministically test their governance fields. One case per initial contract family is a seed, not coverage. The repo is still a bounded harness foundation, not a live autonomous runtime.
+Chaser agent is a **P0 / pre-alpha deterministic harness foundation** with an approved P0.1 redesign under review.
 
-## Core capabilities
+Verified before P0.1 implementation:
 
-- **Source cards** — structured summaries of safe source inputs.
-- **Claims tables** — source-grounded claims kept separate from model/agent inference.
-- **Evidence snippets** — traceable excerpts that support review.
-- **Uncertainty labels** — explicit uncertainty, missing context, and contradiction markers.
-- **Action candidates** — proposed next actions that require human acceptance.
-- **Memory candidates** — possible durable-memory updates that are not promoted automatically.
-- **Human review packets** — review-ready bundles for deciding what, if anything, should become action, memory, spec, eval, or canonical truth.
-- **Run logs** — local deterministic evidence of what the harness produced.
+- deterministic local Source Card Harness V0;
+- source card, claims, evidence, uncertainty, action, memory-candidate, review-packet, and run-log artifacts;
+- optional ChaseOS-shaped review packet with no dispatch;
+- artifact-field Layer 0 contract runner;
+- six public-safe contract seeds, all `pending_operator_review`;
+- bounded SkillGate;
+- metadata-only visual-completion evaluator;
+- explicit public arXiv ingestion and separate config-only weekly research dry run;
+- 33 deterministic tests;
+- seven golden JSONL files with three rows each;
+- one six-row Layer 0 contract seed file.
 
-## Relationship to ChaseOS
+P0.1 approved target:
 
-Chaser Agent inherits ChaseOS principles but does not replace ChaseOS.
+- domain-neutral source-review core;
+- explicit workflow profiles;
+- immutable local operator-review records;
+- standalone local governance;
+- SQLite memory lifecycle outside the repository;
+- lexical/tag retrieval without embeddings;
+- provenance-first SQLite knowledge map;
+- optional inactive ChaseOS adapter;
+- exact test-matrix export.
 
-ChaseOS owns:
+P0.1 implementation status must be taken from the current branch/build log, not inferred from this target list.
 
-- canonical truth;
-- governance and permission boundaries;
-- runtime authority;
-- promotion rules;
-- operator memory and durable system state.
+## Core utility
 
-Chaser Agent owns, inside this repo:
+```text
+goal, question, source, or bounded task
+-> trust and privacy classification
+-> source-grounded claims and evidence
+-> separate Chaser agent inference
+-> uncertainty and contradiction status
+-> safe action candidates
+-> relevant reviewed-memory retrieval
+-> memory candidates
+-> human review and correction
+-> governance-controlled durable state
+-> provenance-first knowledge map
+```
 
-- product implementation experiments;
-- source-intelligence harness code;
-- eval and dataset scaffolding;
-- review artifact schemas;
-- learning-oriented docs for AI engineering, evals, retrieval, memory, and runtime governance.
+The deterministic implementation remains a reference baseline, test oracle, fallback, and auditable comparison point. Models may be introduced later only behind provider-neutral interfaces and reviewed eval/data policy.
 
-The boundary matters: Chaser Agent may propose; ChaseOS governance decides what becomes durable truth.
+## Domain-neutral profiles
 
-## What Chaser Agent is not yet
+Domain behaviour belongs in a workflow profile, never in the default core.
 
-Chaser Agent is not currently:
+P0.1 profiles:
 
-- a production autonomous agent;
+- `general_source_review` — default, conservative, source-neutral;
+- `ai_engineering_research_review` — technical claims, methods, limitations, baselines, eval and RFC questions;
+- `website_design_review` — hierarchy, contrast, spacing, readability, restraint, user intent, and missing visual proof.
+
+Profiles shape analysis only. They cannot grant permissions, call providers/tools, execute actions, or promote memory.
+
+## What Chaser agent is not
+
+Chaser agent is not currently:
+
 - a foundation model;
-- a live provider/API routing system;
-- a Hermes, OpenClaw, Codex, MCP, or browser-control adapter;
-- a fine-tuning, PEFT, or LoRA pipeline;
-- a private dataset ingestion system;
-- a canonical memory owner;
-- all 17 architecture layers implemented.
+- production autonomy;
+- a finished personal AI;
+- a website-design, media-generation, or trading-execution agent;
+- a public FastAPI service or web UI;
+- a live provider router;
+- a semantic RAG/vector system;
+- a live MCP/tool registry;
+- a browser/computer-use runtime;
+- an autonomous planner/executor;
+- a fine-tuning, LoRA, or PEFT pipeline;
+- all 17 layers implemented.
 
-Those lanes remain deferred until the behavior contract, reviewed data, eval evidence, and governance boundaries are strong enough to support them.
+## Safety rules
 
-## Repo safety rules
+- Never commit `.env`, credentials, tokens, private keys, private datasets, raw personal logs, or local SQLite state.
+- Never infer authority from a workflow profile, skill, adapter, provider, or confidence score.
+- Never auto-promote a memory candidate.
+- Never mutate original run artifacts during review or correction.
+- Never activate providers, tools, MCP, browsers, public actions, payments, trading, deployment, or model training in P0.1.
+- Never mutate ChaseOS canonical state from the standalone core.
+- Keep generated run and research artifacts ignored unless separately reviewed for provenance, privacy, and licensing.
 
-- Do not commit `.env`, secrets, credentials, private datasets, cookies, tokens, or raw personal logs.
-- Do not mutate ChaseOS canonical docs from this repository.
-- Do not activate provider/API/browser/runtime adapters by default.
-- Do not auto-promote memory candidates into durable memory or ChaseOS truth.
-- Do not claim production readiness or full autonomy.
-- Keep generated artifacts review-only unless the operator explicitly approves promotion elsewhere.
+## Verification
 
-## Local verification
-
-From the repo root:
+From WSL or another POSIX shell using the repository virtual environment:
 
 ```bash
-.venv/bin/python -m scripts.validate_jsonl evals/datasets/golden/*.jsonl
-PYTHONPATH=. .venv/bin/python -m pytest -q
+.venv/bin/python -m pytest -q
+.venv/bin/python -m scripts.validate_jsonl evals/datasets/golden/*.jsonl evals/datasets/contract/*.jsonl
 ```
 
-Run the public-safe Layer 0 contract seed:
+Run the deterministic source-review path:
+
+```bash
+.venv/bin/python -m chaser_agent.cli source-card \
+  --input examples/sources/toy_website_design_note.md \
+  --out logs/runs
+```
+
+Run the Layer 0 contract seed:
 
 ```bash
 PYTHONPATH=src .venv/bin/python -m chaser_agent.cli contract-eval \
@@ -138,44 +149,17 @@ PYTHONPATH=src .venv/bin/python -m chaser_agent.cli contract-eval \
   --out logs/runs/contract-eval-results.jsonl
 ```
 
-The command executes the real deterministic source-card artifact builder in memory, resolves field assertions such as `artifact.json:path.to.items[*]`, and emits assertion-level JSONL results. It does not call providers, browse, activate adapters, consume approvals, or promote memory. The six cases require operator review before they can be described as reviewed golden data.
+Generated output remains review-only. The six contract rows are wiring seeds, not reviewed coverage.
 
-## Weekly research-upgrade workflow
+## Separate research-intake lane
 
-Chaser Agent now has a ChaseOS-governed weekly research-intake lane for discovering agent-harness, coding-agent, computer-use, memory/context, tool-routing, and eval research that could become future harness RFCs.
-
-Current state is **Phase 1A complete: deterministic dry-run + bounded Hermes cron active**:
+The weekly dry run validates local YAML configuration only:
 
 ```bash
 .venv/bin/python scripts/weekly_research_intake_dry_run.py --out logs/runs
 ```
 
-This validates:
-
-- `research_intake/sources.yaml`
-- `research_intake/queries.yaml`
-- `research_intake/ranking.yaml`
-- `research_intake/cron_proposal.yaml`
-
-The active Hermes cron is script-backed and bounded:
-
-- Name: `Chaser Agent weekly research intake dry-run`
-- Schedule: `0 5 * * 1`
-- Hermes job id on the local ChaseOS machine: `88bb31188587`
-- Wrapper: `/home/chaseos/runtimes/hermes-home/scripts/chaser_agent_weekly_research_intake_dry_run.sh`
-- Output: `logs/runs/weekly-research-intake-dry-run-*/manifest.json` and `digest.md`
-
-Control-plane boundary: this cron validates local config and reports a short artifact summary only. It does **not** fetch network sources yet, call model providers, activate credentials, create branches, open PRs, merge code, mutate memory, expand permissions, deploy, or promote ChaseOS canonical truth.
-
-The intended upgrade ladder is:
-
-```text
-research sources -> normalized paper cards -> ranked weekly digest -> RFC candidates -> isolated candidate branches -> private eval gates -> human/Gate-approved merge
-```
-
-See `docs/07_Research/ChaseOS-Weekly-Research-Upgrade-Setup-Order.md` for the implementation order and approval gates.
-
-Phase 1B has started with bounded arXiv API ingestion:
+Public arXiv ingestion is a separate explicit command:
 
 ```bash
 PYTHONPATH=. .venv/bin/python -m research_intake.ingest \
@@ -184,64 +168,14 @@ PYTHONPATH=. .venv/bin/python -m research_intake.ingest \
   --out research_intake/data
 ```
 
-This writes ignored local artifacts under `research_intake/data/arxiv-ingest-*` and keeps provider/model calls, candidate implementation, PR/merge automation, permission expansion, and canonical promotion disabled.
+It writes ignored local raw/normalized artifacts. Neither lane calls a model provider, implements candidates, promotes memory, or grants execution authority.
 
-## Run Source Card Harness V0
+## Read next
 
-```bash
-.venv/bin/python -m chaser_agent.cli source-card \
-  --input examples/sources/toy_website_design_note.md \
-  --out logs/runs
-```
-
-The command prints a unique run folder containing:
-
-- `source_card.json`
-- `claims_table.json`
-- `evidence_snippets.json`
-- `uncertainty_labels.json`
-- `action_candidates.json`
-- `memory_candidates.json`
-- `human_review_packet.json`
-- `run_log.json`
-
-Outputs are deterministic, local, and review-only.
-
-## Run the ChaseOS-native review packet V0
-
-```bash
-PYTHONPATH=. .venv/bin/python -m chaser_agent.cli chaseos-native-source-card \
-  --input examples/sources/toy_website_design_note.md \
-  --out logs/runs \
-  --workflow hermes_review_execute \
-  --runtime-lane chaser-agent
-```
-
-This wraps the Source Card Harness V0 output in ChaseOS control-plane fields: runtime lane, workflow, graph links, recommended Agent-Activity slug, authority flags, blocked actions, artifact paths, and an operator handoff. It still does not dispatch Hermes/OpenClaw, consume approvals, promote memory, mutate ChaseOS canonical truth, call providers/APIs, use MCP/browser tools, or claim production autonomy.
-
-Additional outputs:
-
-- `chaseos_native_packet.json`
-- `operator_handoff.md`
-
-See `docs/05_Runtime_Adapters/Chaser-Agent-ChaseOS-Native-Review-Packet.md`.
-
-## Start reading
-
-Read these first:
-
-1. `START_HERE.md`
-2. `docs/00_START_HERE.md`
-3. `docs/01_Product/Chaser-Agent-Layer-0-Behaviour-Contract.md`
-4. `docs/01_Product/Chaser-Agent-V0-Definition.md`
-5. `docs/01_Product/Chaser-Agent-V0-Blueprint.md`
-6. `docs/03_Summary_Intelligence/Chaser-Agent-V0-Source-Card-Schema.md`
-7. `docs/02_Evals/Chaser-Agent-V0-Human-Review-Packet.md`
-
-## Public positioning
-
-The honest public description is:
-
-> Chaser Agent is a local-first, review-first source-intelligence harness for turning safe inputs into evidence-preserving review artifacts under human governance.
-
-Do not describe it as production autonomy, a finished personal AI, a live runtime adapter, a deployed provider stack, or a fine-tuned model.
+1. [Start Here](START_HERE.md)
+2. [Layer 0](docs/01_Product/Chaser-Agent-Layer-0-Behaviour-Contract.md)
+3. [Product narrative](docs/01_Product/Chaser-Agent-Product-Narrative-and-Utility.md)
+4. [Standalone architecture](docs/01_Product/Chaser-Agent-Standalone-vs-ChaseOS-Architecture.md)
+5. [V0 Definition](docs/01_Product/Chaser-Agent-V0-Definition.md)
+6. [V0 Blueprint](docs/01_Product/Chaser-Agent-V0-Blueprint.md)
+7. [Roadmap](docs/01_Product/Chaser-Agent-Roadmap.md)

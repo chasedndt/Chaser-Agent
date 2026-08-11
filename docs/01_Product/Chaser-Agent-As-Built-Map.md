@@ -1,5 +1,7 @@
 # Chaser Agent As-Built Map
 
+> Baseline note: this map records the pre-P0.1 implementation inherited on 2026-08-11. The approved standalone-first redesign is defined separately and must not be marked implemented until code/tests prove each P0.1 surface.
+
 **Purpose:** one honest page mapping what actually exists in `src/` and `tests/` to the 17-layer architecture, so nobody (human or agent) confuses scaffold with product. Source-card behavior was verified against a live run on 2026-08-01. The Phase 2 contract seed was added on 2026-08-08; all 33 collected tests were covered by a native 27 + WSL 6 split recorded in that session's build log.
 
 **Rule of thumb for reading this repo:** every module has two jobs — do a small deterministic thing, and *prove in its output that it did nothing else*. The negative-authority stamps (`provider_calls: none`, `approval_consumed: False`, …) are not boilerplate; they are the product.

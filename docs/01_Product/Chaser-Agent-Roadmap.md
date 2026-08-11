@@ -1,6 +1,6 @@
-# Chaser Agent Roadmap
+# Chaser agent Roadmap
 
-This roadmap restarts the thinking order from Layer 0. Evals and implementation deepen only after expected behavior is defined.
+This roadmap follows Layer 0 and the approved standalone-first product direction. Chaser agent must work independently; ChaseOS integration remains optional and additive through interfaces.
 
 ## Phase 0A — scaffold already created
 
@@ -124,25 +124,48 @@ This roadmap restarts the thinking order from Layer 0. Evals and implementation 
 
 **Status:** PARTIAL. A deterministic artifact-field runner and one public-safe seed per initial Layer 0 family were implemented on 2026-08-08. The seeds are labelled `pending_operator_review`; one case per family is wiring proof, not coverage. Source-trust grading, per-instance packs, metamorphic cases, and the target of at least five reviewed cases per family remain unbuilt.
 
-## Phase 3 — Source Summary Engine
+## Active P0.1 — Standalone Core, Review, Memory, and Knowledge Foundations
 
-**Purpose:** Improve the source-summary loop with richer review packets.
+**Purpose:** Make the open-source core independently useful without ChaseOS while preserving human governance and deterministic auditability.
 
-**Deliverables:** claims/evidence/contradiction/action/memory output pipeline.
+**Deliverables:**
+
+- protocol boundaries for governance, review, memory, knowledge map, and workflow profiles;
+- domain-neutral source-review builder;
+- general, AI-engineering research, and website-design profiles;
+- immutable local human-review records;
+- local governance with no external side effects;
+- SQLite memory lifecycle outside the repository;
+- lexical/tag retrieval without embeddings;
+- SQLite provenance map;
+- optional inactive ChaseOS adapter;
+- exact test-matrix export and honest maturity labels.
+
+**Definition of done:** the package runs without ChaseOS, profile leakage tests pass, review and governed memory persist across process restart, invalid transitions fail, source-to-memory provenance resolves, all databases remain outside the repository by default, and the full existing suite/JSONL validation remains green.
+
+**Out of scope:** FastAPI/UI, live providers/models, RAG embeddings/vector databases, MCP/tools/browser execution, autonomous loops, public actions, credentials, ChaseOS Gate consumption, and training.
+
+**Status:** APPROVED target under implementation on `codex/standalone-first-memory-realignment`. Do not infer completion without the linked code/tests/build log.
+
+## Phase 3 — Model-Assisted Source Intelligence
+
+**Purpose:** Compare the deterministic baseline with provider-neutral model-assisted review after P0.1 and reviewed examples exist.
+
+**Deliverables:** fake provider envelope first, then a separately approved provider evaluation and reviewed workflow examples.
 
 **Definition of done:** outputs are useful under human review.
 
 **Out of scope:** canonical promotion.
 
-## Phase 4 — Memory Candidate Review
+## Phase 4 — Memory Quality, Export, and Optional Sync
 
-**Purpose:** Build a safe candidate/review workflow.
+**Purpose:** Deepen the P0.1 local memory foundation after terminology, retention, export/deletion, and optional ChaseOS sync decisions.
 
-**Deliverables:** memory states, review packets, transition tests.
+**Deliverables:** reviewed quality policy, lifecycle feedback, export/deletion semantics, and separately approved sync/conflict rules.
 
-**Definition of done:** no candidate becomes canonical without governance.
+**Definition of done:** no candidate becomes durable without governance and no local/shared conflict resolves silently.
 
-**Out of scope:** auto-memory.
+**Out of scope:** auto-memory or automatic ChaseOS synchronisation.
 
 ## Phase 5 — Tool/MCP Mini-Evals
 
@@ -190,11 +213,11 @@ This roadmap restarts the thinking order from Layer 0. Evals and implementation 
 
 ## Phase 9 — Future multi-domain agent-harness direction
 
-**Purpose:** Define Chaser Agent as the governed, computer-local, multi-domain orchestration harness. Trading is one skill/workflow family alongside source intelligence, social-media growth/control, web and UI design, coding, business operations, and future personal workflows.
+**Purpose:** Define Chaser agent as the governed, computer-local, multi-domain orchestration harness. Trading is one skill/workflow family alongside source intelligence, social-media growth/control, web and UI design, coding, business operations, and future personal workflows.
 
 **Deliverables:** multi-domain skill/workflow registry; current repository/system map; per-domain inputs/outputs/tools/datasets/evals/authority contracts; shared permission/audit model; and bounded domain plans. The trading pack additionally covers normalized signal/thesis/candidate/order contracts, TradeSync digital-twin integration, an independent risk-engine contract, and disabled-by-default execution levels.
 
-**Definition of done:** no domain pack becomes Chaser Agent's primary identity; each skill family has isolated authority and eval gates; each authority level is separately operator-approved; agent reasoning cannot override risk or governance; review loops cannot self-authorize; and implementation existence never implies live authority.
+**Definition of done:** no domain pack becomes Chaser agent's primary identity; each skill family has isolated authority and eval gates; each authority level is separately operator-approved; agent reasoning cannot override risk or governance; review loops cannot self-authorize; and implementation existence never implies live authority.
 
 **Out of scope:** unrestricted multi-tool autonomy, current live orders, unapproved social publishing/account mutation, production deployment without approval, exchange/wallet credentials, silent self-training, canonical-memory mutation, or production-autonomy claims.
 

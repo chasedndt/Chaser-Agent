@@ -16,7 +16,7 @@ V0 exists to make source intelligence reviewable before deeper evals, provider c
 
 ## 2. V0 operator
 
-The V0 operator is the human reviewer/developer directing Chaser agent work. The operator decides whether the artifact is useful, safe, aligned, and worth promoting into any future action, memory, dataset row, roadmap change, spec change, or ChaseOS-governed truth.
+The V0 operator is the human reviewer/developer directing Chaser agent work. The operator decides whether the artifact is useful, safe, aligned, and worth accepting into any future action, approved durable local state, dataset row, roadmap change, spec change, or optional ChaseOS-governed shared truth.
 
 V0 never replaces the operator. V0 creates evidence for operator review.
 
@@ -69,7 +69,7 @@ Blocked by default:
 - web/API/provider output fetched during the run;
 - Hermes/OpenClaw runtime state;
 - MCP resources/tools;
-- ChaseOS canonical docs as a mutation target.
+- ChaseOS canonical docs or any original run artifact as a mutation target.
 
 ## 5. V0 output contract
 
@@ -88,8 +88,9 @@ Every output must preserve these boundaries:
 - memory candidates are not memory;
 - roadmap impact is not a roadmap update;
 - source summaries are not public claims;
-- generated output is not canonical truth;
-- ChaseOS governance owns canonical promotion.
+- generated output is not approved truth;
+- standalone local promotion requires a persisted human review plus `GovernanceBackend` approval;
+- ChaseOS-integrated shared promotion remains owned by ChaseOS governance.
 
 ## 6. V0 source-card schema
 
@@ -154,7 +155,7 @@ Allowed labels:
 | `unsupported_inference` | Chaser agent inference is not directly proven by the source. |
 | `conflicting_source` | Source conflicts with another known source or itself. |
 | `privacy_risk` | Output could expose private/sensitive information. |
-| `promotion_blocked` | Output must not become canonical without governance. |
+| `promotion_blocked` | Output must not become approved durable state without deployment governance. |
 | `implementation_unknown` | Blueprint/spec exists but code proof does not yet exist. |
 
 ## 10. V0 action-candidate schema
@@ -256,7 +257,7 @@ Phase 1 may add code under `src/chaser_agent/summary/` and tests under `tests/`,
 V0 does not:
 
 - auto-promote memory;
-- mutate ChaseOS canonical truth;
+- mutate ChaseOS canonical truth or self-approve local durable state;
 - call external APIs by default;
 - browse the web by default;
 - activate Hermes/OpenClaw adapters by default;
@@ -266,7 +267,7 @@ V0 does not:
 - run LoRA/PEFT/model-training;
 - read secrets;
 - write outside declared outputs/logs;
-- treat generated output as canonical truth;
+- treat generated output as approved truth;
 - claim production readiness;
 - claim all 17 layers are implemented.
 
@@ -283,7 +284,7 @@ A V0 source-card run passes only if:
 7. the review packet contains checklist scores and pass/fail decision fields;
 8. the run log records that provider/API/runtime adapter calls were not used;
 9. outputs land only in declared run-log/output folders;
-10. no canonical promotion is claimed.
+10. no automatic local or ChaseOS promotion is claimed.
 
 A run fails if it invents unsupported source facts, hides uncertainty, promotes memory, issues actions as commands, writes outside declared targets, leaks private data, calls tools/providers without approval, or implies production readiness.
 
@@ -302,3 +303,9 @@ This blueprint defines the expected artifact shape that later contract evals can
 ## 20. V0 relationship to future fine-tuning
 
 Fine-tuning, LoRA, and PEFT are deferred. V0 may eventually produce reviewed examples, but no V0 output is training data until it passes privacy review, human review, dataset policy, and explicit operator/governance approval.
+
+## 21. P0.1 standalone extension
+
+P0.1 extends V0 without adding providers or tools. It formalises a domain-neutral core, explicit workflow profiles, immutable human-review writeback, standalone local governance, SQLite-backed memory and provenance, lexical/tag retrieval, and an optional inactive ChaseOS adapter.
+
+P0.1 does not make a generated memory candidate durable merely because a review exists. Review acceptance and governance promotion remain separate records. Original run artifacts remain immutable.

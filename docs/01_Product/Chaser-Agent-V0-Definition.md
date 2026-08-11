@@ -1,76 +1,60 @@
-# Chaser agent V0 Definition
+# Chaser agent V0 and P0.1 Definition
 
-## What is the first useful version?
+## V0 foundation
 
-The first useful version of Chaser agent is a source-intelligence loop that turns a safe source into a structured review artifact and records enough evidence for an operator to decide what, if anything, should become an action, memory candidate, spec update, or eval case.
+V0 is the deterministic local source-to-review loop. It turns a declared safe source into a structured artifact containing source metadata, evidence-linked claims, separate Chaser agent inference, uncertainty, action candidates, memory candidates, a review scaffold, and a run log.
 
-## Who is the operator?
+## P0.1 standalone completion target
 
-The operator is the human reviewer/developer directing Chaser agent work. The operator decides whether outputs are useful, safe, aligned, and worth promoting. In this repo, the operator is not replaced by automation.
-
-## What problem does V0 solve?
-
-V0 solves the “messy source to reviewable artifact” problem. It prevents the agent from mixing source facts, inferences, actions, and memory suggestions into one ungrounded blob.
-
-## One source-summary loop
+P0.1 makes the V0 review opportunity operational without adding providers or tools:
 
 ```text
-safe source input
-→ intake metadata
-→ source card
-→ claims table
-→ evidence snippets
-→ uncertainty labels
-→ contradiction notes
-→ action candidates
-→ memory candidates
-→ human review packet
-→ run log
+domain-neutral source review
+-> explicit workflow profile
+-> immutable human review record
+-> local governance decision
+-> approved durable local memory
+-> lexical/tag retrieval
+-> provenance-first knowledge map
+-> optional inactive ChaseOS handoff
 ```
 
-## Files/folders part of V0
+## Operator
 
-- `docs/01_Product/Chaser-Agent-Layer-0-Behaviour-Contract.md`
-- `docs/01_Product/Chaser-Agent-V0-Definition.md`
-- `docs/03_Summary_Intelligence/Chaser-Agent-Source-Summary-Spec.md`
-- `docs/02_Evals/Chaser-Agent-Eval-Harness.md`
-- `docs/02_Evals/Chaser-Agent-Dataset-Plan.md`
-- `evals/datasets/golden/`
-- `evals/rubrics/`
-- `src/chaser_agent/summary/`
-- `src/chaser_agent/evals/`
-- `tests/`
-- `logs/runs/`
+In standalone mode the human operator is the approval authority. In ChaseOS-integrated mode the human remains the authority through ChaseOS governance. Automation never replaces the approval decision.
 
-## Not included in V0
+## Problem solved
 
-- full 17-layer implementation;
-- live external provider calls;
-- Hermes/OpenClaw adapter activation;
-- browser/computer-use authority;
-- private dataset ingestion;
-- automatic memory promotion;
-- fine-tuning, PEFT, or LoRA;
-- ChaseOS canonical doc mutation.
+P0.1 prevents goals, source facts, inference, actions, memory, review, and durable state from collapsing into one output. It also prevents the open-source core from requiring ChaseOS while preserving ChaseOS as the strongest optional integrated deployment.
 
-## Minimum proof that V0 exists
+## Minimum P0.1 proof
 
-V0 exists when:
+1. Core modules import and run without ChaseOS installed.
+2. The general profile is default and contains no design/media/trading boilerplate.
+3. AI-engineering and website profiles remain isolated.
+4. Headings are not treated as factual claims.
+5. Review scores, decisions, corrections, and accepted/rejected candidate IDs persist immutably.
+6. Original run artifacts remain unchanged.
+7. Review alone does not promote memory.
+8. Local governance enforces valid lifecycle transitions.
+9. SQLite memory persists outside the repository and survives restart.
+10. Retrieval respects status, scope, privacy, tags, lexical terms, and recency.
+11. Knowledge-map provenance traces memory back to source, evidence, run, and review.
+12. ChaseOS integration remains optional, inactive, and outside the core dependency graph.
+13. Current eval rows and assertions are exported with honest maturity labels.
 
-1. Layer 0 and V0 docs define expected behavior;
-2. a source-card loop can run deterministically on safe inputs;
-3. outputs separate source claims, inferences, uncertainty, actions, and memory candidates;
-4. tests cover the contract shape;
-5. JSONL/result logs record cases;
-6. human review remains required for promotion.
+## Not included
 
-## Manual human judgement required
+- FastAPI or web UI;
+- live providers or local-model inference;
+- semantic RAG, embeddings, or vector databases;
+- MCP/tool/browser execution;
+- autonomous planning/execution;
+- public actions, payments, trading, deployment, or credential operations;
+- model training, fine-tuning, LoRA, or PEFT;
+- automatic skill optimisation;
+- ChaseOS Gate consumption or canonical mutation.
 
-Humans must judge:
+## Manual decisions retained
 
-- whether a source is trustworthy;
-- whether the summary preserved evidence;
-- whether inferred actions are useful;
-- whether memory candidates are stable and safe;
-- whether a failure should become a regression case;
-- whether any output should affect ChaseOS truth, roadmap, skills, or public wording.
+The final review threshold, data-class definitions, first official domain pack, durable-memory public terminology, profile discovery, later provider/RAG/tool/sandbox choices, standalone/ChaseOS sync/conflict policy, export/deletion, and retention remain operator decisions.
