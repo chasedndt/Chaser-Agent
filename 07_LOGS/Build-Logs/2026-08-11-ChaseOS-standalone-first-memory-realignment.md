@@ -137,14 +137,23 @@ One attempted combined WSL inline-import command failed at shell parsing before 
 - `4dd847f` add provenance map and inactive ChaseOS adapter.
 - `7411883` export exact eval seed matrix.
 - `4670c10` record P0.1 as-built documentation truth.
+- `f636135` add linked standalone P0.1 session records.
 
 ## Process and storage closeout
 
 - C: before implementation/test work: approximately 13.96 GiB / 5.87% free.
 - Pre-log closeout snapshot: 13.54 GiB / 5.70% free, above the 10 GiB and 5% gates.
+- Final pre-handover snapshot: 13.23 GiB / 5.56% free, still above both gates.
 - `chaseos audit storage --apply --require-headroom`: attempted, but unavailable because `chaseos` was not found on `PATH`.
 - No server, browser, benchmark, model worker, or long-running helper was started. WSL test processes completed under bounded timeouts.
+- A post-test PID recheck confirmed the wrapper Bash/WSL processes observed during the check had exited; no owned repo/test helper remained.
 - No cache, generated artifact, source, user data, governed state, or evidence was deleted.
+
+## Push verification
+
+- `codex/standalone-first-memory-realignment` was pushed to `origin` and configured as its upstream.
+- The live remote branch matched local `f636135192e0d93bc6a2009549bb9c24b339a68e` before this final log-only closeout update.
+- No merge or pull request was created.
 
 ## Remaining open loops
 

@@ -18,7 +18,7 @@
 - Implemented core protocols, explicit profiles, neutral builder, immutable review, local governance, SQLite memory/retrieval, SQLite provenance graph, inactive ChaseOS adapter, and test-matrix export.
 - Updated protected/current-truth docs with minimal status changes backed by tests.
 - Ran bounded WSL test and JSONL gates, link/diff checks, repeated staged secret scans, disk checks, and the required storage-audit attempt.
-- Created logical commits and prepared the branch for the explicitly authorized push.
+- Created logical commits and pushed the explicitly authorized review branch to `origin` with upstream tracking.
 
 ## Files written
 
@@ -54,6 +54,7 @@
 - Core has no ChaseOS import; optional integration is inactive and non-dispatching.
 - Original run artifacts are hash-checked during review and never rewritten.
 - Inherited stash and ignored artifacts remain preserved.
+- Final post-test inspection found no remaining owned repo/test helper process.
 
 ## Boundaries not tested
 
