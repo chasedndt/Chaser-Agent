@@ -15,6 +15,8 @@ from chaser_agent.chaseos_native import (
 )
 from chaser_agent.evals.contract_runner import run_contract_jsonl_eval
 from chaser_agent.run_artifacts import build_run_log, write_artifact_set
+from chaser_agent.reviews.service import artifact_hashes, create_review_record
+from chaser_agent.reviews.sqlite_store import SQLiteReviewStore
 from chaser_agent.source_card import (
     build_source_card_artifacts,
     make_run_id,
@@ -185,6 +187,57 @@ def run_contract_eval_command(args: argparse.Namespace) -> int:
     return 0 if all(result.passed for result in results) else 1
 
 
+def run_review_command(args: argparse.Namespace) -> int:
+    run_folder = Path(args.run_folder)
+    if not run_folder.is_dir():
+        print(f"error: run folder not found: {run_folder}", file=sys.stderr)
+        return 2
+    before_hashes = artifact_hashes(run_folder)
+    try:
+        review = create_review_record(
+            run_folder,
+            reviewer_id=args.reviewer_id,
+            scores=(
+                args.source_fidelity_score,
+                args.inference_separation_score,
+                args.uncertainty_handling_score,
+                args.action_usefulness_score,
+                args.memory_safety_score,
+            ),
+            decision=args.decision,
+            reviewer_notes=args.reviewer_notes,
+            corrected_claims=tuple(args.corrected_claim),
+            corrected_inferences=tuple(args.corrected_inference),
+            accepted_action_ids=tuple(args.accept_action),
+            rejected_action_ids=tuple(args.reject_action),
+            accepted_memory_ids=tuple(args.accept_memory),
+            rejected_memory_ids=tuple(args.reject_memory),
+        )
+        store = SQLiteReviewStore(args.database)
+        store.add(review)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if before_hashes != artifact_hashes(run_folder):
+        print("error: original run artifacts changed during review", file=sys.stderr)
+        return 3
+    print(
+        json.dumps(
+            {
+                "review_id": review.review_id,
+                "run_id": review.run_id,
+                "decision": review.decision,
+                "total_score": review.total_score,
+                "database_path": str(store.database_path),
+                "original_artifacts_unchanged": True,
+                "memory_promotion": "not_performed",
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="chaser-agent", description="Chaser agent local deterministic harness CLI")
     subparsers = parser.add_subparsers(dest="command")
@@ -255,6 +308,31 @@ def build_parser() -> argparse.ArgumentParser:
     contract_eval.add_argument("--input", required=True, help="JSONL file of Layer 0 contract cases.")
     contract_eval.add_argument("--out", required=True, help="JSONL destination for assertion-level eval results.")
     contract_eval.set_defaults(func=run_contract_eval_command)
+
+    review = subparsers.add_parser(
+        "review",
+        help="Persist an immutable human review for an existing source-card run without changing its artifacts.",
+    )
+    review.add_argument("run_folder", help="Existing source-card run folder.")
+    review.add_argument("--database", help="SQLite database path; defaults to ~/.chaser-agent/chaser-agent.db.")
+    review.add_argument("--reviewer-id", required=True, help="Stable local identifier for the human reviewer.")
+    for option in (
+        "source-fidelity-score",
+        "inference-separation-score",
+        "uncertainty-handling-score",
+        "action-usefulness-score",
+        "memory-safety-score",
+    ):
+        review.add_argument(f"--{option}", required=True, type=int, choices=range(4))
+    review.add_argument("--decision", required=True, choices=("pass", "needs_revision", "fail"))
+    review.add_argument("--reviewer-notes", default="")
+    review.add_argument("--corrected-claim", action="append", default=[])
+    review.add_argument("--corrected-inference", action="append", default=[])
+    review.add_argument("--accept-action", action="append", default=[])
+    review.add_argument("--reject-action", action="append", default=[])
+    review.add_argument("--accept-memory", action="append", default=[])
+    review.add_argument("--reject-memory", action="append", default=[])
+    review.set_defaults(func=run_review_command)
     return parser
 
 
