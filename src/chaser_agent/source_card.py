@@ -26,6 +26,29 @@ PROMOTION_WARNING = (
 _HEADING = re.compile(r"^\s{0,3}#{1,6}\s+")
 _LIST_PREFIX = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)")
 _SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+")
+_LABELLED_LINE = re.compile(r"^([A-Za-z][A-Za-z0-9 _/-]{0,30}?)\s*:\s*(\S.*)$")
+_BARE_URL = re.compile(r"^<?(?:https?://|www\.)\S+>?$")
+
+# Document metadata labels are an explicit whitelist rather than a general
+# "Label: value" rule. A general rule would also swallow substantive statements
+# such as "Decision: we will use the deterministic baseline" or "Risk: ...",
+# which are exactly the claims a reviewer needs. Over-filtering loses source
+# truth silently, so this list only grows on evidence.
+#
+# "status", "type", and "category" were deliberately removed after a real run
+# captured "Status: implemented, tests green, not committed" as metadata: in this
+# repository's documents those labels carry substantive content, not bibliography.
+METADATA_LABELS: frozenset[str] = frozenset(
+    {
+        "url", "link", "permalink", "source", "source url",
+        "title", "subtitle", "headline",
+        "author", "authors", "byline",
+        "published", "publication date", "date", "accessed", "retrieved", "updated", "created",
+        "publisher", "journal", "volume", "issue", "pages", "doi", "isbn", "issn", "arxiv",
+        "tags", "keywords", "version", "license",
+        "id", "identifier", "slug",
+    }
+)
 
 
 def utc_now_iso() -> str:
@@ -50,19 +73,76 @@ def title_for_path(input_path: Path) -> str:
     return input_path.stem.replace("_", " ").replace("-", " ").title()
 
 
-def sentence_chunks(text: str) -> list[str]:
-    """Return content sentences without treating Markdown headings as claims."""
-    chunks: list[str] = []
+def _metadata_label(line: str) -> str | None:
+    """Return the normalised metadata label for a line, or None if it is content."""
+    match = _LABELLED_LINE.match(line)
+    if not match:
+        return None
+    label = " ".join(match.group(1).split()).lower()
+    return label if label in METADATA_LABELS else None
+
+
+def _normalise_line(raw_line: str) -> str:
+    line = raw_line.strip()
+    if not line or _HEADING.match(line):
+        return ""
+    line = _LIST_PREFIX.sub("", line).strip()
+    if line.startswith(">"):
+        line = line[1:].strip()
+    return line
+
+
+def extract_source_metadata(text: str) -> dict[str, str]:
+    """Collect document metadata so it is preserved rather than lost or claimed.
+
+    Metadata describes the document; it is not something the source asserts.
+    Keeping it in its own field means a reviewer still sees the provenance
+    without it masquerading as a substantive claim.
+    """
+    metadata: dict[str, str] = {}
     for raw_line in text.splitlines():
-        line = raw_line.strip()
-        if not line or _HEADING.match(line):
-            continue
-        line = _LIST_PREFIX.sub("", line).strip()
-        if line.startswith(">"):
-            line = line[1:].strip()
+        line = _normalise_line(raw_line)
         if not line:
             continue
-        chunks.extend(part.strip() for part in _SENTENCE_BOUNDARY.split(line) if part.strip())
+        label = _metadata_label(line)
+        if label is None:
+            continue
+        value = _LABELLED_LINE.match(line).group(2).strip()
+        metadata.setdefault(label, value)
+    return metadata
+
+
+def sentence_chunks(text: str) -> list[str]:
+    """Return content sentences, excluding headings, metadata lines, and bare URLs.
+
+    Lines are joined into paragraphs before sentence splitting. Splitting
+    line-by-line turned every hard-wrapped sentence into fragments, so a wrapped
+    source produced mid-sentence claims such as "Operators must review" - a
+    source-fidelity failure, since the claim no longer says what the source said.
+    List items stay separate units because each bullet is its own statement.
+    """
+    chunks: list[str] = []
+    paragraph: list[str] = []
+
+    def flush() -> None:
+        if not paragraph:
+            return
+        joined = " ".join(paragraph).strip()
+        paragraph.clear()
+        if joined:
+            chunks.extend(part.strip() for part in _SENTENCE_BOUNDARY.split(joined) if part.strip())
+
+    for raw_line in text.splitlines():
+        stripped = raw_line.strip()
+        starts_list_item = bool(_LIST_PREFIX.match(raw_line))
+        line = _normalise_line(raw_line)
+        if not stripped or not line or _metadata_label(line) is not None or _BARE_URL.match(line):
+            flush()
+            continue
+        if starts_list_item:
+            flush()
+        paragraph.append(line)
+    flush()
     return chunks
 
 
@@ -155,6 +235,7 @@ def build_source_card_artifacts(
         raise ValueError(f"profile {profile.profile_id} does not allow input type {source.source_type!r}; allowed: {allowed}")
 
     claims, evidence = extract_claims(source.text, source.privacy_class)
+    source_metadata = extract_source_metadata(source.text)
     claim_ids = [claim["claim_id"] for claim in claims]
     uncertainties = profile.build_uncertainties(claim_ids, source.text)
     inferences = profile.build_inferences(claim_ids, source.text)
@@ -171,6 +252,7 @@ def build_source_card_artifacts(
         "workflow_profile": profile.profile_id,
         "workflow_profile_version": profile.version,
         "trust_state": "unreviewed",
+        "source_metadata": source_metadata,
         "source_summary": source_summary(source.text),
         "source_claims": claims,
         "chaser_agent_inferences": inferences,
