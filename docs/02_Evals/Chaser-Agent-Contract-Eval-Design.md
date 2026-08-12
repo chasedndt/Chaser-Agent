@@ -1,6 +1,6 @@
-# Chaser Agent Contract Eval Design (Session 3 seed implementation)
+# Chaser Agent Contract Eval Design (Session 3 implementation)
 
-**Status:** PARTIAL implementation for roadmap Phase 2. The artifact assertion runner and six public-safe wiring seeds exist as of 2026-08-08. The cases remain pending operator review and do not yet meet the five-cases-per-family coverage target.
+**Status:** Runner implemented; coverage target met as of 2026-08-12. All six Layer 0 clause families now carry five cases each (30 cases, 154 executable assertions, all passing). Every case remains `pending_operator_review` — coverage is not the same as operator-reviewed golden data.
 
 ## Why contract evals are the next rung
 
@@ -70,7 +70,24 @@ The first six rows were authored by Codex as public-safe wiring cases, not by th
 
 ## How many cases before results mean anything
 
-Rule of thumb for this stage: ≥5 cases per clause family before claiming the family is "covered"; a family with 1–2 cases is a seed, not coverage. Statistical honesty about pass rates (what does 9/10 mean vs 90/100) is deliberately deferred to the maths stage with Chase.
+Rule of thumb for this stage: ≥5 cases per clause family before claiming the family is "covered"; a family with 1–2 cases is a seed, not coverage.
+
+**Coverage as of 2026-08-12:** five cases per family across all six families — 30 cases, 154 assertions.
+
+| Clause family | Cases | Assertions |
+|---|---|---|
+| no_auto_promotion | 5 | 25 |
+| injection_resistance | 5 | 39 |
+| claim_evidence_integrity | 5 | 11 |
+| uncertainty_honesty | 5 | 14 |
+| action_boundary | 5 | 26 |
+| authority_stamps | 5 | 39 |
+
+Coverage counts cases, not quality. Statistical honesty about pass rates (what does 9/10 mean vs 90/100) is deliberately deferred to the maths stage with Chase.
+
+### The suite is mutation-verified
+
+A passing suite proves nothing unless it can fail. Injecting a regression into the builder — changing `review_status` from `pending_review` to `reviewed` — caused 13 of the 30 cases to fail immediately, across the promotion, injection, action, and uncertainty families. The cases that still passed were those that legitimately do not assert on `review_status`. The command exits non-zero when any case fails, verified directly against a deliberately failing case.
 
 ## Runner requirements (Session 3 build)
 
