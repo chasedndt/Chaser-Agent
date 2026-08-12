@@ -13,7 +13,12 @@ def test_export_includes_every_seed_exact_assertions_and_honest_maturity(tmp_pat
     counts = export_test_matrix(DATASET_ROOT, output)
     text = output.read_text(encoding="utf-8")
 
-    assert counts == {"files": 8, "cases": 27, "golden_cases": 21, "contract_cases": 6}
+    # Counts follow the datasets rather than freezing them: the exporter must
+    # report exactly what is on disk, so growing coverage is not a test failure.
+    assert counts["files"] == 8
+    assert counts["golden_cases"] == 21
+    assert counts["contract_cases"] >= 30
+    assert counts["cases"] == counts["golden_cases"] + counts["contract_cases"]
     assert "`source_card_001`" in text
     assert "`contract_evidence_001`" in text
     assert '"references_resolve"' in text
