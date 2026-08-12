@@ -23,6 +23,7 @@ CORE_PACKAGES = ("core", "workflows", "governance", "reviews", "memory", "knowle
 FORBIDDEN_CORE_IMPORTS = (
     "chaser_agent.integrations",
     "chaser_agent.providers",
+    "chaser_agent.tools",
     "chaseos",
     "openai",
     "anthropic",
@@ -86,6 +87,25 @@ def test_optional_chaseos_adapter_is_inactive_and_cannot_dispatch():
 
     with pytest.raises(RuntimeError):
         adapter.dispatch(packet)
+
+
+def test_tool_package_performs_no_real_io():
+    """The fake tool must stay fake: no filesystem, network, or subprocess import."""
+    forbidden = ("requests", "httpx", "urllib.request", "socket", "subprocess", "shutil", "os.system")
+    offenders: list[str] = []
+    for path in _module_files("tools"):
+        for imported in _imported_names(path):
+            for name in forbidden:
+                if imported == name or imported.startswith(name + "."):
+                    offenders.append(f"{path.relative_to(SRC_ROOT).as_posix()} imports {imported}")
+    assert not offenders, "tool package must perform no real IO: " + "; ".join(offenders)
+
+
+def test_tool_registry_satisfies_the_protocol():
+    from chaser_agent.core.protocols import ToolRegistry as ToolRegistryProtocol
+    from chaser_agent.tools.registry import ToolRegistry
+
+    assert isinstance(ToolRegistry(), ToolRegistryProtocol)
 
 
 def test_provider_package_imports_no_provider_sdk():

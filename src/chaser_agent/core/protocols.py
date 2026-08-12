@@ -84,6 +84,25 @@ class ProviderAdapter(Protocol):
 
 
 @runtime_checkable
+class ToolRegistry(Protocol):
+    """Least-authority capability boundary (Layer 13).
+
+    Registration declares what a tool may do; it does not enable it. A call is
+    authorized only when the tool is registered, explicitly granted for the run,
+    and its target falls inside the declared scopes. Authorization is not
+    execution: P0.1 plans calls and records that nothing ran.
+    """
+
+    def register(self, capability: Any) -> None: ...
+
+    def grant(self, tool_id: str) -> None: ...
+
+    def authorize(self, request: Any) -> Any: ...
+
+    def plan(self, request: Any) -> Any: ...
+
+
+@runtime_checkable
 class GovernanceBackend(Protocol):
     def can_candidate_be_reviewed(self, candidate: Mapping[str, Any]) -> bool: ...
 
