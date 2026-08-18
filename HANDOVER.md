@@ -6,6 +6,12 @@ Chaser agent is standalone-first and ChaseOS-enhanced. Standalone users must be 
 
 ChaseOS remains the optional integrated control plane for shared governance, policy, approval, orchestration, routing, shared canonical state, and cross-project memory.
 
+## Canonical identity and visual foundation
+
+Chaser Agent canon `1.0.0` is authoritative at `docs/brand/chaser-agent/`. The public name is `Chaser Agent`; the relationship statement is `Runs independently. Works best with ChaseOS.` The exact selected visual reference is locked by the sync manifest and stored under `brand/chaser-agent/reference/selected-base/`.
+
+This is canonical knowledge, not a production asset release. `asset_release_version` remains unassigned, the generated sheet is not a clean avatar/master, and the current runtime maturity and authority boundaries below remain unchanged.
+
 ## Active branch
 
 ```text

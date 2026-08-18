@@ -1,10 +1,20 @@
-# Chaser agent
+# Chaser Agent
 
 **Standalone-first. Local-first. Evidence-linked. Human-governed. ChaseOS-enhanced.**
 
-Chaser agent is an open-source agent harness for turning goals and sources into evidence-linked, reviewable work. It runs independently, learns from explicit human review, preserves approved local memory, and curates a user-owned provenance map. Optional ChaseOS integration adds shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory.
+Chaser Agent is a standalone-first, local-first agent harness for turning goals and sources into evidence-linked, reviewable work. Its MIT-licensed core runs independently, learns from explicit human review, preserves approved local memory, and curates a user-owned provenance map. Optional ChaseOS integration adds shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory.
 
-> Chaser agent is an open-source, standalone-first, local-first agent harness that turns goals and sources into evidence-linked work, learns from human review, preserves approved memory, and curates a user-owned knowledge map. It works independently and becomes more powerful when connected to ChaseOS.
+> Chaser Agent is a persistent, approval-gated agent harness for real-world personal and business workflows. It compiles sources, evidence, memory, goals, and operator preferences into contextual proposals and controlled action.
+
+## Identity canon
+
+- Public product name: **Chaser Agent**.
+- Canonical category: **persistent approval-gated agent harness**.
+- ChaseOS relationship: **Runs independently. Works best with ChaseOS.**
+- Human authority: generated output, learned preference, or agent confidence never grants permanent permission.
+- Visual canon: [character specification](docs/brand/chaser-agent/CHASER-AGENT-CHARACTER-CANON-AND-VISUAL-SPEC.md) and [production roadmap](docs/brand/chaser-agent/CHASER-AGENT-FULL-ASSET-ROADMAP-AND-PRODUCTION-SPEC.md).
+
+This is product and identity canon, not a claim that the current P0.1 implementation is a continuously running production agent. Current implementation truth remains below.
 
 ## Product boundary
 
