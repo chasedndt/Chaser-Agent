@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-16  
 **Runtime identity:** Hermes/Optimus under ChaseOS Agent Control Plane  
-**Repo:** `/mnt/c/Users/chaseos/Documents/Projects/chaser-agent`  
+**Repo:** `<repo-root>`  
 **Scope:** deterministic local setup scaffold only
 
 ## Authority boundary
@@ -111,4 +111,4 @@ next_phase: phase_1b_primary_source_ingestion
 Hermes cron wrapper created and active bounded cron registered:
 
 - Job id: `88bb31188587`
-- `/home/chaseos/runtimes/hermes-home/scripts/chaser_agent_weekly_research_intake_dry_run.sh`
+- `<local-path>`

@@ -1,4 +1,4 @@
-# Chaser agent Provider Boundary and Fake Adapter
+# Chaser Agent Provider Boundary and Fake Adapter
 
 **Layer:** 12 (Provider / Model Router) · **Status:** boundary implemented, fake adapter only — no live provider · **Code:** `src/chaser_agent/providers/`
 

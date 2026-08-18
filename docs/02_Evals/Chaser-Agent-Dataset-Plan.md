@@ -1,4 +1,4 @@
-# Chaser agent Dataset Plan
+# Chaser Agent Dataset Plan
 
 ## Current reset classification
 

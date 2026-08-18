@@ -1,12 +1,12 @@
-# Chaser agent Product Thesis
+# Chaser Agent Product Thesis
 
 ## Thesis
 
-Chaser agent is an open-source, standalone-first, local-first agent harness that turns goals and sources into evidence-linked work, learns from explicit human review, preserves governance-approved local memory, and curates a user-owned provenance map. It works independently and gains shared governance, orchestration, canonical state, policy, approvals, routing, and cross-project memory when optionally connected to ChaseOS.
+Chaser Agent is an open-source, standalone-first, local-first agent harness that turns goals and sources into evidence-linked work, learns from explicit human review, preserves governance-approved local memory, and curates a user-owned provenance map. It works independently and gains shared governance, orchestration, canonical state, policy, approvals, routing, and cross-project memory when optionally connected to ChaseOS.
 
 ## Why it exists
 
-Agent output often collapses source facts, inference, action, memory, and confidence into fluent text. Chaser agent makes those boundaries inspectable and durable. The product should show what came from the source, what was inferred, what remains uncertain, which memory influenced the result, what the human decided, and how durable state traces back to evidence.
+Agent output often collapses source facts, inference, action, memory, and confidence into fluent text. Chaser Agent makes those boundaries inspectable and durable. The product should show what came from the source, what was inferred, what remains uncertain, which memory influenced the result, what the human decided, and how durable state traces back to evidence.
 
 ## First product wedge
 

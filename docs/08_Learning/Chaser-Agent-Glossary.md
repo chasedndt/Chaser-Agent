@@ -1,16 +1,16 @@
-# Chaser agent Glossary
+# Chaser Agent Glossary
 
-> Purpose: Chaser agent product glossary aligned to ChaseOS terms, learning maps, and eval-harness language.
+> Purpose: Chaser Agent product glossary aligned to ChaseOS terms, learning maps, and eval-harness language.
 
 ## Boundary note
 
-This glossary belongs inside the standalone Chaser agent repo. ChaseOS remains the parent control plane and canonical governance layer. If a term becomes canonical ChaseOS doctrine, promote it through a reviewed ChaseOS-side pass rather than treating this file as automatic truth.
+This glossary belongs inside the standalone Chaser Agent repo. ChaseOS remains the parent control plane and canonical governance layer. If a term becomes canonical ChaseOS doctrine, promote it through a reviewed ChaseOS-side pass rather than treating this file as automatic truth.
 
 ## Core terms
 
-| Term | Plain-English definition | Chaser agent use | ChaseOS boundary |
+| Term | Plain-English definition | Chaser Agent use | ChaseOS boundary |
 |---|---|---|---|
-| Chaser agent | A governed, eval-backed AI runtime and content-intelligence system derived from ChaseOS. | Product/runtime repo and eval lab. | Not a replacement for ChaseOS. |
+| Chaser Agent | A governed, eval-backed AI runtime and content-intelligence system derived from ChaseOS. | Product/runtime repo and eval lab. | Not a replacement for ChaseOS. |
 | ChaseOS | Parent operating system, governance layer, memory/control plane, and source of truth. | Provides context, standards, and permission boundaries. | Owns canonical truth and Gate approval. |
 | Source card | Structured summary of a source with claims, evidence, uncertainty, actions, and memory candidates. | First product wedge. | Source cards may suggest updates but do not write canonical truth. |
 | Eval harness | Repeatable system for checking behavior against golden cases and rubrics. | Defines whether a feature is real enough to trust. | Harness results are evidence, not approval by themselves. |
@@ -25,4 +25,4 @@ This glossary belongs inside the standalone Chaser agent repo. ChaseOS remains t
 
 ## Naming rule
 
-Use **Chaser agent** when referring to the product. Use `chaser-agent` only for repository/package names.
+Use **Chaser Agent** when referring to the product. Use `chaser-agent` only for repository/package names.

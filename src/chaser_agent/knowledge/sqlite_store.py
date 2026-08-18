@@ -1,4 +1,4 @@
-"""SQLite relationship index for Chaser agent provenance."""
+"""SQLite relationship index for Chaser Agent provenance."""
 
 from __future__ import annotations
 

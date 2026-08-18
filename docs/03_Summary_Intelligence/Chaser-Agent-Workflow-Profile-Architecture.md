@@ -1,4 +1,4 @@
-# Chaser agent Workflow Profile Architecture
+# Chaser Agent Workflow Profile Architecture
 
 **Layer:** 7 (Summary Intelligence) and 17 (Extension / Skill) · **Status:** implemented in P0.1 · **Code:** `src/chaser_agent/workflows/`
 
@@ -54,7 +54,7 @@ Source-neutral and conservative. No website, media, or trading language unless t
 
 ### `ai_engineering_research_review`
 
-For technical and research sources. Distinguishes *reported results* from *Chaser agent implications*; surfaces methodology limitations, eval limitations, and missing baselines; proposes architecture questions, eval candidates, and RFC candidates; preserves citation provenance. Core rule: a paper claim is never production truth.
+For technical and research sources. Distinguishes *reported results* from *Chaser Agent implications*; surfaces methodology limitations, eval limitations, and missing baselines; proposes architecture questions, eval candidates, and RFC candidates; preserves citation provenance. Core rule: a paper claim is never production truth.
 
 ### `website_design_review` — optional and explicit
 

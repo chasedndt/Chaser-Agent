@@ -1,5 +1,5 @@
 
-# Chaser agent Source Summary Spec
+# Chaser Agent Source Summary Spec
 
 ## Required upstream docs
 
@@ -13,7 +13,7 @@ Source summary is the first V0 behaviour implementation. Read these docs before 
 
 ## Layer 0 inheritance
 
-Source summary must obey Layer 0. It turns safe source input into a structured review artifact that separates source claims, Chaser agent inferences, uncertainty, actions, memory candidates, and non-promotion notes.
+Source summary must obey Layer 0. It turns safe source input into a structured review artifact that separates source claims, Chaser Agent inferences, uncertainty, actions, memory candidates, and non-promotion notes.
 
 Nothing in the source-summary loop is approved durable state without an explicit governance decision. Standalone governance can approve local durable state; ChaseOS governance controls shared canonical state in an integrated deployment.
 
@@ -86,7 +86,7 @@ Use `docs/03_Summary_Intelligence/Chaser-Agent-V0-Source-Card-Schema.md` as the 
 - Roadmap impacts do not automatically update the roadmap.
 - Source summaries do not become public claims.
 - Generated text is not canonical truth.
-- Chaser agent does not mutate ChaseOS canonical docs.
+- Chaser Agent does not mutate ChaseOS canonical docs.
 - Standalone local governance owns approved durable local promotion; ChaseOS governance owns shared canonical promotion.
 
 ## Forbidden in this V0 source-summary path
@@ -108,6 +108,6 @@ Use `docs/03_Summary_Intelligence/Chaser-Agent-V0-Source-Card-Schema.md` as the 
 - actions written as commands rather than candidates;
 - private data leakage;
 - treating a weak source as authoritative;
-- confusing Chaser agent notes with ChaseOS governance;
+- confusing Chaser Agent notes with ChaseOS governance;
 - using generated output as canonical truth;
 - failing to record blocked promotion/tool/provider behavior.

@@ -1,4 +1,4 @@
-# Chaser agent Current Truth-State, Architecture, and Decision Handover
+# Chaser Agent Current Truth-State, Architecture, and Decision Handover
 
 - Date: 2026-08-11
 - Runtime: Codex
@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-Chaser agent is currently a governed, local-first, deterministic source-to-review harness and harness-engineering lab under ChaseOS. Its strongest implemented path accepts a declared local text source, derives a source card, splits claims from inferences, attaches evidence and uncertainty, proposes approval-gated actions and candidate-only memory, writes a human-review packet and run log, and can wrap the result in a ChaseOS-native review packet. It also has bounded supporting footholds: a deterministic SkillGate, a metadata-only visual-completion evaluator, public arXiv ingestion, a config-only weekly research dry run, smoke/schema eval machinery, and a new artifact-field contract runner.
+Chaser Agent is currently a governed, local-first, deterministic source-to-review harness and harness-engineering lab under ChaseOS. Its strongest implemented path accepts a declared local text source, derives a source card, splits claims from inferences, attaches evidence and uncertainty, proposes approval-gated actions and candidate-only memory, writes a human-review packet and run log, and can wrap the result in a ChaseOS-native review packet. It also has bounded supporting footholds: a deterministic SkillGate, a metadata-only visual-completion evaluator, public arXiv ingestion, a config-only weekly research dry run, smoke/schema eval machinery, and a new artifact-field contract runner.
 
 What exists is useful shape proof, not intelligent or autonomous product proof. The core extractor is transparent keyword/sentence logic with website-design-specific inferences, actions, uncertainty text, and memory suggestions. Human-review scores are unset. All six Layer 0 contract cases are Codex-authored, one-per-family seeds marked `pending_operator_review`. Provider adapters return `scaffold_only`; no provider router, FastAPI service, web UI, RAG retrieval, live MCP/tool registry, agent loop, sandbox, browser runtime, canonical memory store, or training pipeline exists.
 
@@ -73,8 +73,8 @@ These artifacts are local-only by `.gitignore`. Some contain copied public-sourc
 Commands run:
 
 ```bash
-wsl.exe bash -lc 'cd /mnt/c/Users/chaseos/Documents/Projects/chaser-agent && timeout 300s .venv/bin/python -m pytest -q'
-wsl.exe bash -lc 'cd /mnt/c/Users/chaseos/Documents/Projects/chaser-agent && .venv/bin/python -m scripts.validate_jsonl evals/datasets/golden/*.jsonl evals/datasets/contract/*.jsonl'
+wsl.exe bash -lc 'cd <repo-root> && timeout 300s .venv/bin/python -m pytest -q'
+wsl.exe bash -lc 'cd <repo-root> && .venv/bin/python -m scripts.validate_jsonl evals/datasets/golden/*.jsonl evals/datasets/contract/*.jsonl'
 ```
 
 Results:
@@ -90,9 +90,9 @@ Before test work, the C: drive had about **11.1 GiB free / 4.67%**, below the ma
 
 ## 3. Current Project Definition
 
-Chaser agent is a focused product/runtime lane derived from ChaseOS: a governed source-intelligence and harness-engineering repository that produces reviewable artifacts and tests behaviour before adding power. ChaseOS remains the parent control plane, canonical truth owner, memory-promotion authority, permission/approval authority, and broader operating-system layer. Chaser agent may extract, structure, evaluate, and propose; it does not decide that its output is canonical.
+Chaser Agent is a focused product/runtime lane derived from ChaseOS: a governed source-intelligence and harness-engineering repository that produces reviewable artifacts and tests behaviour before adding power. ChaseOS remains the parent control plane, canonical truth owner, memory-promotion authority, permission/approval authority, and broader operating-system layer. Chaser Agent may extract, structure, evaluate, and propose; it does not decide that its output is canonical.
 
-### What Chaser agent is today
+### What Chaser Agent is today
 
 - A deterministic local Source Card Harness V0.
 - A review-packet and artifact generator.
@@ -137,7 +137,7 @@ Phase 1, Source Card Harness V0, is implemented as deterministic shape proof. Ph
 | Decision | Why | Evidence | Status | Risk if reversed too early |
 |---|---|---|---|---|
 | ChaseOS remains canonical control plane | Prevent a product lane from self-authorising truth, memory, or permissions. | Layer 0, V0 docs, README, native packet authority fields | Active and consistently encoded | Split-brain truth and silent promotion |
-| Chaser agent is a separate repo/product lane | Keep a focused implementation/eval lab without copying ChaseOS ownership. | README, Repo Boundary, Extraction Manifest | Active | Blurred ownership and uncontrolled canonical writes |
+| Chaser Agent is a separate repo/product lane | Keep a focused implementation/eval lab without copying ChaseOS ownership. | README, Repo Boundary, Extraction Manifest | Active | Blurred ownership and uncontrolled canonical writes |
 | Layer 0 precedes the 17 layers | Define behaviour and forbidden authority before architecture creates power. | Layer 0 log/docs, Roadmap Phase 0C | COMPLETE as a constitution; enforcement PARTIAL | Architecture could normalise unsafe defaults |
 | V0 is source-to-review, not full autonomy | Establish one useful, inspectable loop. | V0 Definition/Blueprint, Source Summary Spec | Implemented as deterministic shape proof | Overbuilding before usefulness is known |
 | Deterministic harness precedes providers | Make outputs reproducible and failure modes inspectable without model variability/cost. | Source-card build log and code | Active | Provider output could hide schema/behaviour defects |
@@ -224,7 +224,7 @@ The correct future dependency order is behaviour → reviewed examples → contr
 
 ## 7. Layer 0 Truth
 
-Layer 0 is the product constitution. It exists because adding providers, tools, browsers, filesystem access, credentials, and persistent state before defining authority would collapse trust boundaries. For V0, Chaser agent may read a declared safe source, structure source-grounded claims, label inference and uncertainty, propose actions, propose memory candidates, and write declared local review artifacts. It may not treat those proposals as truth or execution authority.
+Layer 0 is the product constitution. It exists because adding providers, tools, browsers, filesystem access, credentials, and persistent state before defining authority would collapse trust boundaries. For V0, Chaser Agent may read a declared safe source, structure source-grounded claims, label inference and uncertainty, propose actions, propose memory candidates, and write declared local review artifacts. It may not treat those proposals as truth or execution authority.
 
 Review-only means:
 
@@ -235,7 +235,7 @@ Review-only means:
 - a human-review packet is not an approval record;
 - a ChaseOS-native packet is not runtime dispatch or Gate consumption.
 
-ChaseOS must approve any canonical truth write, memory promotion, authority expansion, governed task/workflow mutation, or public/product claim. Chaser agent must never call providers, browse, activate adapters/MCP, read secrets, train models, execute proposed actions, or mutate ChaseOS canonical state by default.
+ChaseOS must approve any canonical truth write, memory promotion, authority expansion, governed task/workflow mutation, or public/product claim. Chaser Agent must never call providers, browse, activate adapters/MCP, read secrets, train models, execute proposed actions, or mutate ChaseOS canonical state by default.
 
 The repo currently obeys Layer 0 through closed config defaults, candidate/review statuses, `requires_approval`, negative-authority run fields, ignored artifacts, stub adapters, no provider dependencies, immutable run-folder creation, and contract tests for six initial clauses. It does not yet prove Layer 0 under live providers/tools, private input, adversarial files at scale, real approval consumption, public actions, or a sandbox. Several schema fields are unvalidated strings, so the strongest guarantees currently come from the specific builder/tests rather than a general policy enforcement layer.
 
@@ -432,7 +432,7 @@ The mathematical concepts already mapped are sets/functions, sequences, vectors/
 
 ## 19. Product Direction Gaps
 
-The repo has not made a final operator-backed choice about what Chaser agent must be excellent at first. The most evidence-backed candidate is **public-safe, source-grounded research-note review** because the source-card and research-intake lanes already exist and require no execution authority. The current implementation, however, is narrowly hard-coded around website-design notes. The immediate product decision is therefore whether to make website-design review the deliberate first wedge or replace the hard-coded behaviour with an AI-engineering research review contract. Trading, social publishing, business operations, and computer use are higher-risk later domain packs, not suitable first runtime authority.
+The repo has not made a final operator-backed choice about what Chaser Agent must be excellent at first. The most evidence-backed candidate is **public-safe, source-grounded research-note review** because the source-card and research-intake lanes already exist and require no execution authority. The current implementation, however, is narrowly hard-coded around website-design notes. The immediate product decision is therefore whether to make website-design review the deliberate first wedge or replace the hard-coded behaviour with an AI-engineering research review contract. Trading, social publishing, business operations, and computer use are higher-risk later domain packs, not suitable first runtime authority.
 
 Current best answers, pending operator confirmation:
 
@@ -442,7 +442,7 @@ Current best answers, pending operator confirmation:
 - Uncertainty triggers: weak/missing/ambiguous/stale source, contradiction, unsupported inference, absent artifact/measurement, or unknown trust/provenance.
 - Weak-source behaviour: lower trust, narrow claims, preserve uncertainty, ask for primary evidence, and refuse promotion.
 - Public/private: public repo data should be public-toy, public-source metadata, or explicitly scrubbed. Private/customer/personal/credential data remains ignored and governed locally.
-- Boundary: Chaser agent creates and evaluates review artifacts; ChaseOS owns permissions, canonical truth, promotion, cross-workspace identity, and governed execution.
+- Boundary: Chaser Agent creates and evaluates review artifacts; ChaseOS owns permissions, canonical truth, promotion, cross-workspace identity, and governed execution.
 
 ## 20. Diagrams Needed
 
@@ -450,7 +450,7 @@ Current best answers, pending operator confirmation:
 |---|---|---|
 | 1. Current V0 local harness | Show the real source-to-artifact flow | Confirm current implementation ownership; draft is in section 5 |
 | 2. Layer 0 to 17 layers | Show constitution constraining every capability | Decide sequencing and prevent layer-completion overclaims |
-| 3. ChaseOS versus Chaser agent boundary | Separate proposal/eval from approval/canonical state | Decide APIs and writeback ownership |
+| 3. ChaseOS versus Chaser Agent boundary | Separate proposal/eval from approval/canonical state | Decide APIs and writeback ownership |
 | 4. Source Card artifact lifecycle | Show source, derivation, review, correction, archive | Define missing review-writeback loop |
 | 5. Human review and promotion boundary | Show candidate, review, Gate, canonical states | Define what remains human-only |
 | 6. Future V1 runtime | Show UI/API, core service, eval, persistence, observability | Decide whether FastAPI is V1 or later |
@@ -465,7 +465,7 @@ Boundary draft:
 
 ```mermaid
 flowchart LR
-    S["Sources"] --> CA["Chaser agent: extract, structure, evaluate, propose"]
+    S["Sources"] --> CA["Chaser Agent: extract, structure, evaluate, propose"]
     CA --> R["Review artifacts"]
     R --> H["Human operator"]
     H --> G["ChaseOS Gate / governance"]
@@ -490,7 +490,7 @@ The future diagrams should be finalised only after the operator answers section 
 
 ## 21. Open Decisions for the Operator
 
-1. Which exact workflow should Chaser agent optimise first: website-design review or public-safe AI-engineering research review?
+1. Which exact workflow should Chaser Agent optimise first: website-design review or public-safe AI-engineering research review?
 2. What concrete example is a strong source card, scored field by field?
 3. What concrete example is weak or unacceptable?
 4. Should memory candidates default to empty unless a strict durability rule passes?

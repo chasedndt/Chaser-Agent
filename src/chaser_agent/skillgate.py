@@ -162,7 +162,7 @@ def write_skill_gate_run(run_folder: Path, artifacts: dict[str, Any], run_log: d
 
 
 def build_agent_skills_sentinel_preflight(*, package_path: Path, sentinel_report_path: Path) -> dict[str, Any]:
-    """Build a Chaser agent preflight decision from a ChaseOS Agent Skills Sentinel report.
+    """Build a Chaser Agent preflight decision from a ChaseOS Agent Skills Sentinel report.
 
     The preflight consumes an existing report artifact only. It does not execute
     the package, activate a runtime adapter, call providers, consume approvals,

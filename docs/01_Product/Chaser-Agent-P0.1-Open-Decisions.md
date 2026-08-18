@@ -1,4 +1,4 @@
-# Chaser agent P0.1 Open Decisions
+# Chaser Agent P0.1 Open Decisions
 
 **Status:** OPERATOR DECISION REQUIRED. These items are intentionally not resolved by implementation.
 

@@ -1,6 +1,6 @@
-# Chaser agent Source Card Format
+# Chaser Agent Source Card Format
 
-A source card contains source identity, source type/origin/privacy, workflow profile and version, summary, evidence-linked claims, separate Chaser agent inferences, uncertainty labels, contradiction status, action candidates, memory candidates, review status, promotion status, creation time, and run identity.
+A source card contains source identity, source type/origin/privacy, workflow profile and version, summary, evidence-linked claims, separate Chaser Agent inferences, uncertainty labels, contradiction status, action candidates, memory candidates, review status, promotion status, creation time, and run identity.
 
 The canonical builder is `src/chaser_agent/source_card.py`. `summary/source_card.py` is a compatibility re-export, not a second implementation.
 

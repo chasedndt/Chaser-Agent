@@ -93,7 +93,7 @@ src/chaser_agent/
 
 ```bash
 # Full suite (WSL venv is Linux-native; Windows python cannot run it)
-wsl -- bash -c "cd /mnt/c/Users/chaseos/Documents/Projects/chaser-agent && PYTHONPATH=src .venv/bin/python -m pytest -q"
+wsl -- bash -c "cd <repo-root> && PYTHONPATH=src .venv/bin/python -m pytest -q"
 
 # Fast path for pure-python tests (works on Windows python, seconds not minutes)
 PYTHONPATH=src python -m pytest tests/test_tool_capability_boundary.py -q

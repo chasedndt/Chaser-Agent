@@ -92,7 +92,7 @@ def build_test_matrix(dataset_root: Path) -> tuple[str, dict[str, int]]:
 
     header = "\n".join(
         (
-            "# Chaser agent Current Test Matrix",
+            "# Chaser Agent Current Test Matrix",
             "",
             "**Status:** GENERATED VISIBILITY ARTIFACT",
             "",
@@ -129,7 +129,7 @@ def export_test_matrix(dataset_root: Path, output_path: Path) -> dict[str, int]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Export Chaser agent JSONL seeds and exact assertions to Markdown.")
+    parser = argparse.ArgumentParser(description="Export Chaser Agent JSONL seeds and exact assertions to Markdown.")
     parser.add_argument("--datasets", type=Path, default=Path("evals/datasets"))
     parser.add_argument(
         "--out", type=Path, default=Path("docs/02_Evals/Chaser-Agent-Current-Test-Matrix.md")

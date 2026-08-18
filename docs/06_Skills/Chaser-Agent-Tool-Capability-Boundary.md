@@ -1,4 +1,4 @@
-# Chaser agent Tool / MCP Capability Boundary
+# Chaser Agent Tool / MCP Capability Boundary
 
 **Layer:** 13 (Tool / MCP) · **Status:** contract, registry, and fake implemented — no execution · **Code:** `src/chaser_agent/tools/`
 

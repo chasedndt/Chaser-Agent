@@ -247,7 +247,7 @@ def run_review_command(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="chaser-agent", description="Chaser agent local deterministic harness CLI")
+    parser = argparse.ArgumentParser(prog="chaser-agent", description="Chaser Agent local deterministic harness CLI")
     subparsers = parser.add_subparsers(dest="command")
 
     source_card = subparsers.add_parser(

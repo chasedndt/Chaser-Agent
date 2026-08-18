@@ -1,8 +1,8 @@
-# Chaser agent V0 and P0.1 Definition
+# Chaser Agent V0 and P0.1 Definition
 
 ## V0 foundation
 
-V0 is the deterministic local source-to-review loop. It turns a declared safe source into a structured artifact containing source metadata, evidence-linked claims, separate Chaser agent inference, uncertainty, action candidates, memory candidates, a review scaffold, and a run log.
+V0 is the deterministic local source-to-review loop. It turns a declared safe source into a structured artifact containing source metadata, evidence-linked claims, separate Chaser Agent inference, uncertainty, action candidates, memory candidates, a review scaffold, and a run log.
 
 ## P0.1 standalone completion target
 

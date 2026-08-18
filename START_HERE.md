@@ -1,6 +1,6 @@
-# Start Here — Chaser agent
+# Start Here — Chaser Agent
 
-Chaser agent is standalone-first and ChaseOS-enhanced. Read the product definition and authority boundary before implementation details.
+Chaser Agent is standalone-first and ChaseOS-enhanced. Read the product definition and authority boundary before implementation details.
 
 ## Reading order
 

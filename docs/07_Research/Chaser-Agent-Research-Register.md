@@ -1,4 +1,4 @@
-# Chaser agent Research Register
+# Chaser Agent Research Register
 
 The Excel workbook `Chaser_Agent_Research_Eval_Register.xlsx` is the main operator-facing research/eval register. This Markdown file is the repo-readable mirror for agents and code reviewers. If the two disagree, treat the Excel register as the working operator dashboard and update this mirror deliberately.
 
@@ -26,7 +26,7 @@ The Excel workbook `Chaser_Agent_Research_Eval_Register.xlsx` is the main operat
 
 ## Register mirror
 
-| ID | Category | Signal | Use for Chaser agent | Required eval/spec | Status | Verification note |
+| ID | Category | Signal | Use for Chaser Agent | Required eval/spec | Status | Verification note |
 |---|---|---|---|---|---|---|
 | RS-001 | Memory | Dreaming-style memory synthesis points toward reviewable memory consolidation. | Memory states and review queue. | Memory carry-forward, staleness, contradiction evals. | converted to spec | Research intake; verify source details before treating as external fact. |
 | RS-002 | Tool use | MCP/tool-use capability should be measurable, not just available. | Tool/MCP mini-evals. | Resource/tool selection, schema validation, forbidden-write denial. | accepted signal | Citation/source review still useful. |

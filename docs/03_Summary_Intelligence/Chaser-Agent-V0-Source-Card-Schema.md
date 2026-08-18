@@ -1,5 +1,5 @@
 
-# Chaser agent V0 Source Card Schema
+# Chaser Agent V0 Source Card Schema
 
 This document defines the concrete V0 source card shape. A source card is a review artifact, not canonical truth.
 
@@ -87,7 +87,7 @@ workflow_profile: website_design_review
 workflow_profile_version: 0.1.0
 trust_state: operator_provided
 source_summary: >
-  The source asks Chaser agent to review a website design without giving generic advice or overdecorating the styling.
+  The source asks Chaser Agent to review a website design without giving generic advice or overdecorating the styling.
 source_claims:
   - claim_id: claim-001
     claim_text: The source wants website-design review to avoid generic design advice.
@@ -123,7 +123,7 @@ action_candidates:
     blocked_reason: null
 memory_candidates:
   - memory_candidate_id: memory-001
-    candidate_text: Chaser agent website-design review should distinguish generic advice from source-grounded critique of intent, hierarchy, contrast, dark mode, subtle emphasis, current best practices, and user constraints.
+    candidate_text: Chaser Agent website-design review should distinguish generic advice from source-grounded critique of intent, hierarchy, contrast, dark mode, subtle emphasis, current best practices, and user constraints.
     evidence_snippet_id: evidence-002
     scope: workflow
     stability: likely_stable

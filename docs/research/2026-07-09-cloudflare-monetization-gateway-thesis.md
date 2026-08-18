@@ -49,7 +49,7 @@ Therefore, Cloudflare Monetization Gateway should influence Chaser Agent as a **
 
 The research loop is partially alive, but not yet mature enough:
 
-1. Hermes cron confirms `Chaser Agent auto research paper scout` is running M/W/F to Discord channel `1518389637868159058`.
+1. Hermes cron confirms `Chaser Agent auto research paper scout` is running M/W/F to Discord channel `<discord-channel-id>`.
 2. A separate `Chaser Agent weekly research intake dry-run` is running weekly as script-backed `no_agent=true`.
 3. The repo's research intake config was still mostly arXiv/paper-first and did not explicitly include industry-practice blogs like Cloudflare.
 4. There is no headless Chromium/profile-backed source watcher in the Chaser Agent repo for industry web research.

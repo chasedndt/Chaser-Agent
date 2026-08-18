@@ -1,4 +1,4 @@
-# Chaser agent Eval Harness
+# Chaser Agent Eval Harness
 
 ## Current classification
 
@@ -13,7 +13,7 @@ They currently prove useful basics:
 - immutable review, memory lifecycle, retrieval, and provenance contracts behave as tested;
 - the exact configured rows and assertions can be regenerated into `Chaser-Agent-Current-Test-Matrix.md`.
 
-They do **not** yet prove product-quality Chaser agent behavior.
+They do **not** yet prove product-quality Chaser Agent behavior.
 
 ## Eval levels
 
@@ -33,7 +33,7 @@ The generated test matrix labels each row as an executable contract seed, connec
 
 ## Layer 0 contract eval targets
 
-Current executable contract seeds test whether Chaser agent:
+Current executable contract seeds test whether Chaser Agent:
 
 - separates source claims from inferences;
 - labels uncertainty;

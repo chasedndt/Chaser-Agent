@@ -1,8 +1,8 @@
-# Chaser agent Memory Consolidation
+# Chaser Agent Memory Consolidation
 
 **Status:** P0.1 IMPLEMENTED AND LOCALLY VERIFIED.
 
-Chaser agent persists governed local memory as append-only SQLite versions:
+Chaser Agent persists governed local memory as append-only SQLite versions:
 
 ```text
 raw -> candidate -> reviewed -> promoted

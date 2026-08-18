@@ -47,7 +47,7 @@ See:
 
 ## Current maturity
 
-Chaser agent is a **P0.1 / pre-alpha standalone deterministic harness** on the review branch. The implementation is locally verified but not merged or released; promotion terminology and operator acceptance remain open.
+Chaser Agent is a **P0.1 / pre-alpha standalone deterministic harness** on the review branch. The implementation is locally verified but not merged or released; promotion terminology and operator acceptance remain open.
 
 Verified P0.1 implementation:
 
@@ -77,7 +77,7 @@ The test count proves the current deterministic contracts, not product-quality i
 goal, question, source, or bounded task
 -> trust and privacy classification
 -> source-grounded claims and evidence
--> separate Chaser agent inference
+-> separate Chaser Agent inference
 -> uncertainty and contradiction status
 -> safe action candidates
 -> relevant reviewed-memory retrieval
@@ -101,9 +101,9 @@ P0.1 profiles:
 
 Profiles shape analysis only. They cannot grant permissions, call providers/tools, execute actions, or promote memory.
 
-## What Chaser agent is not
+## What Chaser Agent is not
 
-Chaser agent is not currently:
+Chaser Agent is not currently:
 
 - a foundation model;
 - production autonomy;

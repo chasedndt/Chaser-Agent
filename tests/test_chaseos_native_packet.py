@@ -44,7 +44,7 @@ def test_chaseos_native_source_card_creates_control_plane_review_packet(tmp_path
     source = tmp_path / "operator_note.md"
     source.write_text(
         "# Operator note\n\n"
-        "Chaser agent should preserve source evidence, label uncertainty, and propose actions without mutating ChaseOS canonical truth.\n"
+        "Chaser Agent should preserve source evidence, label uncertainty, and propose actions without mutating ChaseOS canonical truth.\n"
         "A native ChaseOS handoff should include runtime lane, workflow, graph links, authority flags, and blocked actions.\n",
         encoding="utf-8",
     )
@@ -73,7 +73,7 @@ def test_chaseos_native_source_card_creates_control_plane_review_packet(tmp_path
     assert packet["recommended_agent_activity_slug"].startswith("hermes-optimus-chaser-agent-native-")
 
     handoff = (run_folder / "operator_handoff.md").read_text(encoding="utf-8")
-    assert "# Chaser agent ChaseOS-Native Source Card Handoff" in handoff
+    assert "# Chaser Agent ChaseOS-Native Source Card Handoff" in handoff
     assert "[[HERMES]]" in handoff
     assert "No ChaseOS canonical truth mutation was performed." in handoff
     assert "Provider calls: none" in handoff

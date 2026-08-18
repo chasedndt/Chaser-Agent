@@ -1,13 +1,13 @@
-# Chaser agent — ChaseOS Optional Integration
+# Chaser Agent — ChaseOS Optional Integration
 
 **Layer:** 16 (Governance / Approval) · **Status:** adapter exists and is deliberately inactive in P0.1 · **Code:** `src/chaser_agent/integrations/chaseos/`
 
 ## The rule
 
-Chaser agent is **standalone-first and ChaseOS-enhanced**. The MIT-licensed core must run, review, remember, and build a knowledge map with no ChaseOS installed. ChaseOS is an optional adapter and deployment mode, never a dependency.
+Chaser Agent is **standalone-first and ChaseOS-enhanced**. The MIT-licensed core must run, review, remember, and build a knowledge map with no ChaseOS installed. ChaseOS is an optional adapter and deployment mode, never a dependency.
 
 ```text
-Chaser agent core
+Chaser Agent core
     ↓ depends only on protocols
 Local standalone adapters   |   Optional ChaseOS adapters
 ```
@@ -47,7 +47,7 @@ agent confidence   != authority
 
 ## The adapter
 
-`ChaseOSProposalAdapter` (`integrations/chaseos/adapter.py`) converts a Chaser agent proposal into a ChaseOS-shaped packet **without dispatching anything**:
+`ChaseOSProposalAdapter` (`integrations/chaseos/adapter.py`) converts a Chaser Agent proposal into a ChaseOS-shaped packet **without dispatching anything**:
 
 - `active = False`;
 - every packet is stamped `adapter_status: "inactive"` and `dispatch_status: "not_dispatched"`;

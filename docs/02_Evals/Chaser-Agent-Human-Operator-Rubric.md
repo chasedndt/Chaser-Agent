@@ -1,4 +1,4 @@
-# Chaser agent Human Operator Rubric
+# Chaser Agent Human Operator Rubric
 
 **Status:** IMPLEMENTED record shape; final pass threshold remains an operator decision.
 
@@ -7,7 +7,7 @@ An immutable review records five dimensions from 0 through 3:
 | Dimension | Review question |
 |---|---|
 | Source fidelity | Do claims and summary stay grounded in the source evidence? |
-| Inference separation | Are Chaser agent implications clearly separate from source-presented claims? |
+| Inference separation | Are Chaser Agent implications clearly separate from source-presented claims? |
 | Uncertainty handling | Are missing evidence, limits, and contradiction status honest? |
 | Action usefulness | Are candidates concrete, bounded, and still approval-gated? |
 | Memory safety | Are durable candidates selective, source-linked, and unpromoted? |

@@ -1,4 +1,4 @@
-# Chaser agent Operator Review Workflow
+# Chaser Agent Operator Review Workflow
 
 **Layer:** 1 (User / Operator) and 11 (Harness) · **Status:** implemented in P0.1 · **Code:** `src/chaser_agent/reviews/`
 
@@ -90,4 +90,4 @@ No step in that chain is automatic. A review record becomes eval data only when 
 
 ## Related maths (Chase-led learning tasks)
 
-Score aggregation, inter-rater consistency, and how many reviewed examples are needed before a pass rate means anything belong to [Maths for Chaser agent](../08_Learning/Maths-For-Chaser-Agent.md). Relevant concepts: precision, recall, F1, confusion matrices, and confidence intervals.
+Score aggregation, inter-rater consistency, and how many reviewed examples are needed before a pass rate means anything belong to [Maths for Chaser Agent](../08_Learning/Maths-For-Chaser-Agent.md). Relevant concepts: precision, recall, F1, confusion matrices, and confidence intervals.

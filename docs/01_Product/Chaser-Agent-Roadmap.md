@@ -1,6 +1,6 @@
-# Chaser agent Roadmap
+# Chaser Agent Roadmap
 
-This roadmap follows Layer 0 and the approved standalone-first product direction. Chaser agent must work independently; ChaseOS integration remains optional and additive through interfaces.
+This roadmap follows Layer 0 and the approved standalone-first product direction. Chaser Agent must work independently; ChaseOS integration remains optional and additive through interfaces.
 
 ## Phase 0A — scaffold already created
 
@@ -34,7 +34,7 @@ This roadmap follows Layer 0 and the approved standalone-first product direction
 
 ## Phase 0C.1 — fundamentals and learning foundation
 
-**Purpose:** Teach the foundations needed to build Chaser agent intentionally.
+**Purpose:** Teach the foundations needed to build Chaser Agent intentionally.
 
 **Deliverables:** AI engineering ladder, maths handout, university module linkage.
 
@@ -213,11 +213,11 @@ This roadmap follows Layer 0 and the approved standalone-first product direction
 
 ## Phase 9 — Future multi-domain agent-harness direction
 
-**Purpose:** Define Chaser agent as the governed, computer-local, multi-domain orchestration harness. Trading is one skill/workflow family alongside source intelligence, social-media growth/control, web and UI design, coding, business operations, and future personal workflows.
+**Purpose:** Define Chaser Agent as the governed, computer-local, multi-domain orchestration harness. Trading is one skill/workflow family alongside source intelligence, social-media growth/control, web and UI design, coding, business operations, and future personal workflows.
 
 **Deliverables:** multi-domain skill/workflow registry; current repository/system map; per-domain inputs/outputs/tools/datasets/evals/authority contracts; shared permission/audit model; and bounded domain plans. The trading pack additionally covers normalized signal/thesis/candidate/order contracts, TradeSync digital-twin integration, an independent risk-engine contract, and disabled-by-default execution levels.
 
-**Definition of done:** no domain pack becomes Chaser agent's primary identity; each skill family has isolated authority and eval gates; each authority level is separately operator-approved; agent reasoning cannot override risk or governance; review loops cannot self-authorize; and implementation existence never implies live authority.
+**Definition of done:** no domain pack becomes Chaser Agent's primary identity; each skill family has isolated authority and eval gates; each authority level is separately operator-approved; agent reasoning cannot override risk or governance; review loops cannot self-authorize; and implementation existence never implies live authority.
 
 **Out of scope:** unrestricted multi-tool autonomy, current live orders, unapproved social publishing/account mutation, production deployment without approval, exchange/wallet credentials, silent self-training, canonical-memory mutation, or production-autonomy claims.
 

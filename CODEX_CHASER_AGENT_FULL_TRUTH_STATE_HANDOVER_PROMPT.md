@@ -1,4 +1,4 @@
-# Codex Prompt — Chaser agent Full Truth-State, Architecture, and Decision Handover
+# Codex Prompt — Chaser Agent Full Truth-State, Architecture, and Decision Handover
 
 ## Purpose
 
@@ -12,7 +12,7 @@ The operator has said the GitHub repo may not be the full truth state. Codex mus
 
 The output should tell us:
 
-- what Chaser agent currently is,
+- what Chaser Agent currently is,
 - what is actually implemented,
 - what is only documented,
 - what decisions have already been made,
@@ -47,13 +47,13 @@ Do **not** delete stashes.
 Do **not** delete logs.  
 Do **not** overclaim production readiness.
 
-Use the term **“Chaser agent”** consistently.
+Use the term **“Chaser Agent”** consistently.
 
 ---
 
 ## 0. Context to preserve
 
-Chaser agent is being developed as a governed, local-first, source-intelligence and harness-engineering project derived from ChaseOS.
+Chaser Agent is being developed as a governed, local-first, source-intelligence and harness-engineering project derived from ChaseOS.
 
 ChaseOS remains:
 
@@ -64,7 +64,7 @@ ChaseOS remains:
 - memory-promotion authority,
 - broader operating-system layer.
 
-Chaser agent is intended to become:
+Chaser Agent is intended to become:
 
 - a focused product/runtime implementation lane,
 - a harness-engineering learning lab,
@@ -73,7 +73,7 @@ Chaser agent is intended to become:
 - eventually a flagship “Hermes Chaser Agent Runtime” style system,
 - but only after Layer 0, V0, safety, review, datasets, evals, and architecture decisions are properly defined.
 
-Chaser agent is **not currently**:
+Chaser Agent is **not currently**:
 
 - a production autonomous agent,
 - a foundation model,
@@ -111,7 +111,7 @@ Known or expected milestones:
 1. The repo was scaffolded.
 2. Phase 0 spec-deepening work happened.
 3. Layer 0 was created.
-4. Chaser agent V0 was defined.
+4. Chaser Agent V0 was defined.
 5. A V0 Blueprint was created.
 6. A deterministic Source Card Harness V0 was implemented.
 7. The repo was pushed to GitHub main.
@@ -268,7 +268,7 @@ Do not be vague. The handover must be detailed enough for ChatGPT and the operat
 
 Explain in plain English:
 
-* what Chaser agent currently is,
+* what Chaser Agent currently is,
 * what it can actually do today,
 * what has only been documented,
 * what is not implemented,
@@ -312,13 +312,13 @@ Explicitly answer:
 
 ## 3. Current Project Definition
 
-Extract the current definition of Chaser agent from the docs.
+Extract the current definition of Chaser Agent from the docs.
 
 Include:
 
 * one-paragraph definition,
-* what Chaser agent is,
-* what Chaser agent is not,
+* what Chaser Agent is,
+* what Chaser Agent is not,
 * relationship to ChaseOS,
 * current phase,
 * current focus,
@@ -352,7 +352,7 @@ For each decision include:
 Include at minimum:
 
 1. ChaseOS remains canonical control plane.
-2. Chaser agent is a separate repo/product lane.
+2. Chaser Agent is a separate repo/product lane.
 3. Layer 0 comes before the 17 layers.
 4. V0 is source-intelligence/review-first, not full autonomy.
 5. Deterministic harness comes before provider/model integration.
@@ -424,7 +424,7 @@ research_intake/
 
 ## 6. Architecture Map — Future Direction
 
-Summarise the future Chaser agent direction as documented or implied.
+Summarise the future Chaser Agent direction as documented or implied.
 
 Include the future flagship/minimum V1 module set:
 
@@ -461,12 +461,12 @@ Summarise the Layer 0 Behaviour Contract.
 Include:
 
 * why Layer 0 exists,
-* what behaviour Chaser agent V0 should have,
+* what behaviour Chaser Agent V0 should have,
 * what is blocked,
 * what review-only means,
-* what Chaser agent can propose,
+* what Chaser Agent can propose,
 * what ChaseOS must approve,
-* what Chaser agent must never do by default,
+* what Chaser Agent must never do by default,
 * how this controls all other layers,
 * where the repo currently obeys Layer 0,
 * where the repo does not yet prove Layer 0.
@@ -668,7 +668,7 @@ Include:
 * whether cron is documented,
 * what is dry-run only,
 * what is active or inactive,
-* how it relates to Chaser agent,
+* how it relates to Chaser Agent,
 * how it must be governed,
 * what should not be confused with core V0.
 
@@ -753,7 +753,7 @@ Identify where product direction is still underdefined.
 
 Questions to answer:
 
-* What should Chaser agent be excellent at first?
+* What should Chaser Agent be excellent at first?
 * What should the first real workflow be?
 * Website design review?
 * AI engineering research?
@@ -766,9 +766,9 @@ Questions to answer:
 * What should action candidates be allowed to suggest?
 * How strict should memory candidates be?
 * What should trigger uncertainty?
-* How should Chaser agent behave when the source is weak?
+* How should Chaser Agent behave when the source is weak?
 * What should be public vs private?
-* What should belong to Chaser agent vs ChaseOS?
+* What should belong to Chaser Agent vs ChaseOS?
 
 ---
 
@@ -780,7 +780,7 @@ At minimum include:
 
 1. Current V0 local harness flow.
 2. Layer 0 to 17-layer architecture map.
-3. ChaseOS vs Chaser agent boundary.
+3. ChaseOS vs Chaser Agent boundary.
 4. Source Card artifact lifecycle.
 5. Human review and promotion boundary.
 6. Future V1 runtime architecture.
@@ -805,7 +805,7 @@ List decisions requiring human/operator input before long-running development.
 
 At minimum include:
 
-1. What exact workflow should Chaser agent optimise for first?
+1. What exact workflow should Chaser Agent optimise for first?
 2. What does a strong source card look like?
 3. What does a weak source card look like?
 4. How strict should memory candidates be?

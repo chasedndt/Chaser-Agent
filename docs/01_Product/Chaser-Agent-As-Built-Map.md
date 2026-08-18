@@ -1,4 +1,4 @@
-# Chaser agent As-Built Map
+# Chaser Agent As-Built Map
 
 **Status:** P0.1 IMPLEMENTED AND LOCALLY VERIFIED on `codex/standalone-first-memory-realignment`; not merged, released, or operator-accepted.
 

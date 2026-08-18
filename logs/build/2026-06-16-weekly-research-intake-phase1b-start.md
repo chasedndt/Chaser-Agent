@@ -73,7 +73,7 @@ raw_count: 664
 deduped_count: 664
 papers_jsonl: research_intake/data/arxiv-rss-ingest-20260616T225028Z/normalized/papers.jsonl
 
-bash /home/chaseos/runtimes/hermes-home/scripts/chaser_agent_weekly_research_intake_dry_run.sh
+bash <local-path>
 Chaser Agent weekly research intake dry-run: pass
 Artifact: logs/runs/weekly-research-intake-dry-run-20260616T224423Z
 

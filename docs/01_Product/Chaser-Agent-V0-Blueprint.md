@@ -1,12 +1,12 @@
 
-# Chaser agent V0 Blueprint
+# Chaser Agent V0 Blueprint
 
 ## 1. V0 purpose
 
-Chaser agent V0 is the first implementation-ready loop after the Layer 0 Ground-Up Reset. It turns **safe, reviewable source input** into a structured review artifact that separates:
+Chaser Agent V0 is the first implementation-ready loop after the Layer 0 Ground-Up Reset. It turns **safe, reviewable source input** into a structured review artifact that separates:
 
 - what the source says;
-- what Chaser agent infers;
+- what Chaser Agent infers;
 - what remains uncertain;
 - what actions may follow;
 - what memory candidates may be proposed;
@@ -16,7 +16,7 @@ V0 exists to make source intelligence reviewable before deeper evals, provider c
 
 ## 2. V0 operator
 
-The V0 operator is the human reviewer/developer directing Chaser agent work. The operator decides whether the artifact is useful, safe, aligned, and worth accepting into any future action, approved durable local state, dataset row, roadmap change, spec change, or optional ChaseOS-governed shared truth.
+The V0 operator is the human reviewer/developer directing Chaser Agent work. The operator decides whether the artifact is useful, safe, aligned, and worth accepting into any future action, approved durable local state, dataset row, roadmap change, spec change, or optional ChaseOS-governed shared truth.
 
 V0 never replaces the operator. V0 creates evidence for operator review.
 
@@ -59,7 +59,7 @@ Each input must include or derive:
 | `source_type` | `note`, `document`, `repo_doc`, `toy_jsonl`, `research_register`, or `other_safe_text`. |
 | `source_origin` | Where the source came from, without leaking secrets. |
 | `privacy_class` | `public`, `scrubbed`, `internal_safe`, or `toy`. |
-| `operator_intent` | Why the operator asked Chaser agent to review it. |
+| `operator_intent` | Why the operator asked Chaser Agent to review it. |
 | `raw_text` | The safe source text. |
 
 Blocked by default:
@@ -123,7 +123,7 @@ A claims table separates source claims from inference. Each row should include:
 | Field | Required | Meaning |
 |---|---:|---|
 | `claim_id` | yes | Stable local row id. |
-| `claim_text` | yes | What the source says, not what Chaser agent concludes. |
+| `claim_text` | yes | What the source says, not what Chaser Agent concludes. |
 | `evidence_snippet_id` | yes | Link to supporting source snippet. |
 | `source_location` | recommended | Line, paragraph, section, or approximate location. |
 | `claim_type` | yes | `fact`, `preference`, `instruction`, `constraint`, `status`, `unknown`. |
@@ -152,7 +152,7 @@ Allowed labels:
 | `requires_review` | Human review needed before action or promotion. |
 | `missing_context` | Source does not provide enough context. |
 | `ambiguous_source` | Source can be read more than one way. |
-| `unsupported_inference` | Chaser agent inference is not directly proven by the source. |
+| `unsupported_inference` | Chaser Agent inference is not directly proven by the source. |
 | `conflicting_source` | Source conflicts with another known source or itself. |
 | `privacy_risk` | Output could expose private/sensitive information. |
 | `promotion_blocked` | Output must not become approved durable state without deployment governance. |
@@ -276,7 +276,7 @@ V0 does not:
 A V0 source-card run passes only if:
 
 1. input is safe/reviewable and privacy-classed;
-2. source claims are separated from Chaser agent inferences;
+2. source claims are separated from Chaser Agent inferences;
 3. evidence snippets support source claims;
 4. uncertainty is labeled;
 5. action candidates are framed as review-only;

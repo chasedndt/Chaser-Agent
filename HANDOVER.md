@@ -1,8 +1,8 @@
-# Chaser agent Handover
+# Chaser Agent Handover
 
 ## Approved product direction
 
-Chaser agent is standalone-first and ChaseOS-enhanced. Standalone users must be able to run deterministic source review, persist immutable human review, govern approved durable local memory, and query provenance without ChaseOS installed.
+Chaser Agent is standalone-first and ChaseOS-enhanced. Standalone users must be able to run deterministic source review, persist immutable human review, govern approved durable local memory, and query provenance without ChaseOS installed.
 
 ChaseOS remains the optional integrated control plane for shared governance, policy, approval, orchestration, routing, shared canonical state, and cross-project memory.
 

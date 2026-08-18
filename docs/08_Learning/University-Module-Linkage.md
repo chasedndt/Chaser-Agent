@@ -1,8 +1,8 @@
 # University Module Linkage
 
-This map connects university learning to Chaser agent repo work.
+This map connects university learning to Chaser Agent repo work.
 
-| Module | What it teaches | Chaser agent mapping | Example repo work | Study next |
+| Module | What it teaches | Chaser Agent mapping | Example repo work | Study next |
 |---|---|---|---|---|
 | Computer and Communication Systems | OS, networks, processes, filesystems, local/remote boundaries. | WSL/Windows paths, runtime surfaces, adapter safety. | Run tests from WSL, document path boundaries. | Process isolation, networking basics. |
 | Software Engineering | Requirements, testing, design, version control, maintainability. | Layer 0, V0 definition, roadmap, test discipline. | Write a build log and commit one scoped change. | Requirements traceability and CI. |

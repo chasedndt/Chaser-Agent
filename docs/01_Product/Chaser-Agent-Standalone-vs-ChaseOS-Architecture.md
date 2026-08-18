@@ -1,12 +1,12 @@
-# Chaser agent Standalone and ChaseOS-Integrated Architecture
+# Chaser Agent Standalone and ChaseOS-Integrated Architecture
 
 **Status:** IMPLEMENTED AND LOCALLY VERIFIED on `codex/standalone-first-memory-realignment`; operator acceptance and merge remain open.
 
 ## Product rule
 
-Chaser agent is standalone-first and ChaseOS-enhanced. A user must be able to install the MIT-licensed core, run deterministic source review, record human review, persist approved local memory, and query a local provenance map without installing ChaseOS.
+Chaser Agent is standalone-first and ChaseOS-enhanced. A user must be able to install the MIT-licensed core, run deterministic source review, record human review, persist approved local memory, and query a local provenance map without installing ChaseOS.
 
-ChaseOS remains the strongest optional integration for shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory. Integration adds capability; it does not define whether the Chaser agent core can run.
+ChaseOS remains the strongest optional integration for shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory. Integration adds capability; it does not define whether the Chaser Agent core can run.
 
 ## Deployment-scoped durable state
 
@@ -30,7 +30,7 @@ agent confidence != authority
 
 ```mermaid
 flowchart LR
-    U["Human operator"] --> C["Chaser agent core"]
+    U["Human operator"] --> C["Chaser Agent core"]
     C --> W["WorkflowProfile"]
     C --> G["GovernanceBackend"]
     C --> R["ReviewStore"]

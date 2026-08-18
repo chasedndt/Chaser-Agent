@@ -1,7 +1,7 @@
 # 2026-06-15 — Chaser Agent SkillGate V0
 
 Runtime: Hermes/Optimus
-Repo: `/mnt/c/Users/chaseos/Documents/Projects/chaser-agent`
+Repo: `<repo-root>`
 Prompt: begin utilizing SkillOpt-style skill optimization for the native Chaser Agent repository.
 
 ## Implemented

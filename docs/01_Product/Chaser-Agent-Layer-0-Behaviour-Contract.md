@@ -1,14 +1,14 @@
-# Chaser agent Layer 0 Behaviour Contract / Product Constitution
+# Chaser Agent Layer 0 Behaviour Contract / Product Constitution
 
 ## Why Layer 0 exists
 
-Layer 0 defines what Chaser agent is allowed to mean before any architecture, provider, tool, memory store, workflow profile, skill, or runtime claims capability. Every later layer and deployment mode must obey it.
+Layer 0 defines what Chaser Agent is allowed to mean before any architecture, provider, tool, memory store, workflow profile, skill, or runtime claims capability. Every later layer and deployment mode must obey it.
 
 Without this contract, the project can confuse generated output with truth, candidates with actions or memory, passing syntax checks with product quality, workflow specialisation with authority, or an integration packet with live dispatch.
 
 ## Product identity
 
-Chaser agent is an open-source, standalone-first, local-first agent harness for turning goals and sources into evidence-linked, reviewable work. It can run independently and integrate optionally with ChaseOS.
+Chaser Agent is an open-source, standalone-first, local-first agent harness for turning goals and sources into evidence-linked, reviewable work. It can run independently and integrate optionally with ChaseOS.
 
 The core must remain usable without ChaseOS. ChaseOS remains the optional integrated control plane for shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory.
 
@@ -42,13 +42,13 @@ agent confidence != authority
 
 ## Expected P0.1 behaviour
 
-For a bounded source-review run, Chaser agent should:
+For a bounded source-review run, Chaser Agent should:
 
 1. accept only declared safe/reviewable input;
 2. record source identity, origin, trust, privacy, and selected workflow profile;
 3. preserve headings separately from factual claim candidates;
 4. create evidence-linked source claims;
-5. keep source claims separate from Chaser agent inference;
+5. keep source claims separate from Chaser Agent inference;
 6. label uncertainty and contradiction status honestly;
 7. retrieve only eligible reviewed/promoted memory and identify any memory influence;
 8. propose scoped action candidates without execution;
@@ -126,7 +126,7 @@ The deterministic harness remains a reference implementation, fallback, and test
 
 ## Public claims allowed now
 
-The repository may describe Chaser agent as an open-source, standalone-first, local-first, human-governed agent-harness architecture with deterministic P0 foundations and P0.1 standalone work on a review branch.
+The repository may describe Chaser Agent as an open-source, standalone-first, local-first, human-governed agent-harness architecture with deterministic P0 foundations and P0.1 standalone work on a review branch.
 
 It may not claim production autonomy, semantic intelligence, private-data safety, live providers/tools/browser execution, finished canonical memory, fine-tuned behaviour, or all-layer completion.
 

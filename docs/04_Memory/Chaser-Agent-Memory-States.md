@@ -1,4 +1,4 @@
-# Chaser agent Memory States
+# Chaser Agent Memory States
 
 These states prevent raw context from becoming durable truth without evidence, review, and governance.
 

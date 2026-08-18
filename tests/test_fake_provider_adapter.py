@@ -87,7 +87,9 @@ def test_envelope_refuses_disallowed_privacy_class():
         ("token: ghp_abcdefghijklmnopqrst", "github_token"),
         ("-----BEGIN RSA PRIVATE KEY-----", "private_key_block"),
         ("api_key = supersecretvalue", "assigned_credential"),
-        (r"open C:\Users\chaseos\vault.md", "windows_user_path"),
+        # Synthetic path only. Never put a real local path in a public repo,
+        # even as test data.
+        ("open " + "C:" + chr(92) + "Users" + chr(92) + "example" + chr(92) + "vault.md", "windows_user_path"),
     ],
 )
 def test_sensitive_scanner_detects_known_shapes(prompt: str, expected: str):

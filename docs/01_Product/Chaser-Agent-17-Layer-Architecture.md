@@ -1,8 +1,8 @@
-# Chaser agent 17-Layer Architecture
+# Chaser Agent 17-Layer Architecture
 
 ## Standalone-first interpretation
 
-The layers are a governed dependency map, not a checklist or implementation claim. The Chaser agent core must run without ChaseOS. Standalone deployments use local human governance and user-owned durable state; ChaseOS-integrated deployments may add shared governance, canonical state, policy, routing, approvals, and orchestration through optional adapters.
+The layers are a governed dependency map, not a checklist or implementation claim. The Chaser Agent core must run without ChaseOS. Standalone deployments use local human governance and user-owned durable state; ChaseOS-integrated deployments may add shared governance, canonical state, policy, routing, approvals, and orchestration through optional adapters.
 
 No core layer may import ChaseOS. Workflow profiles specialise analysis but never grant authority. See `Chaser-Agent-Standalone-vs-ChaseOS-Architecture.md` for the P0.1 package and protocol boundary.
 
@@ -17,7 +17,7 @@ No core layer may import ChaseOS. Workflow profiles specialise analysis but neve
 
 ## Layer 0 — Behaviour Contract / Product Constitution
 
-Layer 0 is not a runtime layer. It defines expected behaviour, boundaries, public claims, and review requirements before the 17 architecture layers are interpreted. Every layer must obey it: Chaser agent creates reviewable artifacts and may persist only human-reviewed, governance-approved deployment-scoped state. It never silently promotes, activates tools, or claims production readiness.
+Layer 0 is not a runtime layer. It defines expected behaviour, boundaries, public claims, and review requirements before the 17 architecture layers are interpreted. Every layer must obey it: Chaser Agent creates reviewable artifacts and may persist only human-reviewed, governance-approved deployment-scoped state. It never silently promotes, activates tools, or claims production readiness.
 
 Current Layer 0 artifact: `docs/01_Product/Chaser-Agent-Layer-0-Behaviour-Contract.md`.
 

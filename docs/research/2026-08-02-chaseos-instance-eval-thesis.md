@@ -23,7 +23,7 @@ You are being asked to expand an eval-system design for **Chaser Agent**, a gove
 ## 1. Evidence base
 
 - `https://chaseos.ai` homepage (full page text captured 2026-08-02).
-- Canonical ChaseOS workflow registry: `chaseos_obsidian\b\s\runtime\workflows\registry\` (~40 workflows incl. strikezone_* trading family, siteops_execute, desktop_operate, browser_research, hermes_* review family).
+- Canonical ChaseOS workflow registry: `<chaseos-vault>` (~40 workflows incl. strikezone_* trading family, siteops_execute, desktop_operate, browser_research, hermes_* review family).
 - This repo's Layer 0 contract, eval docs, `research_intake/ranking.yaml`, Human Operator Rubric, social-publishing direction plan.
 - Web research on source-grading frameworks (Admiralty/NATO 6x6, SIFT, lateral reading — links in §5).
 

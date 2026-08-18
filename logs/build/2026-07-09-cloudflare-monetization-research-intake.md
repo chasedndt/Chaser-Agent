@@ -12,7 +12,7 @@ Chase pointed Hermes at the Cloudflare Monetization Gateway post from `#chaser-a
 
 ## Live scheduler truth
 
-- `Chaser Agent auto research paper scout` is enabled and scheduled M/W/F 08:00, last status ok, delivery `discord:1518389637868159058`.
+- `Chaser Agent auto research paper scout` is enabled and scheduled M/W/F 08:00, last status ok, delivery `discord:<discord-channel-id>`.
 - `Chaser Agent weekly research intake dry-run` is enabled weekly, script-backed `no_agent=true`, last status ok, scope `phase_1a_config_dry_run_only`.
 - There is no repo-native headless Chromium industry-practice watcher yet.
 

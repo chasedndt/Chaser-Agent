@@ -1,10 +1,10 @@
-# Chaser agent Standalone Memory Architecture
+# Chaser Agent Standalone Memory Architecture
 
 **Layer:** 8 (Memory Consolidation) · **Status:** implemented in P0.1 · **Code:** `src/chaser_agent/memory/`
 
 ## What "standalone memory" means
 
-Chaser agent can remember approved information **without ChaseOS installed**. In standalone mode the human operator is the approval authority and promoted memory becomes *approved durable local state* — user-owned, on the user's machine.
+Chaser Agent can remember approved information **without ChaseOS installed**. In standalone mode the human operator is the approval authority and promoted memory becomes *approved durable local state* — user-owned, on the user's machine.
 
 Promotion does **not** mean the statement is globally or objectively true. It means: a candidate was reviewed, the operator accepted it, local governance allowed the transition, and provenance was preserved.
 
@@ -27,7 +27,7 @@ raw -> candidate -> reviewed -> promoted -> stale / disputed -> archived
                          \-> rejected
 ```
 
-Enforced in `memory/lifecycle.py` as an explicit finite-state machine (`VALID_TRANSITIONS`). This is a maths concept made literal — see [Maths for Chaser agent](../08_Learning/Maths-For-Chaser-Agent.md) on finite-state machines and sets.
+Enforced in `memory/lifecycle.py` as an explicit finite-state machine (`VALID_TRANSITIONS`). This is a maths concept made literal — see [Maths for Chaser Agent](../08_Learning/Maths-For-Chaser-Agent.md) on finite-state machines and sets.
 
 Rules encoded in code, not just prose:
 

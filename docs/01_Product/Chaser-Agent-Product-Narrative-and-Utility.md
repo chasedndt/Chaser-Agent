@@ -1,14 +1,14 @@
-# Chaser agent Product Narrative and Utility
+# Chaser Agent Product Narrative and Utility
 
 **Status:** APPROVED product direction for P0.1.
 
 ## Canonical statement
 
-> Chaser agent is an open-source, standalone-first, local-first agent harness that turns goals and sources into evidence-linked work, learns from human review, preserves approved memory, and curates a user-owned knowledge map. It works independently and becomes more powerful when connected to ChaseOS.
+> Chaser Agent is an open-source, standalone-first, local-first agent harness that turns goals and sources into evidence-linked work, learns from human review, preserves approved memory, and curates a user-owned knowledge map. It works independently and becomes more powerful when connected to ChaseOS.
 
 ## Core utility
 
-Chaser agent should help a human turn a goal, question, source, or bounded task into work that remains inspectable over time. Its core job is to preserve evidence and provenance while making review, correction, memory, and later governed execution possible.
+Chaser Agent should help a human turn a goal, question, source, or bounded task into work that remains inspectable over time. Its core job is to preserve evidence and provenance while making review, correction, memory, and later governed execution possible.
 
 The domain-neutral loop is:
 
@@ -32,7 +32,7 @@ P0.1 is a deterministic, CLI-first reference implementation for source review an
 
 - What did the source say?
 - Which evidence supports each claim?
-- What did Chaser agent infer?
+- What did Chaser Agent infer?
 - What remains uncertain or unevaluated?
 - Which reviewed memory influenced the output?
 - What did the human accept, correct, or reject?
@@ -47,7 +47,7 @@ Future hosted services, managed connectors, enterprise policy packs, premium pro
 
 ## ChaseOS relationship
 
-Chaser agent originated from ChaseOS governance and source-intelligence work. ChaseOS remains the optional integrated control plane for shared policy, approvals, cross-runtime orchestration, shared canonical state, and cross-project memory.
+Chaser Agent originated from ChaseOS governance and source-intelligence work. ChaseOS remains the optional integrated control plane for shared policy, approvals, cross-runtime orchestration, shared canonical state, and cross-project memory.
 
 Standalone mode does not imitate all of ChaseOS. It implements only the local human-governed foundations needed for an independent product. ChaseOS integration is additive and stays behind an adapter boundary.
 
@@ -71,4 +71,4 @@ It does not prove production autonomy, semantic intelligence, private-data safet
 
 ## Public non-goals
 
-Chaser agent is not currently a foundation model, production autonomous operator, finished personal AI, website-design agent, trading executor, media-generation agent, public API service, provider router, semantic RAG system, MCP runtime, browser worker, or fine-tuning pipeline.
+Chaser Agent is not currently a foundation model, production autonomous operator, finished personal AI, website-design agent, trading executor, media-generation agent, public API service, provider router, semantic RAG system, MCP runtime, browser worker, or fine-tuning pipeline.

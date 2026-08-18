@@ -1,4 +1,4 @@
-"""Domain-neutral interfaces for standalone Chaser agent."""
+"""Domain-neutral interfaces for standalone Chaser Agent."""
 
 from chaser_agent.core.protocols import (
     GovernanceBackend,

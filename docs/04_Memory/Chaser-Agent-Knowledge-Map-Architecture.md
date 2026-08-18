@@ -1,4 +1,4 @@
-# Chaser agent Knowledge Map Architecture
+# Chaser Agent Knowledge Map Architecture
 
 **Layer:** 9 (Graph Intelligence) · **Status:** implemented in P0.1 · **Code:** `src/chaser_agent/knowledge/`
 
@@ -78,4 +78,4 @@ This is [graph theory](../08_Learning/Maths-For-Chaser-Agent.md) applied directl
 
 ## ChaseOS relationship
 
-Standalone, the knowledge map is a **local provenance graph** owned by the user. Under ChaseOS, the governed knowledge graph provides cross-project graph intelligence. Chaser agent does not duplicate ChaseOS authority — it produces local lineage that a ChaseOS deployment may later consume through the optional adapter.
+Standalone, the knowledge map is a **local provenance graph** owned by the user. Under ChaseOS, the governed knowledge graph provides cross-project graph intelligence. Chaser Agent does not duplicate ChaseOS authority — it produces local lineage that a ChaseOS deployment may later consume through the optional adapter.

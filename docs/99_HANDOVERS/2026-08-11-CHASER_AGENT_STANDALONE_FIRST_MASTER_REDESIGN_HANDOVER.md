@@ -1,8 +1,8 @@
-# Chaser agent — Standalone-First Master Redesign Handover
+# Chaser Agent — Standalone-First Master Redesign Handover
 
 **Document type:** Product-direction reset, architecture decision packet, repository-reconciliation brief, and bounded Codex implementation handover  
 **Audience:** Codex working inside the local `Chaser-Agent` repository, the human operator, and ChatGPT architecture review  
-**Project:** Chaser agent  
+**Project:** Chaser Agent  
 **Current maturity:** P0 / pre-alpha deterministic harness foundation  
 **Execution posture:** redesign on a review branch; do not merge automatically to `main`
 
@@ -14,9 +14,9 @@ Read this entire document before changing any file.
 
 This handover records an approved product-direction change:
 
-> **Chaser agent is standalone-first and ChaseOS-enhanced.**
+> **Chaser Agent is standalone-first and ChaseOS-enhanced.**
 
-A user must be able to install, run, review, remember, and evolve Chaser agent without installing ChaseOS.
+A user must be able to install, run, review, remember, and evolve Chaser Agent without installing ChaseOS.
 
 ChaseOS remains the strongest integrated control plane for:
 
@@ -29,7 +29,7 @@ ChaseOS remains the strongest integrated control plane for:
 - cross-project memory;
 - enterprise-style coordination.
 
-However, ChaseOS is now an **optional adapter and deployment mode**, rather than a hard dependency of the Chaser agent core.
+However, ChaseOS is now an **optional adapter and deployment mode**, rather than a hard dependency of the Chaser Agent core.
 
 This pass is allowed to redesign the current P0 architecture around that decision and implement the bounded standalone foundations defined below.
 
@@ -54,7 +54,7 @@ Codex must:
 6. stop at human decision gates;
 7. return a detailed final handover.
 
-Use the product name **“Chaser agent”** consistently in prose.
+Use the product name **“Chaser Agent”** consistently in prose.
 
 ---
 
@@ -62,7 +62,7 @@ Use the product name **“Chaser agent”** consistently in prose.
 
 ## 1.1 Canonical Product Statement
 
-Chaser agent is an open-source, local-first agent harness and runtime architecture for turning goals, source material, and bounded tasks into evidence-linked, reviewable work.
+Chaser Agent is an open-source, local-first agent harness and runtime architecture for turning goals, source material, and bounded tasks into evidence-linked, reviewable work.
 
 It should:
 
@@ -85,11 +85,11 @@ It should:
 
 The concise public narrative is:
 
-> **Chaser agent is an open-source, standalone-first, local-first agent harness that turns goals and sources into evidence-linked work, learns from human review, preserves approved memory, and curates a user-owned knowledge map. It works independently and becomes more powerful when connected to ChaseOS.**
+> **Chaser Agent is an open-source, standalone-first, local-first agent harness that turns goals and sources into evidence-linked work, learns from human review, preserves approved memory, and curates a user-owned knowledge map. It works independently and becomes more powerful when connected to ChaseOS.**
 
 ## 1.2 Core Utility
 
-The core utility of Chaser agent is not tied to one business, media workflow, website, trading system, or content engine.
+The core utility of Chaser Agent is not tied to one business, media workflow, website, trading system, or content engine.
 
 The core should:
 
@@ -107,9 +107,9 @@ The core should:
 12. connect sources, claims, decisions, tasks, memories, skills, and runs in a knowledge map;
 13. later route approved work to models, tools, runtimes, or ChaseOS.
 
-## 1.3 What Chaser agent Is Not
+## 1.3 What Chaser Agent Is Not
 
-Chaser agent is not currently:
+Chaser Agent is not currently:
 
 - a foundation model;
 - a production autonomous operator;
@@ -132,7 +132,7 @@ The project may eventually support these capabilities as governed modules, but n
 
 The repository uses the MIT licence.
 
-The independent Chaser agent core must remain:
+The independent Chaser Agent core must remain:
 
 - free to use;
 - self-hostable;
@@ -170,7 +170,7 @@ The previous architecture correctly protected users from:
 
 However, its wording treated ChaseOS as the only possible owner of durable truth and memory.
 
-That prevents Chaser agent from being a genuinely independent open-source architecture.
+That prevents Chaser Agent from being a genuinely independent open-source architecture.
 
 The revised model is **deployment-scoped**.
 
@@ -178,7 +178,7 @@ The revised model is **deployment-scoped**.
 
 In standalone mode:
 
-- Chaser agent runs without ChaseOS installed;
+- Chaser Agent runs without ChaseOS installed;
 - the human operator is the approval authority;
 - local governance rules protect the runtime;
 - local reviewed memory can become approved durable local state;
@@ -193,7 +193,7 @@ In standalone mode:
 
 In ChaseOS-integrated mode:
 
-- Chaser agent keeps the same core interfaces;
+- Chaser Agent keeps the same core interfaces;
 - approved proposals may be handed to the ChaseOS Gate;
 - ChaseOS may own shared or cross-project canonical truth;
 - ChaseOS may provide runtime routing;
@@ -203,7 +203,7 @@ In ChaseOS-integrated mode:
 - ChaseOS may provide shared memory;
 - ChaseOS may provide graph intelligence;
 - ChaseOS may provide cross-runtime orchestration;
-- Chaser agent does not duplicate ChaseOS authority;
+- Chaser Agent does not duplicate ChaseOS authority;
 - integration remains additive and optional.
 
 ## 2.3 Canonical-State Rule
@@ -231,12 +231,12 @@ agent confidence != authority
 
 ## 2.4 Independence Rule
 
-The Chaser agent core must not import ChaseOS.
+The Chaser Agent core must not import ChaseOS.
 
 Use dependency inversion:
 
 ```text
-Chaser agent core
+Chaser Agent core
     ↓ interfaces / protocols
 Standalone local adapters     Optional ChaseOS adapters
 ```
@@ -251,7 +251,7 @@ The latest truth-state audit established the following.
 
 ## 3.1 Implemented Today
 
-Chaser agent currently has:
+Chaser Agent currently has:
 
 - a deterministic local Source Card Harness V0;
 - CLI-driven local execution;
@@ -602,7 +602,7 @@ core -> browser runtime
 
 ## 6.3 Installation Rule
 
-A clean Chaser agent installation must be able to:
+A clean Chaser Agent installation must be able to:
 
 - import the core;
 - run the deterministic source-review path;
@@ -618,7 +618,7 @@ without ChaseOS installed.
 
 ```mermaid
 flowchart LR
-    U[Human operator] --> CA[Chaser agent core]
+    U[Human operator] --> CA[Chaser Agent core]
 
     CA --> P[Workflow profile]
     CA --> R[Review store]
@@ -640,7 +640,7 @@ flowchart LR
 Core rule:
 
 ```text
-The same Chaser agent core works in both deployments.
+The same Chaser Agent core works in both deployments.
 Only governance, storage, and integration adapters change.
 ```
 
@@ -741,7 +741,7 @@ Requirements:
 Requirements:
 
 - identify technical and research claims;
-- distinguish reported results from Chaser agent implications;
+- distinguish reported results from Chaser Agent implications;
 - identify methodology limitations;
 - identify eval limitations;
 - identify missing baselines;
@@ -1137,7 +1137,7 @@ It does not mean the statement is globally or objectively true.
 
 ## 13.1 Purpose
 
-The knowledge map allows Chaser agent to evolve from isolated outputs into a traceable system of:
+The knowledge map allows Chaser Agent to evolve from isolated outputs into a traceable system of:
 
 - sources;
 - claims;
@@ -1321,7 +1321,7 @@ P0.1 may not execute:
 
 Create an optional adapter that:
 
-- converts Chaser agent proposals into ChaseOS-shaped packets;
+- converts Chaser Agent proposals into ChaseOS-shaped packets;
 - does not introduce ChaseOS imports into the core;
 - does not dispatch live work in P0.1;
 - remains explicitly inactive;
@@ -1609,7 +1609,7 @@ matter more than raw count.
 
 # 16. Maths and University-Module Integration
 
-Update learning documents so each concept points to real Chaser agent code.
+Update learning documents so each concept points to real Chaser Agent code.
 
 ## 16.1 P0.1 Concepts
 
@@ -1666,7 +1666,7 @@ Used for:
 
 ### Precision
 
-Of the items Chaser agent proposed, how many were correct or useful?
+Of the items Chaser Agent proposed, how many were correct or useful?
 
 ### Recall
 
@@ -2206,9 +2206,9 @@ After each logical phase passes tests, Codex may create commits.
 Suggested sequence:
 
 ```text
-chore: reconcile Chaser agent local truth state
+chore: reconcile Chaser Agent local truth state
 
-docs: realign Chaser agent as standalone-first and ChaseOS-enhanced
+docs: realign Chaser Agent as standalone-first and ChaseOS-enhanced
 
 refactor: introduce domain-neutral source review profiles
 

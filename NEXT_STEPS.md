@@ -1,8 +1,8 @@
-# Chaser agent Next Steps
+# Chaser Agent Next Steps
 
 ## Approved direction
 
-Chaser agent is standalone-first, local-first, open-source, domain-neutral, and human-governed. ChaseOS is an optional enhancement through adapters rather than a dependency of the core.
+Chaser Agent is standalone-first, local-first, open-source, domain-neutral, and human-governed. ChaseOS is an optional enhancement through adapters rather than a dependency of the core.
 
 ## Active P0.1 acceptance pass
 
