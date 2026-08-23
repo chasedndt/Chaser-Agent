@@ -10,6 +10,7 @@
 6. `01_Product/Chaser-Agent-V0-Blueprint.md`
 7. `01_Product/Chaser-Agent-Roadmap.md`
 8. `01_Product/Chaser-Agent-17-Layer-Architecture.md`
+9. `02_Evals/Chaser-Agent-Case-Study-Workflow-Eval-System.md`
 
 ## Implemented P0.1 review order
 
@@ -33,6 +34,7 @@ All seven surfaces are implemented on `codex/standalone-first-memory-realignment
 | Knowledge-map provenance | `04_Memory/Chaser-Agent-Knowledge-Map-Architecture.md` |
 | Optional ChaseOS integration | `05_Runtime_Adapters/Chaser-Agent-ChaseOS-Optional-Integration.md` |
 | Contract eval design | `02_Evals/Chaser-Agent-Contract-Eval-Design.md` |
+| Case-study workflow evals | `02_Evals/Chaser-Agent-Case-Study-Workflow-Eval-System.md` |
 | Exact current test values | `02_Evals/Chaser-Agent-Current-Test-Matrix.md` |
 
 The standalone-first dependency rule is enforced by `tests/test_standalone_independence.py`, which parses core-package imports and fails on any ChaseOS, provider, MCP, or browser dependency.

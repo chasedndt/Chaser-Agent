@@ -43,6 +43,8 @@ See:
 - [Product narrative and utility](docs/01_Product/Chaser-Agent-Product-Narrative-and-Utility.md)
 - [Standalone and ChaseOS architecture](docs/01_Product/Chaser-Agent-Standalone-vs-ChaseOS-Architecture.md)
 - [Layer 0 Behaviour Contract](docs/01_Product/Chaser-Agent-Layer-0-Behaviour-Contract.md)
+- [Layer 0 + 17-layer engineering architecture](docs/01_Product/Chaser-Agent-17-Layer-Architecture.md)
+- [Case-study workflow evaluation system](docs/02_Evals/Chaser-Agent-Case-Study-Workflow-Eval-System.md)
 - [P0.1 open decisions](docs/01_Product/Chaser-Agent-P0.1-Open-Decisions.md)
 
 ## Current maturity
@@ -60,16 +62,17 @@ Verified P0.1 implementation:
 - SQLite provenance nodes, edges, and source-to-memory trace queries;
 - optional inactive ChaseOS proposal adapter with no dispatch;
 - artifact-field Layer 0 contract runner;
-- six public-safe contract seeds, all `pending_operator_review`;
+- 30 public-safe Layer 0 contract cases with 154 executable assertions, all `pending_operator_review`;
+- structural case-study workflow episodes and deterministic trace scoring for dependencies, evidence, authority, artifacts, proof, and handoff;
 - bounded SkillGate;
 - metadata-only visual-completion evaluator;
 - explicit public arXiv ingestion and separate config-only weekly research dry run;
-- 55 deterministic tests;
 - seven golden JSONL files with three rows each;
-- one six-row Layer 0 contract seed file;
+- one 30-row Layer 0 contract dataset;
+- one public-safe MarginFlip-derived workflow episode and candidate structural trace, both explicitly non-golden pending operator review;
 - generated [current test matrix](docs/02_Evals/Chaser-Agent-Current-Test-Matrix.md) with exact values and honest maturity labels.
 
-The test count proves the current deterministic contracts, not product-quality intelligence. The six Layer 0 cases remain wiring seeds pending operator review.
+Passing tests prove deterministic contracts and structural checks, not product-quality intelligence. Layer 0 cases and case-study episodes remain pending operator review until the operator supplies labels and corrections.
 
 ## Core utility
 
@@ -134,7 +137,7 @@ From WSL or another POSIX shell using the repository virtual environment:
 
 ```bash
 .venv/bin/python -m pytest -q
-.venv/bin/python -m scripts.validate_jsonl evals/datasets/golden/*.jsonl evals/datasets/contract/*.jsonl
+.venv/bin/python -m scripts.validate_jsonl evals/datasets/golden/*.jsonl evals/datasets/contract/*.jsonl evals/datasets/case_studies/public_pending/*.jsonl
 ```
 
 Run the deterministic source-review path:
@@ -170,7 +173,19 @@ PYTHONPATH=src .venv/bin/python -m chaser_agent.cli contract-eval \
   --out logs/runs/contract-eval-results.jsonl
 ```
 
-Generated output remains review-only. The six contract rows are wiring seeds, not reviewed coverage.
+Generated output remains review-only. The 30 contract rows provide executable family depth, not operator-reviewed golden data.
+
+Validate and structurally score a public-safe case-study workflow episode:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m chaser_agent.cli workflow-episode-validate \
+  --input evals/datasets/case_studies/public_pending/marginflip_marketing_foundation.jsonl
+
+PYTHONPATH=src .venv/bin/python -m chaser_agent.cli workflow-trace-eval \
+  --episodes evals/datasets/case_studies/public_pending/marginflip_marketing_foundation.jsonl \
+  --traces evals/traces/public_pending/marginflip_marketing_foundation_candidate.jsonl \
+  --out logs/runs/marginflip-workflow-trace-results.jsonl
+```
 
 ## Separate research-intake lane
 

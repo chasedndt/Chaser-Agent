@@ -22,6 +22,25 @@ The repo should integrate LLM foundations from the beginning, but not by jumping
 | 14. Runtime governance | Permission boundaries, audit, approval, trust tiers, failure handling. | Keeps adapters from collapsing boundaries across shell, browser, filesystem, credentials, SaaS, and persistent state. | Hermes/OpenClaw adapter experiments later. | Write a blocked-action reason for a forbidden tool call. |
 | 15. PEFT / LoRA / fine-tuning later | Training or adapting model behavior. | Only useful after reviewed data exists. | Future fine-tuning decision. | Explain why one reviewed example is not enough to train. |
 
+## Layer-by-layer floor-walk
+
+The full map of each layer's responsibility, data structures, algorithms, acceptance proof, manual exercise, HTTP/runtime concepts, and external-tool gate now lives in `docs/01_Product/Chaser-Agent-17-Layer-Architecture.md`.
+
+The first applied learning loop is the case-study workflow episode system in `docs/02_Evals/Chaser-Agent-Case-Study-Workflow-Eval-System.md`:
+
+```text
+real operator workflow
+-> scrubbed evidence and goal
+-> dependency graph and decision points
+-> capability/approval classification
+-> expected artifacts and proof
+-> deterministic structural eval
+-> operator scoring and correction
+-> held-out regression cases
+```
+
+This connects graph theory, finite-state machines, database/provenance design, algorithms, statistics, security and later networking to one inspectable workflow rather than teaching them as disconnected theory.
+
 ## P0.1 implementation checkpoint
 
 The current branch turns several learning topics into executable examples:

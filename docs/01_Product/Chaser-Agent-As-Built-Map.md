@@ -1,8 +1,8 @@
 # Chaser Agent As-Built Map
 
-**Status:** P0.1 IMPLEMENTED AND LOCALLY VERIFIED on `codex/standalone-first-memory-realignment`; not merged, released, or operator-accepted.
+**Status:** P0.1 foundation plus provider/tool boundaries implemented on `codex/standalone-first-memory-realignment`; Layer 0 + 17-layer reconciliation and workflow-episode eval foundation added on `codex/2026-08-23-architecture-eval-floorwalk`. Not merged, released, or operator-accepted.
 
-This page maps executable repository truth to the 17-layer architecture. The full suite passed 55 tests on 2026-08-11, and all 21 golden plus 6 contract JSONL rows validated. Those results prove deterministic contracts and wiring, not product-quality intelligence.
+This page maps executable repository truth to Layer 0 plus the 17 engineering layers. The generated matrix currently inventories 21 smoke/golden-labelled rows, 30 Layer 0 contract rows with 154 assertions, and one public-safe case-study workflow episode. These results prove deterministic contracts and structural wiring, not product-quality intelligence.
 
 ## Working capabilities
 
@@ -16,8 +16,11 @@ This page maps executable repository truth to the 17-layer architecture. The ful
 | Local retrieval | `memory/sqlite_store.py` | Python API | Lexical, scope, type, tag, status and recency filters; promoted-only default |
 | Provenance map | `knowledge/` | review writeback plus Python API | Deterministic nodes/edges and source-to-memory trace queries |
 | Optional ChaseOS adapter | `integrations/chaseos/adapter.py` | Python API | Packet conversion only; inactive; dispatch raises |
-| Test-matrix visibility | `scripts/export_test_matrix.py` | module/script | Exact 27 public rows with maturity and review labels |
-| Layer 0 contract eval | `evals/contract_runner.py` | `contract-eval` | Six executable artifact-assertion seeds, all pending operator review |
+| Test-matrix visibility | `scripts/export_test_matrix.py` | module/script | Exact 52 public rows with maturity and review labels |
+| Layer 0 contract eval | `evals/contract_runner.py` | `contract-eval` | 30 executable cases / 154 artifact assertions, all pending operator review |
+| Workflow episode eval | `evals/workflow_episode.py` | `workflow-episode-validate`, `workflow-trace-eval` | Dependencies, evidence, authority, artifacts, proof and handoff scored; human usefulness remains unreviewed |
+| Provider boundary | `providers/` | Python protocol/API | Fake only; sensitive-data gate, budgets, rate/latency ceilings, quarantine and baseline comparison; no live provider |
+| Tool/MCP boundary | `tools/` | Python protocol/API | Registry/grant/scope/budget planning and fake-result quarantine; execution deliberately raises |
 | Skill gate | `skillgate.py` | `skill-gate` | Bounded review packet only; no apply path |
 | Visual completion evaluator | `visual_completion.py` | `visual-eval` | Evidence metadata only; cannot mark complete |
 
@@ -53,7 +56,7 @@ safe local source
 
 | # | Layer | As-built status |
 |---|---|---|
-| 0 | Behaviour Contract | VERIFIED for current deterministic assertions; coverage remains PARTIAL |
+| 0 | Behaviour Contract | ENFORCED for 30 current deterministic cases / 154 assertions; operator-reviewed and metamorphic coverage remains open |
 | 1 | User / Operator | IMPLEMENTED CLI writeback; no UI or interactive queue |
 | 2 | Studio / Interface | NOT BUILT; CLI and files only |
 | 3 | Capture / Intake | PARTIAL local-file intake and separate explicit research lane |
@@ -64,9 +67,9 @@ safe local source
 | 8 | Memory Consolidation | IMPLEMENTED local SQLite lifecycle and feedback |
 | 9 | Knowledge Map | IMPLEMENTED local SQLite provenance nodes, edges, and queries |
 | 10 | Agent Runtime / AOR | NOT BUILT |
-| 11 | Harness | IMPLEMENTED deterministic runs, review, matrix export, smoke and contract tests; product evals remain PARTIAL |
-| 12 | Provider Router | NOT BUILT; legacy stubs only |
-| 13 | Tool / MCP | NOT BUILT; stub/docs only |
+| 11 | Harness | IMPLEMENTED deterministic runs, review, matrix export, smoke/contract tests and workflow-episode structural evals; product-quality labels remain open |
+| 12 | Provider Router | BOUNDARY IMPLEMENTED; fake provider only, no SDK/network/credentials |
+| 13 | Tool / MCP | BOUNDARY IMPLEMENTED; capability planning and fake results only, no execution |
 | 14 | Browser / Computer Use | METADATA-EVAL ONLY; no runtime or pixel inspection |
 | 15 | Runtime Memory / Repair | NOT BUILT |
 | 16 | Governance / Approval | IMPLEMENTED standalone local transition policy; ChaseOS Gate consumption NOT ACTIVE |
@@ -77,5 +80,5 @@ safe local source
 - Review threshold is a configurable, unenforced 12/15 proposal pending operator decision.
 - Public privacy-class definitions, durable-memory UX terminology, official domain pack, and profile discovery remain undecided.
 - Export/deletion, retention, and standalone/ChaseOS sync/conflict semantics remain undecided.
-- FastAPI, providers, embeddings, tools, browsers, autonomous loops, and training are not part of P0.1.
+- HTTP/FastAPI, live providers, real MCP/tools, embeddings, browsers, autonomous loops, and training are not active.
 - Human inspection of example review/memory/graph records remains the acceptance gate.

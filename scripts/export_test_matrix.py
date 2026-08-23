@@ -27,6 +27,12 @@ def _classification(path: Path) -> tuple[str, str, str]:
             "EXECUTABLE CONTRACT SEED",
             "pending_operator_review",
         )
+    if "case_studies" in path.parts:
+        return (
+            "`chaser-agent workflow-episode-validate` plus `workflow-trace-eval` / `chaser_agent.evals.workflow_episode`",
+            "EXECUTABLE WORKFLOW EPISODE SEED",
+            "pending_operator_review",
+        )
     if path.name == "source_card_summary_eval.jsonl":
         return (
             "`scripts/run_eval_smoke.py` / generic deterministic summary runner",
@@ -47,13 +53,23 @@ def _classification(path: Path) -> tuple[str, str, str]:
 
 
 def _case_id(row: dict[str, Any]) -> str:
-    return str(row.get("id", row.get("case_id", "unknown")))
+    return str(row.get("id", row.get("case_id", row.get("episode_id", "unknown"))))
 
 
 def build_test_matrix(dataset_root: Path) -> tuple[str, dict[str, int]]:
-    files = sorted(dataset_root.glob("golden/*.jsonl")) + sorted(dataset_root.glob("contract/*.jsonl"))
+    files = (
+        sorted(dataset_root.glob("golden/*.jsonl"))
+        + sorted(dataset_root.glob("contract/*.jsonl"))
+        + sorted(dataset_root.glob("case_studies/**/*.jsonl"))
+    )
     sections: list[str] = []
-    counts = {"files": len(files), "cases": 0, "golden_cases": 0, "contract_cases": 0}
+    counts = {
+        "files": len(files),
+        "cases": 0,
+        "golden_cases": 0,
+        "contract_cases": 0,
+        "workflow_episode_cases": 0,
+    }
     summary_rows: list[str] = []
     for path in files:
         rows = _read_jsonl(path)
@@ -61,6 +77,8 @@ def build_test_matrix(dataset_root: Path) -> tuple[str, dict[str, int]]:
         counts["cases"] += len(rows)
         if path.parent.name == "contract":
             counts["contract_cases"] += len(rows)
+        elif "case_studies" in path.parts:
+            counts["workflow_episode_cases"] += len(rows)
         else:
             counts["golden_cases"] += len(rows)
         relative = path.relative_to(dataset_root.parent.parent).as_posix()
@@ -76,7 +94,7 @@ def build_test_matrix(dataset_root: Path) -> tuple[str, dict[str, int]]:
                     (
                         f"### `{_case_id(row)}`",
                         "",
-                        f"- Task: `{row.get('task', 'visual_completion')}`",
+                        f"- Task/domain: `{row.get('task', row.get('domain', 'visual_completion'))}`",
                         f"- Maturity: **{maturity}**",
                         f"- Execution path: {execution_path}",
                         f"- Operator-review status: `{review_status}`",
@@ -103,6 +121,7 @@ def build_test_matrix(dataset_root: Path) -> tuple[str, dict[str, int]]:
             f"- Dataset files: {counts['files']}",
             f"- Golden seed rows: {counts['golden_cases']}",
             f"- Layer 0 contract rows: {counts['contract_cases']}",
+            f"- Workflow episode rows: {counts['workflow_episode_cases']}",
             f"- Total rows: {counts['cases']}",
             "",
             "| Dataset | Rows | Maturity | Current execution path |",
@@ -114,6 +133,7 @@ def build_test_matrix(dataset_root: Path) -> tuple[str, dict[str, int]]:
             "- **EXECUTABLE CONTRACT SEED:** exact artifact assertions run against the canonical deterministic builder.",
             "- **CONNECTED SMOKE SEED:** a generic deterministic runner executes the row, without domain-specific quality validation.",
             "- **CONNECTED METADATA-EVAL SEED:** deterministic evidence metadata is evaluated; pixels and live browser state are not inspected.",
+            "- **EXECUTABLE WORKFLOW EPISODE SEED:** workflow structure and candidate traces can be validated for dependencies, evidence, authority, artifacts, proof, and handoff; human usefulness remains pending operator review.",
             "- **GENERIC SMOKE SEED ONLY:** JSONL is valid and can enter the generic runner, but no task-specific evaluator exists.",
             "",
         )

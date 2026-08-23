@@ -9,6 +9,8 @@ being invisible to the next session.
 
 ## Contents
 
+- `2026-08-23-operator-floor-walk.md` — score-ready manual worksheet for the three representative source-review runs and the next MarginFlip workflow-episode review.
+
 - `*-operator-review-packet.md` — per-batch review material: the runs to score,
   what to check in each artifact, and the exact `chaser-agent review` command.
 - `CODEX_HANDOVER_*.md` — session handovers written for the next runtime.

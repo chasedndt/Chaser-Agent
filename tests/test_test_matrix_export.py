@@ -15,14 +15,19 @@ def test_export_includes_every_seed_exact_assertions_and_honest_maturity(tmp_pat
 
     # Counts follow the datasets rather than freezing them: the exporter must
     # report exactly what is on disk, so growing coverage is not a test failure.
-    assert counts["files"] == 8
+    assert counts["files"] >= 9
     assert counts["golden_cases"] == 21
     assert counts["contract_cases"] >= 30
-    assert counts["cases"] == counts["golden_cases"] + counts["contract_cases"]
+    assert counts["workflow_episode_cases"] >= 1
+    assert counts["cases"] == (
+        counts["golden_cases"] + counts["contract_cases"] + counts["workflow_episode_cases"]
+    )
     assert "`source_card_001`" in text
     assert "`contract_evidence_001`" in text
+    assert "`marginflip_marketing_foundation_plan_001`" in text
     assert '"references_resolve"' in text
     assert "GENERIC SMOKE SEED ONLY" in text
+    assert "EXECUTABLE WORKFLOW EPISODE SEED" in text
     assert "they are not achieved model scores" in text
 
 

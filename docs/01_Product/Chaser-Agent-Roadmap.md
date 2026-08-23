@@ -122,7 +122,19 @@ This roadmap follows Layer 0 and the approved standalone-first product direction
 
 **Out of scope:** broad benchmark claims.
 
-**Status:** PARTIAL. A deterministic artifact-field runner and one public-safe seed per initial Layer 0 family were implemented on 2026-08-08. The seeds are labelled `pending_operator_review`; one case per family is wiring proof, not coverage. Source-trust grading, per-instance packs, metamorphic cases, and the target of at least five reviewed cases per family remain unbuilt.
+**Status:** STRUCTURAL COVERAGE IMPLEMENTED / OPERATOR REVIEW OPEN. The deterministic artifact-field runner now executes 30 public-safe cases: five per initial Layer 0 family and 154 assertions. All remain `pending_operator_review`; countable family depth is not operator-reviewed golden data. Source-trust grading, metamorphic variants, per-domain packs, and product-quality labels remain open.
+
+## Phase 2.5 — Case-Study Workflow Episodes
+
+**Purpose:** Evaluate how an agent navigates real multi-step work rather than only scoring isolated output fields or phrases.
+
+**Deliverables:** `workflow_episode.v1`; dependency/cycle validation; capability, evidence, artifact, proof, recovery, and handoff contracts; deterministic workflow-trace scoring; private/public/held-out/adversarial/regression separation; and a first public-safe MarginFlip-derived candidate episode.
+
+**Definition of done:** workflow episodes validate and replay; dependency, authority, forbidden-outcome, and completion-proof defects fail; unreviewed rows cannot claim product-quality golden maturity.
+
+**Status:** V1 STRUCTURAL FOUNDATION IMPLEMENTED on `codex/2026-08-23-architecture-eval-floorwalk`. The MarginFlip episode and candidate trace remain `pending_operator_review` and `training_eligible: false`.
+
+**Next pass after this:** operator scoring of the three representative source-review runs and correction of the MarginFlip candidate workflow.
 
 ## P0.1 — Standalone Core, Review, Memory, and Knowledge Foundations
 
@@ -145,17 +157,19 @@ This roadmap follows Layer 0 and the approved standalone-first product direction
 
 **Out of scope:** FastAPI/UI, live providers/models, RAG embeddings/vector databases, MCP/tools/browser execution, autonomous loops, public actions, credentials, ChaseOS Gate consumption, and training.
 
-**Status:** IMPLEMENTED AND LOCALLY VERIFIED on `codex/standalone-first-memory-realignment`: 55 tests pass and all 27 public JSONL rows validate. Operator acceptance, merge, release, product-quality eval depth, threshold terminology, and lifecycle-policy decisions remain open.
+**Status:** IMPLEMENTED on `codex/standalone-first-memory-realignment` with later provider/tool boundary and brand/security commits. The exact current dataset inventory is generated in `docs/02_Evals/Chaser-Agent-Current-Test-Matrix.md`. Operator acceptance, merge, release, product-quality labels, threshold terminology, and lifecycle-policy decisions remain open.
 
 ## Phase 3 — Model-Assisted Source Intelligence
 
 **Purpose:** Compare the deterministic baseline with provider-neutral model-assisted review after P0.1 and reviewed examples exist.
 
-**Deliverables:** fake provider envelope first, then a separately approved provider evaluation and reviewed workflow examples.
+**Deliverables:** provider-neutral envelope, deterministic fake adapter, budget/rate/latency ceilings, hostile-output quarantine, and comparison rig first; then a separately approved provider evaluation and reviewed workflow examples.
 
-**Definition of done:** outputs are useful under human review.
+**Definition of done:** a separately approved read-only provider improves reviewed held-out cases over the deterministic baseline without authority drift and within declared cost/latency budgets.
 
-**Out of scope:** canonical promotion.
+**Out of scope:** canonical promotion or provider activation without operator approval.
+
+**Status:** BOUNDARY IMPLEMENTED / LIVE PROVIDER INACTIVE. Fake-provider and comparison paths exist; no provider SDK, credentials, or network inference is active.
 
 ## Phase 4 — Memory Quality, Export, and Optional Sync
 
@@ -177,6 +191,8 @@ This roadmap follows Layer 0 and the approved standalone-first product direction
 
 **Out of scope:** live MCP write authority.
 
+**Status:** CAPABILITY BOUNDARY IMPLEMENTED / EXECUTION INACTIVE. Registration, grants, target scopes, call budgets, fake results, and hostile-result quarantine exist. The execution method deliberately raises.
+
 ## Phase 6 — Runtime Adapter Experiments
 
 **Purpose:** Mock/dry-run adapter lessons from Hermes, OpenClaw, Codex, OpenAI, and local models.
@@ -186,6 +202,30 @@ This roadmap follows Layer 0 and the approved standalone-first product direction
 **Definition of done:** no live authority exists without approval.
 
 **Out of scope:** activation.
+
+## Phase 6A — Standalone Persistent HTTP Runtime
+
+**Purpose:** Turn the on-demand deterministic harness into a restart-safe local service without adding live model or tool authority.
+
+**Learning focus:** processes, loopback networking, ports, HTTP semantics, run/session state machines, idempotency, concurrency, cancellation, event streaming, rate limiting, backpressure, health/readiness, persistence, and observability.
+
+**Deliverables:** architecture decision; loopback-only configurable listener; durable run/session ledger; submit/status/cancel/review surfaces; bounded event stream; restart/replay tests; authentication and request-size/rate limits.
+
+**Definition of done:** deterministic source review can be submitted over HTTP, survives restart, rejects duplicate requests safely, exposes honest state, and preserves approval boundaries. The service remains useful without ChaseOS.
+
+**Out of scope:** public internet exposure, live providers/tools, autonomous external effects, multi-tenant hosting, and default dependence on Redis, Celery, Docker, or Kubernetes.
+
+**Status:** NOT STARTED. No framework or port has been selected. The operator receives a networking/server fundamentals recap before the architecture decision and implementation exercise.
+
+## Phase 6B — Context Continuity and Runtime Repair
+
+**Purpose:** Preserve long-horizon work without treating an ever-growing chat transcript as memory.
+
+**Deliverables:** context compiler, token/context budget, checkpoint summaries, reviewed-memory retrieval, provenance references, pause/resume, retry ceilings, crash recovery, stale-context detection, and duplicate-effect prevention.
+
+**Definition of done:** held-out long-horizon episodes resume with the right evidence and decisions, report omitted context, and never truncate or repeat authority-bearing actions silently.
+
+**Status:** NOT STARTED; depends on Phase 6A run/session persistence and Layer 15 recovery contracts.
 
 ## Phase 7 — Skill System / SkillOpt-style loop
 

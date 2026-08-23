@@ -14,6 +14,7 @@ from chaser_agent.chaseos_native import (
     write_chaseos_native_run,
 )
 from chaser_agent.evals.contract_runner import run_contract_jsonl_eval
+from chaser_agent.evals.workflow_episode import read_workflow_episode_jsonl, run_workflow_trace_eval
 from chaser_agent.run_artifacts import build_run_log, write_artifact_set
 from chaser_agent.reviews.service import artifact_hashes, create_review_record
 from chaser_agent.reviews.sqlite_store import SQLiteReviewStore
@@ -191,6 +192,52 @@ def run_contract_eval_command(args: argparse.Namespace) -> int:
     return 0 if all(result.passed for result in results) else 1
 
 
+def run_workflow_episode_validate_command(args: argparse.Namespace) -> int:
+    input_path = Path(args.input)
+    if not input_path.exists() or not input_path.is_file():
+        print(f"error: input file not found: {input_path}", file=sys.stderr)
+        return 2
+    try:
+        episodes = read_workflow_episode_jsonl(input_path)
+    except (json.JSONDecodeError, ValueError) as exc:
+        print(f"error: invalid workflow episode input: {exc}", file=sys.stderr)
+        return 2
+    print(
+        json.dumps(
+            {
+                "input": input_path.as_posix(),
+                "episodes": len(episodes),
+                "reviewed": sum(
+                    episode["provenance"]["review_status"] == "reviewed" for episode in episodes
+                ),
+                "pending_operator_review": sum(
+                    episode["provenance"]["review_status"] == "pending_operator_review"
+                    for episode in episodes
+                ),
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
+def run_workflow_trace_eval_command(args: argparse.Namespace) -> int:
+    episode_path = Path(args.episodes)
+    trace_path = Path(args.traces)
+    for label, path in (("episode", episode_path), ("trace", trace_path)):
+        if not path.exists() or not path.is_file():
+            print(f"error: {label} file not found: {path}", file=sys.stderr)
+            return 2
+    output_path = Path(args.out)
+    try:
+        results = run_workflow_trace_eval(episode_path, trace_path, output_path)
+    except (json.JSONDecodeError, ValueError) as exc:
+        print(f"error: invalid workflow trace eval input: {exc}", file=sys.stderr)
+        return 2
+    print(output_path.as_posix())
+    return 0 if all(result.passed for result in results) else 1
+
+
 def run_review_command(args: argparse.Namespace) -> int:
     run_folder = Path(args.run_folder)
     if not run_folder.is_dir():
@@ -316,6 +363,22 @@ def build_parser() -> argparse.ArgumentParser:
     contract_eval.add_argument("--input", required=True, help="JSONL file of Layer 0 contract cases.")
     contract_eval.add_argument("--out", required=True, help="JSONL destination for assertion-level eval results.")
     contract_eval.set_defaults(func=run_contract_eval_command)
+
+    workflow_episode_validate = subparsers.add_parser(
+        "workflow-episode-validate",
+        help="Validate case-study workflow episodes without treating unreviewed rows as golden data.",
+    )
+    workflow_episode_validate.add_argument("--input", required=True, help="Workflow episode JSONL file.")
+    workflow_episode_validate.set_defaults(func=run_workflow_episode_validate_command)
+
+    workflow_trace_eval = subparsers.add_parser(
+        "workflow-trace-eval",
+        help="Score workflow traces for ordering, evidence, authority, artifacts, proof, and handoff structure.",
+    )
+    workflow_trace_eval.add_argument("--episodes", required=True, help="Validated workflow episode JSONL file.")
+    workflow_trace_eval.add_argument("--traces", required=True, help="Workflow trace JSONL file to score.")
+    workflow_trace_eval.add_argument("--out", required=True, help="JSONL destination for deterministic results.")
+    workflow_trace_eval.set_defaults(func=run_workflow_trace_eval_command)
 
     review = subparsers.add_parser(
         "review",

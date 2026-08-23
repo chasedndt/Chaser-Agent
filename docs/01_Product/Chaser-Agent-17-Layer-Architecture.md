@@ -1,328 +1,226 @@
-# Chaser Agent 17-Layer Architecture
+# Chaser Agent Layer 0 + 17-Layer Engineering Architecture
 
-## Standalone-first interpretation
+**Status:** architecture map reconciled to the standalone-first P0.1 implementation on 2026-08-23. This is a dependency and acceptance map, not a claim that all layers are built.
 
-The layers are a governed dependency map, not a checklist or implementation claim. The Chaser Agent core must run without ChaseOS. Standalone deployments use local human governance and user-owned durable state; ChaseOS-integrated deployments may add shared governance, canonical state, policy, routing, approvals, and orchestration through optional adapters.
+## How to read the count
 
-No core layer may import ChaseOS. Workflow profiles specialise analysis but never grant authority. See `Chaser-Agent-Standalone-vs-ChaseOS-Architecture.md` for the P0.1 package and protocol boundary.
+Chaser Agent has **Layer 0 plus 17 runtime/product layers**. Layer 0 is the behavioural constitution that constrains everything else; Layers 1-17 are the engineered system. That produces 18 numbered levels without changing the historical name "17-layer architecture".
 
-| Concern | Standalone P0.1 | ChaseOS enhancement |
+The layers are concerns, not isolated boxes. A real workflow crosses several layers and loops back through operator review. No layer may grant itself authority, and no profile, model, tool, skill, or confidence score may bypass Layer 0 or Layer 16.
+
+## Standalone-first truth boundary
+
+| Concern | Standalone deployment | Optional ChaseOS enhancement |
 |---|---|---|
-| Approval | Local human operator plus local governance | ChaseOS Gate/policy |
-| Durable state | Human-approved durable local state | Shared ChaseOS-governed canonical state |
-| Review | Immutable local records | Shared approval/review queues |
-| Memory | SQLite lifecycle and lexical/tag retrieval | Shared/cross-project memory |
-| Knowledge | Local provenance map | Cross-project graph intelligence |
-| Execution | None in P0.1 | Future separately approved orchestration |
+| Human authority | Local operator | Operator through ChaseOS governance |
+| Durable state | Human-approved user-owned local state | Explicitly scoped shared ChaseOS-governed state |
+| Review | Immutable local records | Shared review and approval queues |
+| Memory/graph | Local SQLite lifecycle and provenance | Cross-project memory and graph intelligence |
+| Runtime | Independent Chaser Agent process | Optional Agent Bus/control-plane adapter |
+| Execution | Default deny; capability and approval required | Additional ChaseOS policy and routing, never automatic authority |
+
+The MIT-licensed core must not import ChaseOS, a provider SDK, MCP runtime, or browser runtime. Integrations depend on core protocols; the core never depends on integrations.
+
+## The 18-level pyramid
+
+The pyramid is read from Layer 0 at the foundation to Layer 17 at the apex. Higher layers increase capability and reuse but may only operate through the evidence, state, runtime, and governance beneath them.
+
+```text
+                                  / 17  Extension / Skill / Forge             \
+                                /  16  Governance / Gate / Approval            \
+                              /    15  Runtime Memory / Repair                   \
+                            /      14  Browser / Computer Use                      \
+                          /        13  Tool / MCP                                    \
+                        /          12  Provider / Model Router                        \
+                      /            11  Harness                                         \
+                    /              10  Agent Runtime / AOR                              \
+                  /                 9  Graph Intelligence                                 \
+                /                   8  Memory Consolidation                                \
+              /                     7  Summary Intelligence                                  \
+            /                       6  Retrieval / Evidence                                   \
+          /                         5  Workspace / Collection                                   \
+        /                           4  Source Package                                            \
+      /                             3  Capture / Intake                                           \
+    /                               2  Studio / Interface                                           \
+  /                                 1  User / Operator                                                \
+/___________________________________0  Behaviour Contract / Constitution_______________________________\
+```
+
+```mermaid
+flowchart BT
+    L0["0 Behaviour contract: truth, authority, review"]
+    L1["1 Operator: intent and judgement"]
+    L2["2 Interface: inspect and control"]
+    L3["3 Intake: classify inputs"]
+    L4["4 Source package: normalized evidence"]
+    L5["5 Workspace: bounded task context"]
+    L6["6 Retrieval: select relevant evidence"]
+    L7["7 Summary intelligence: claims and proposals"]
+    L8["8 Memory: reviewed durable learning"]
+    L9["9 Graph: provenance and relationships"]
+    L10["10 Agent runtime: persistent run lifecycle"]
+    L11["11 Harness: orchestration, tests, observability"]
+    L12["12 Provider router: bounded inference"]
+    L13["13 Tool/MCP: capability-scoped actions"]
+    L14["14 Computer use: visual interaction"]
+    L15["15 Repair: checkpoints and recovery"]
+    L16["16 Governance: gates and approvals"]
+    L17["17 Extension: reviewed skills and packs"]
+
+    L0 --> L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7
+    L7 --> L8 --> L9 --> L10 --> L11 --> L12 --> L13 --> L14 --> L15 --> L16 --> L17
+    L16 -. "constrains" .-> L10
+    L16 -. "constrains" .-> L12
+    L16 -. "constrains" .-> L13
+    L16 -. "constrains" .-> L14
+    L15 -. "replay evidence" .-> L11
+    L9 -. "retrieval context" .-> L6
+    L8 -. "reviewed memory" .-> L6
+    L1 -. "review and correction" .-> L8
+```
+
+## Full runtime and data-flow map
+
+```mermaid
+flowchart LR
+    O["L1 Operator"] --> UI["L2 CLI / future Studio"]
+    UI --> I["L3 Intake and classification"]
+    I --> S["L4 Source package"]
+    S --> W["L5 Workspace boundary"]
+    W --> R["L6 Retrieval and evidence"]
+    R --> SI["L7 Summary intelligence"]
+    SI --> RP["Review packet"]
+    RP --> O
+    O -->|"accept / revise / reject"| M["L8 Memory lifecycle"]
+    S --> G["L9 Provenance graph"]
+    SI --> G
+    M --> G
+    G --> R
+
+    UI --> AR["L10 Run/session manager — future HTTP service"]
+    AR --> H["L11 Harness and evals"]
+    H --> SI
+    H -. "gated inference" .-> P["L12 Provider router"]
+    H -. "gated capability" .-> T["L13 Tool/MCP broker"]
+    H -. "gated interaction" .-> B["L14 Browser/computer use"]
+    AR --> RR["L15 Checkpoint/recovery"]
+    GOV["L16 Governance and approvals"] --> AR
+    GOV --> P
+    GOV --> T
+    GOV --> B
+    X["L17 Skills/workflow packs"] --> H
+    C["Layer 0 constitution"] -. "constrains every artifact and transition" .-> GOV
+```
+
+## Gap-free layer contract
 
-## Layer 0 — Behaviour Contract / Product Constitution
-
-Layer 0 is not a runtime layer. It defines expected behaviour, boundaries, public claims, and review requirements before the 17 architecture layers are interpreted. Every layer must obey it: Chaser Agent creates reviewable artifacts and may persist only human-reviewed, governance-approved deployment-scoped state. It never silently promotes, activates tools, or claims production readiness.
-
-Current Layer 0 artifact: `docs/01_Product/Chaser-Agent-Layer-0-Behaviour-Contract.md`.
-
-## 1. User / Operator Layer
-
-**Purpose:** Define the user / operator layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where user / operator layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** human judgement, review checklists, acceptance/rejection examples.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** partial review scaffold; P0.1 persisted-review implementation target.
-
-**V0 relevance:** operator review is mandatory; review and promotion are separate records.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing deployment governance.
-
-## 2. Studio / Interface Layer
-
-**Purpose:** Define the studio / interface layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where studio / interface layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** future review UI and source-card inspection surfaces.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** later.
-
-**V0 relevance:** V0 can work in files/CLI before UI exists.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 3. Capture / Intake Layer
-
-**Purpose:** Define the capture / intake layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where capture / intake layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** safe input capture, metadata, privacy labels.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** planned.
-
-**V0 relevance:** V0 begins here with safe source input.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 4. Source Package Layer
-
-**Purpose:** Define the source package layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where source package layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** source cards, evidence snippets, source metadata.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** scaffolded.
-
-**V0 relevance:** core to V0.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 5. Workspace / Collection Layer
-
-**Purpose:** Define the workspace / collection layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where workspace / collection layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** grouping related sources and run outputs.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** later.
-
-**V0 relevance:** not required for first single-source V0 loop.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 6. Retrieval / Evidence Layer
-
-**Purpose:** Define the retrieval / evidence layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where retrieval / evidence layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** citations, snippets, future retrieval.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** planned.
-
-**V0 relevance:** V0 needs evidence snippets, not full RAG.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 7. Summary Intelligence Layer
-
-**Purpose:** Define the summary intelligence layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where summary intelligence layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** claims, uncertainty, contradictions, actions, memory candidates.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** scaffolded.
-
-**V0 relevance:** first V0 behavior implementation.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 8. Memory Consolidation Layer
-
-**Purpose:** Define the memory consolidation layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where memory consolidation layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** memory candidate states and review transitions.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** planned.
-
-**V0 relevance:** candidate-only in V0.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 9. Graph Intelligence Layer
-
-**Purpose:** Define the graph intelligence layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where graph intelligence layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** future relationships among claims, sources, actions, memories.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** later.
-
-**V0 relevance:** not needed for V0.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 10. Agent Runtime / AOR Layer
-
-**Purpose:** Define the agent runtime / aor layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where agent runtime / aor layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** future bounded runtime experiments.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** not active.
-
-**V0 relevance:** not active in V0.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 11. Harness Layer
-
-**Purpose:** Define the harness layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where harness layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** smoke/schema checks now; contract evals later.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** scaffolded.
-
-**V0 relevance:** supports V0 proof after behavior is defined.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 12. Provider / Model Router Layer
-
-**Purpose:** Define the provider / model router layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where provider / model router layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** future model/provider selection and fallback.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** not active.
-
-**V0 relevance:** not active; no provider calls by default.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 13. Tool / MCP Layer
-
-**Purpose:** Define the tool / mcp layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where tool / mcp layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** future least-authority resource/tool/prompt evals.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** planned.
-
-**V0 relevance:** not active until contract evals.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 14. Browser / Computer-Use Runtime Layer
-
-**Purpose:** Define the browser / computer-use runtime layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where browser / computer-use runtime layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** future browser/computer-use safety research.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** not active.
-
-**V0 relevance:** blocked by default.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 15. Runtime Memory / Repair Layer
-
-**Purpose:** Define the runtime memory / repair layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where runtime memory / repair layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** future runtime state and repair logs.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** later.
-
-**V0 relevance:** not V0 canonical memory.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 16. Governance / Gate / Approval Layer
-
-**Purpose:** Define the governance / gate / approval layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where governance / gate / approval layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** approval boundaries and no-auto-promotion rules.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** planned.
-
-**V0 relevance:** Layer 0 depends on this boundary.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
-
-## 17. Extension / Skill / Forge Layer
-
-**Purpose:** Define the extension / skill / forge layer concern while staying subordinate to Layer 0.
-
-**Plain-English meaning:** This layer explains where extension / skill / forge layer fits in the product model without claiming the layer is fully implemented.
-
-**What belongs here:** skills, quarantine, review, rollback.
-
-**What does not belong:** automatic canonical promotion, secret access, unreviewed private data, production provider calls, or broad runtime autonomy.
-
-**Current status:** planned.
-
-**V0 relevance:** skills can guide V0 but not grant authority.
-
-**First future proof requirement:** a contract or smoke test must show the layer preserves source truth, denies overreach, or produces reviewable output before the layer can expand.
-
-**Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing human/ChaseOS review.
+| Layer | Responsibility and durable output | Fundamentals applied | Current truth | Next acceptance proof |
+|---:|---|---|---|---|
+| 0 | Defines truth, evidence, uncertainty, authority, review, memory-promotion, and completion rules. Output: executable behavioural contracts. | Propositional logic, invariants, pre/postconditions, threat modelling, property-based reasoning. | Enforced by 30 public-safe cases and 154 artifact assertions; all cases remain pending operator review. | Reviewed contract cases, regression mutations, metamorphic variants, and a clause-to-eval coverage ledger. |
+| 1 | Captures operator goals, constraints, preferences, corrections, decisions, and approvals. Output: immutable human review and approval records. | Human-computer interaction, rubric design, inter-rater reliability, decision theory. | Review CLI and insert-only SQLite records exist; the three representative runs still need operator scores. | Operator-scored runs produce labelled product-quality cases without modifying original artifacts. |
+| 2 | Gives the operator a legible place to submit work, inspect evidence, compare candidates, approve actions, and examine runtime health. | UX state design, information architecture, accessibility, optimistic vs confirmed state. | CLI only. Brand/mascot work does not implement this runtime surface. | A local interface accurately renders run state, evidence, approvals, blocked actions, and uncertainty without overclaiming completion. |
+| 3 | Accepts files, text, URLs, events, or future connector inputs; stamps origin, privacy, trust, freshness, and requested scope. Output: intake envelope. | Parsing, validation, queues, content hashing, input sanitisation, trust classification. | Local file intake and bounded research configuration exist; no general connector runtime. | Equivalent content receives stable classification; malicious or private inputs cannot widen authority. |
+| 4 | Normalizes the intake envelope into sources, claims, evidence snippets, metadata, uncertainty, and provenance. Output: source package. | Schemas, normalization, deterministic transforms, stable identifiers, lossless provenance. | Domain-neutral deterministic builder and three profiles exist. | Source claims remain traceable, metadata is not misclassified as claims, and contradictions are represented honestly. |
+| 5 | Groups sources, goals, runs, policies, memory, and artifacts into a bounded working context. Output: workspace manifest. | Sets, namespaces, access control, graph partitions, dependency injection. | Not built beyond scopes/tags in existing records. | Two concurrent workspaces cannot leak context, permissions, artifacts, or memory into one another. |
+| 6 | Retrieves the smallest relevant evidence and reviewed memory set for a task. Output: ranked context package with provenance and budget. | Information retrieval, inverted indexes, BM25/lexical ranking, later vectors, top-k, precision/recall. | Lexical/tag/status/scope/recency retrieval exists; no embeddings or context compiler. | Retrieval improves held-out task performance while respecting privacy, freshness, provenance, and token budgets. |
+| 7 | Converts grounded context into claims, inferences, uncertainties, action candidates, and memory candidates. Output: review artifacts, never authority. | NLP decomposition, structured generation, calibration, contradiction analysis, deterministic baselines. | Deterministic path and quarantined fake model-assisted comparison path exist. | A live model may only beat the deterministic baseline on reviewed cases without governance drift. |
+| 8 | Moves memory through candidate, reviewed, promoted, stale, disputed, superseded, archived, or rejected states. Output: append-only lifecycle history. | Finite-state machines, transactions, event sourcing, retention and deletion semantics. | SQLite lifecycle, review writeback, retrieval, and governance-gated promotion exist. | Operator decisions and corrections persist; illegal transitions and silent promotion fail closed. |
+| 9 | Connects sources, evidence, claims, runs, decisions, actions, artifacts, memories, skills, and outcomes. Output: provenance-first knowledge graph. | Graph theory, UUID identity, adjacency, traversal, lineage, DAG/cycle rules. | SQLite nodes/edges and source-to-memory trace queries exist. | Every important output can be traced backward to evidence and forward to review/outcome without orphan nodes. |
+| 10 | Keeps the agent alive as a bounded service: run IDs, sessions, jobs, state transitions, cancellation, retries, pause/resume, and event streaming. Output: durable run/session ledger. | Operating systems, state machines, concurrency, networking, idempotency, backpressure, scheduling. | Not built. No HTTP server, daemon, port, background worker, or autonomous loop exists. | Loopback service survives restart, resumes safely, rejects duplicate submissions, and never loses approval or run state. |
+| 11 | Orchestrates context, models, tools, policies, artifacts, logs, evals, replay, and comparisons. Output: reproducible run bundle and evaluation evidence. | Software architecture, dependency inversion, testing pyramids, observability, experiment design. | Strong deterministic harness, contract runner, comparison rig, run logs, and matrix exporter exist. | Workflow episodes replay deterministically; changes are compared on held-out cases and hard safety failures veto weighted quality. |
+| 12 | Selects a provider/model, constructs the minimum approved envelope, applies budgets/timeouts, quarantines output, and falls back. Output: provider call record and candidate response. | Queuing, routing, cost models, latency budgets, circuit breakers, statistical comparison. | Provider-neutral boundary, fake adapter, budgets, rate ceilings, and quarantine exist; no live provider. | Approved read-only model trial shows measurable improvement, budget compliance, fallback, and no authority drift. |
+| 13 | Declares tools/resources, scopes capabilities, plans calls, validates targets/results, and records side effects. Output: capability decision and tool receipt. | Capability security, least privilege, URI/path normalization, protocol design, transactional semantics. | Registry, grants, scopes, budgets, fake adapter, and hostile-result quarantine exist; execution raises. | First explicitly approved read-only client stays within scope and preserves provenance; writes remain separately gated. |
+| 14 | Observes and manipulates browser/desktop state with visual and non-visual completion evidence. Output: action trace, screenshots, state checks, and proof bundle. | Perception/action loops, UI state machines, coordinate transforms, computer vision, verification design. | Metadata-only completion evaluator; no pixel inspection or control runtime. | A sandboxed task demonstrates observe-plan-act-verify, resists page injection, and never treats a success-looking screen as sufficient proof. |
+| 15 | Checkpoints runs, detects stalls/drift, retries bounded failures, resumes after restart, and escalates irrecoverable state. Output: repair/recovery ledger. | Fault tolerance, checkpointing, exponential backoff, watchdogs, causal debugging, replay. | Not built. | Crash, timeout, provider failure, corrupt artifact, and restart fixtures recover without duplicate effects or lost approvals. |
+| 16 | Evaluates permissions, trust, policy, budgets, approvals, side effects, and promotion requests. Output: allow/deny/hold decision with reason and audit. | Access-control models, policy engines, safety invariants, auditability, risk matrices. | Local governance and audit records exist; action execution remains disabled and final review threshold is unenforced. | Every authority-bearing transition has an explicit grant, scope, expiry/consumption rule, and denial test. |
+| 17 | Packages reviewed workflows, prompts, skills, adapters, rubrics, and domain packs for reuse. Output: versioned extension with tests, permissions, provenance, rollback, and licence metadata. | Modular design, semantic versioning, package management, supply-chain security, A/B and regression testing. | Bounded SkillGate exists; no autonomous installation or self-modification. | A candidate skill improves held-out workflow episodes, changes no protected contract, passes security/licence review, and can roll back. |
+
+## Engineering stages and manual learning floor-walk
+
+These stages are the build order. At each stage the operator first receives a short fundamentals recap, then performs a manual exercise, then Chaser Agent receives an executable test or artifact that preserves the lesson.
+
+### Stage A — Constitution and operator ground truth (Layers 0-1)
+
+- Learn: predicates, invariants, rubrics, precision/recall, score distributions, human judgement as labels.
+- Manual work: score the three existing runs, correct defects, and explain why each score was chosen.
+- Build: convert decisions into reviewed cases and regression rows.
+- Gate: no model, server, or tool change may call unreviewed seeds "golden".
+
+### Stage B — Interface, intake, source, and workspace (Layers 2-5)
+
+- Learn: schemas, validation, normalization, hashing, privacy/trust classes, namespaces, set membership.
+- Manual work: classify representative inputs and decide which workspace and privacy boundary each belongs to.
+- Build: intake envelopes, source packages, workspace manifests, and isolation tests.
+- Gate: cross-workspace or private-context leakage is a hard failure.
+
+### Stage C — Retrieval, reasoning, memory, and graph (Layers 6-9)
+
+- Learn: indexes, ranking, vectors later, finite-state machines, SQL transactions, graph traversal.
+- Manual work: judge retrieved evidence, approve/reject memory candidates, and trace claims to sources.
+- Build: context compiler, source-trust grades, retrieval evals, memory lifecycle, and provenance queries.
+- Gate: context is selected by scope and budget; the server never sends the whole history by default.
+
+### Stage D — Persistent runtime and harness (Layers 10-11)
+
+- Learn: processes, ports, HTTP, request/response, concurrency, queues, idempotency, retries, event streams, rate limiting, observability.
+- Manual work: draw a request through submit, queued, running, waiting-for-approval, resumed, completed/failed, and cancelled states.
+- Build: loopback-only HTTP service around the deterministic harness, durable run ledger, health/readiness, cancellation, and replay.
+- Gate: restart and duplicate-request tests prove state is not held only in process memory.
+
+Context continuity at this stage is achieved by durable state plus a context compiler, not by endlessly appending chat text. Each run stores source references, reviewed memories, decisions, checkpoints, and summaries. Every model call receives a bounded context package with a token budget, provenance, and retrieval rationale. Truncation is treated as a measured packaging failure, not silently ignored.
+
+### Stage E — Models and actuation (Layers 12-14)
+
+- Learn: provider routing, latency/cost budgets, rate limits, capability security, MCP, browser state, visual verification.
+- Manual work: classify requested actions as reason, read, propose, write, or external effect; define the necessary proof and approval.
+- Build: live read-only provider first, then read-only tool, then sandboxed browser/computer-use experiments.
+- Gate: safety hard failures override quality scores; no tool or page text grants itself authority.
+
+### Stage F — Repair and governance (Layers 15-16)
+
+- Learn: failure modes, checkpointing, exponential backoff, circuit breakers, policy evaluation, approval consumption.
+- Manual work: respond to simulated crashes, stale context, timeouts, denied access, and ambiguous completion.
+- Build: recovery ledger, retry ceilings, pause/resume, escalation, approval expiry, and duplicate-effect prevention.
+- Gate: a recovered run cannot repeat an external effect or lose the reason an action was authorized.
+
+### Stage G — Extensions and compounding (Layer 17)
+
+- Learn: package boundaries, versioning, supply-chain security, held-out evaluation, controlled optimization.
+- Manual work: review a candidate workflow pack and decide whether its improvement is real, safe, portable, and reversible.
+- Build: versioned workflow/domain packs generated from reviewed case-study episodes.
+- Gate: no skill can modify Layer 0, widen its own permissions, train on private data, or promote itself.
+
+## External tooling and download policy
+
+No additional platform is required for Stages A-C. Python 3.11, the standard library, SQLite, Git, pytest, PyYAML, and the existing local/WSL environment are sufficient.
+
+Potential later additions must be selected by an architecture decision at the stage that needs them:
+
+| Stage | Possible addition | Decision boundary |
+|---|---|---|
+| D | FastAPI/Starlette, Uvicorn, HTTP client/test library | Select only when defining the HTTP runtime; bind loopback by default and choose a configurable port. |
+| C/E | Embedding model/vector index | Add only after lexical baseline and retrieval evals expose a measured gap. |
+| E | Provider SDK or MCP client | Add only after operator approval and behind existing provider/tool protocols. |
+| E | Browser automation/runtime | Add only with sandbox, injection tests, screenshot plus non-visual proof. |
+| G | Training stack such as PyTorch/Transformers/PEFT | Add only after reviewed datasets, held-out splits, privacy/licence review, and a demonstrated residual model gap. |
+
+Docker, Redis, Celery, Kubernetes, a vector database, and model-training frameworks are not prerequisites for the present case-study eval work.
+
+## Cross-layer acceptance rule
+
+A feature is only real when all applicable layers agree:
+
+```text
+defined behaviour
++ valid input and source provenance
++ bounded workspace/context
++ evidence-linked reasoning
++ durable run state
++ explicit capability and approval
++ observable proof
++ operator review
++ regression/replay coverage
+= eligible for promotion
+```
+
+Passing one layer never substitutes for another. A fluent answer is not evidence; a JSONL row is not an eval until code scores it; a provider response is not authority; a screenshot is not completion; and a review packet is not approval.
