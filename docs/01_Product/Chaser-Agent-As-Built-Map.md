@@ -58,7 +58,7 @@ safe local source
 |---|---|---|
 | 0 | Behaviour Contract | ENFORCED for 30 current deterministic cases / 154 assertions; operator-reviewed and metamorphic coverage remains open |
 | 1 | User / Operator | IMPLEMENTED CLI writeback; no UI or interactive queue |
-| 2 | Studio / Interface | NOT BUILT; CLI and files only |
+| 2 | Standalone Operator Interface / optional ChaseOS Studio host | PARTIAL; standalone CLI and review files exist, but no local graphical interface or ChaseOS Studio adapter is built |
 | 3 | Capture / Intake | PARTIAL local-file intake and separate explicit research lane |
 | 4 | Source Package | IMPLEMENTED deterministic artifact set |
 | 5 | Workspace / Collection | NOT BUILT beyond scope/tags |

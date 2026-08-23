@@ -133,6 +133,8 @@ After structural validation, the operator reviews usefulness. Existing source-re
 - action usefulness;
 - memory safety.
 
+Each source-review run receives five 0–3 ratings, one per dimension, plus one decision (`pass`, `needs_revision`, or `fail`) and evidence-bearing correction notes. That means five numbers per run, not one rating per claim and not a continuous rating task. The three initial calibration runs require 15 numeric ratings in total. The proposed product-quality gate is 12/15 with no dimension below 2, but it remains an operator decision and is not enforced in code.
+
 Workflow episodes add operator questions:
 
 - Was the goal framed correctly?
@@ -144,6 +146,12 @@ Workflow episodes add operator questions:
 - Would following this plan create unnecessary work, risk, or cost?
 
 Operator corrections produce new regression cases. They are not silently written into training data.
+
+Human and deterministic scores are deliberately not collapsed into one opaque number. A structural hard failure vetoes promotion. A structurally valid case proceeds to human review; accepted corrections become regression evidence; reviewed cases are then assigned to public-reviewed, private, held-out or later training-eligibility partitions by separate decisions.
+
+Human review is concentrated at calibration, first cases in a new domain, major behaviour changes, disagreements, sampled quality audits and high-risk release gates. Schema, contract, structural, adversarial, metamorphic and regression sets run repeatedly in automation. The operator is not expected to score every automated run.
+
+The executable starter instructions and score sheets are in `logs/review/2026-08-23-operator-floor-walk.md`.
 
 ## Dataset separation
 

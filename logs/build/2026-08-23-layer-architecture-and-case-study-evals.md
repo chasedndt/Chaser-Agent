@@ -8,7 +8,7 @@
 
 **Base:** `398f6ea`
 
-**Status:** implementation and documentation complete in isolated worktree; operator review, commit, merge, and release remain open.
+**Status:** implementation and documentation complete in the isolated worktree. Operator review, merge, and release remain open.
 
 ## Repo-truth delta
 
@@ -32,6 +32,15 @@
 - Added the case-study eval-system design, expanded eval-family taxonomy, dataset partitioning, roadmap stages, learning links, and current as-built truth.
 - Added a score-ready operator floor-walk for the three existing representative runs.
 - Regenerated the exact current test matrix: 9 files / 52 rows = 21 smoke/golden-labelled rows + 30 contract rows + 1 workflow episode.
+
+### 2026-08-24 clarification pass
+
+- Replaced the ambiguous Layer 2 shorthand with the standalone operator-interface contract: current CLI/files, future local Chaser Agent UI, optional ChaseOS Studio host, and later HTTP transport are now distinct.
+- Expanded Layer 2's operator jobs, durable outputs, fundamentals, current truth and acceptance proof.
+- Added an explicit first-file/open-order walkthrough for the three existing runs.
+- Made the human workload visible: five 0–3 ratings plus one decision per run, or 15 ratings plus three decisions for the starter set.
+- Documented how human product-quality labels and deterministic structural scores interact without being collapsed into one opaque score.
+- Added the rating cadence: full bootstrap review, new-domain calibration, automated regressions, sampled QA, affected held-out reruns and complete high-risk gates.
 
 ## Authority and safety boundaries preserved
 

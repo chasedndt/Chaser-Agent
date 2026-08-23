@@ -12,6 +12,10 @@
 8. `01_Product/Chaser-Agent-17-Layer-Architecture.md`
 9. `02_Evals/Chaser-Agent-Case-Study-Workflow-Eval-System.md`
 
+## First operator exercise
+
+To start producing human product-quality labels now, open the [operator floor-walk](../logs/review/2026-08-23-operator-floor-walk.md). It gives the exact file order, five 0–3 ratings per run, three-run starter workload, decision rule, rating cadence and connection to the automated workflow evaluator. No download or paid service is required.
+
 ## Implemented P0.1 review order
 
 1. domain-neutral source review and profiles;

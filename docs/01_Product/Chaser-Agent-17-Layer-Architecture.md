@@ -1,12 +1,14 @@
 # Chaser Agent Layer 0 + 17-Layer Engineering Architecture
 
-**Status:** architecture map reconciled to the standalone-first P0.1 implementation on 2026-08-23. This is a dependency and acceptance map, not a claim that all layers are built.
+**Status:** architecture map reconciled to the standalone-first P0.1 implementation on 2026-08-23 and clarified on 2026-08-24. This is a dependency and acceptance map, not a claim that all layers are built.
 
 ## How to read the count
 
 Chaser Agent has **Layer 0 plus 17 runtime/product layers**. Layer 0 is the behavioural constitution that constrains everything else; Layers 1-17 are the engineered system. That produces 18 numbered levels without changing the historical name "17-layer architecture".
 
 The layers are concerns, not isolated boxes. A real workflow crosses several layers and loops back through operator review. No layer may grant itself authority, and no profile, model, tool, skill, or confidence score may bypass Layer 0 or Layer 16.
+
+In this document, **Layer 2 is the standalone operator-interface contract**. Today that contract is exposed through the Chaser Agent CLI and review files. A future local Chaser Agent UI may implement it directly, and the separate proprietary **ChaseOS Studio** may optionally host the same controls through an adapter. ChaseOS Studio is not a dependency of the standalone agent. The earlier shorthand "Studio / Interface" did not make this boundary clear enough.
 
 ## Standalone-first truth boundary
 
@@ -41,31 +43,31 @@ The pyramid is read from Layer 0 at the foundation to Layer 17 at the apex. High
           /                         5  Workspace / Collection                                   \
         /                           4  Source Package                                            \
       /                             3  Capture / Intake                                           \
-    /                               2  Studio / Interface                                           \
+    /                               2  Standalone Interface / optional ChaseOS Studio host           \
   /                                 1  User / Operator                                                \
 /___________________________________0  Behaviour Contract / Constitution_______________________________\
 ```
 
 ```mermaid
 flowchart BT
-    L0["0 Behaviour contract: truth, authority, review"]
-    L1["1 Operator: intent and judgement"]
-    L2["2 Interface: inspect and control"]
-    L3["3 Intake: classify inputs"]
-    L4["4 Source package: normalized evidence"]
-    L5["5 Workspace: bounded task context"]
-    L6["6 Retrieval: select relevant evidence"]
-    L7["7 Summary intelligence: claims and proposals"]
-    L8["8 Memory: reviewed durable learning"]
-    L9["9 Graph: provenance and relationships"]
-    L10["10 Agent runtime: persistent run lifecycle"]
-    L11["11 Harness: orchestration, tests, observability"]
-    L12["12 Provider router: bounded inference"]
-    L13["13 Tool/MCP: capability-scoped actions"]
-    L14["14 Computer use: visual interaction"]
-    L15["15 Repair: checkpoints and recovery"]
-    L16["16 Governance: gates and approvals"]
-    L17["17 Extension: reviewed skills and packs"]
+    L0["0 Behaviour contract<br/>defines truth, evidence, permission and completion rules"]
+    L1["1 Operator<br/>states the goal and supplies judgement, correction and approval"]
+    L2["2 Standalone operator interface<br/>submit, inspect, score and control; optionally hosted in ChaseOS Studio"]
+    L3["3 Intake<br/>validate and classify files, text, URLs or events"]
+    L4["4 Source package<br/>normalize evidence, claims, metadata and provenance"]
+    L5["5 Workspace<br/>isolate each task's sources, state, policy and artifacts"]
+    L6["6 Retrieval<br/>select the smallest relevant, traceable context package"]
+    L7["7 Summary intelligence<br/>produce grounded claims, inferences, uncertainties and proposals"]
+    L8["8 Memory<br/>retain only reviewed, versioned and reversible durable learning"]
+    L9["9 Graph<br/>connect evidence, decisions, actions, artifacts and outcomes"]
+    L10["10 Agent runtime<br/>persist runs, sessions, queues, cancellation and resume"]
+    L11["11 Harness<br/>orchestrate context, policies, models, tools, logs and evals"]
+    L12["12 Provider router<br/>bound model choice, data, cost, latency and fallback"]
+    L13["13 Tool and MCP broker<br/>scope capabilities, validate targets and record receipts"]
+    L14["14 Browser and computer use<br/>observe, act and prove visible state changes"]
+    L15["15 Repair<br/>checkpoint, diagnose, retry safely and recover after failure"]
+    L16["16 Governance<br/>deny, hold or approve authority-bearing transitions"]
+    L17["17 Extensions<br/>package reviewed skills and workflows with tests and rollback"]
 
     L0 --> L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7
     L7 --> L8 --> L9 --> L10 --> L11 --> L12 --> L13 --> L14 --> L15 --> L16 --> L17
@@ -83,7 +85,8 @@ flowchart BT
 
 ```mermaid
 flowchart LR
-    O["L1 Operator"] --> UI["L2 CLI / future Studio"]
+    O["L1 Operator"] --> UI["L2 standalone interface contract<br/>current CLI/files; future local UI"]
+    COS["Optional ChaseOS Studio host<br/>adapter only, never a core dependency"] -. "renders the same interface contract" .-> UI
     UI --> I["L3 Intake and classification"]
     I --> S["L4 Source package"]
     S --> W["L5 Workspace boundary"]
@@ -112,13 +115,26 @@ flowchart LR
     C["Layer 0 constitution"] -. "constrains every artifact and transition" .-> GOV
 ```
 
+## Layer 2 in plain language: interface is a contract, not one app
+
+Layer 2 is where a human can understand and control the harness. It must expose the same facts regardless of which presentation surface is used:
+
+| Surface | Role | Current state |
+|---|---|---|
+| Chaser Agent CLI and review files | Standalone baseline for submitting local inputs, reading artifacts, recording scores and writing approved review records. | Partially implemented. |
+| Future standalone Chaser Agent UI | Local graphical review queue, run inspector, evidence browser, approval controls and runtime health view. | Planned, not built. |
+| Optional ChaseOS Studio host | Proprietary host that may render the same interface contract and connect through an adapter. It may add ChaseOS governance, but it must not become required for standalone operation. | Integration concept only. |
+| Future HTTP API | Machine-facing transport between the interface and the persistent runtime. It is not itself the user interface and does not grant action authority. | Planned for Stage D, not built. |
+
+A fresh operator should be able to answer six questions from Layer 2 without opening implementation code: what goal is active, which evidence was used, what the agent inferred, what is blocked, what needs a human decision, and what proof supports completion. If any presentation surface hides one of those answers, it has not yet satisfied the Layer 2 contract.
+
 ## Gap-free layer contract
 
 | Layer | Responsibility and durable output | Fundamentals applied | Current truth | Next acceptance proof |
 |---:|---|---|---|---|
 | 0 | Defines truth, evidence, uncertainty, authority, review, memory-promotion, and completion rules. Output: executable behavioural contracts. | Propositional logic, invariants, pre/postconditions, threat modelling, property-based reasoning. | Enforced by 30 public-safe cases and 154 artifact assertions; all cases remain pending operator review. | Reviewed contract cases, regression mutations, metamorphic variants, and a clause-to-eval coverage ledger. |
 | 1 | Captures operator goals, constraints, preferences, corrections, decisions, and approvals. Output: immutable human review and approval records. | Human-computer interaction, rubric design, inter-rater reliability, decision theory. | Review CLI and insert-only SQLite records exist; the three representative runs still need operator scores. | Operator-scored runs produce labelled product-quality cases without modifying original artifacts. |
-| 2 | Gives the operator a legible place to submit work, inspect evidence, compare candidates, approve actions, and examine runtime health. | UX state design, information architecture, accessibility, optimistic vs confirmed state. | CLI only. Brand/mascot work does not implement this runtime surface. | A local interface accurately renders run state, evidence, approvals, blocked actions, and uncertainty without overclaiming completion. |
+| 2 | Defines the operator-facing control surface: submit work, inspect sources and provenance, compare candidates, score eval runs, revise or reject memory, approve or deny gated actions, pause/cancel work, and examine runtime health. Output: explicit operator commands and immutable review/approval records. | UX state design, information architecture, accessibility, human-in-the-loop control, optimistic vs confirmed state, and audit-friendly interaction design. | Standalone CLI plus files only. No local graphical Chaser Agent UI exists. ChaseOS Studio is a separate optional host, not part of the MIT core. Brand/mascot work does not implement this runtime surface. | The standalone surface and any ChaseOS Studio adapter render the same run states, evidence, scores, approvals, blocked actions, uncertainty, and completion proof without changing authority semantics. |
 | 3 | Accepts files, text, URLs, events, or future connector inputs; stamps origin, privacy, trust, freshness, and requested scope. Output: intake envelope. | Parsing, validation, queues, content hashing, input sanitisation, trust classification. | Local file intake and bounded research configuration exist; no general connector runtime. | Equivalent content receives stable classification; malicious or private inputs cannot widen authority. |
 | 4 | Normalizes the intake envelope into sources, claims, evidence snippets, metadata, uncertainty, and provenance. Output: source package. | Schemas, normalization, deterministic transforms, stable identifiers, lossless provenance. | Domain-neutral deterministic builder and three profiles exist. | Source claims remain traceable, metadata is not misclassified as claims, and contradictions are represented honestly. |
 | 5 | Groups sources, goals, runs, policies, memory, and artifacts into a bounded working context. Output: workspace manifest. | Sets, namespaces, access control, graph partitions, dependency injection. | Not built beyond scopes/tags in existing records. | Two concurrent workspaces cannot leak context, permissions, artifacts, or memory into one another. |
