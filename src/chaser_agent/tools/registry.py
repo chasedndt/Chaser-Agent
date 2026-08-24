@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import posixpath
 from collections import Counter
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from chaser_agent.tools.models import (
     PERMITTED_SIDE_EFFECTS_P0_1,
@@ -56,13 +56,47 @@ def _within_path_scope(target: str, scope: str) -> bool:
 def _within_url_scope(target: str, scope: str) -> bool:
     target_parts = urlparse(target)
     scope_parts = urlparse(scope)
-    if target_parts.scheme not in {"http", "https"} or not target_parts.netloc:
+    if target_parts.scheme not in {"http", "https"} or scope_parts.scheme not in {"http", "https"}:
         return False
-    if target_parts.netloc.lower() != scope_parts.netloc.lower():
+    if target_parts.scheme != scope_parts.scheme:
         return False
-    scope_path = scope_parts.path or "/"
-    target_path = target_parts.path or "/"
-    return target_path.startswith(scope_path)
+    if target_parts.username is not None or target_parts.password is not None:
+        return False
+    if scope_parts.username is not None or scope_parts.password is not None:
+        return False
+    if target_parts.hostname is None or target_parts.hostname != scope_parts.hostname:
+        return False
+
+    try:
+        target_port = target_parts.port or (443 if target_parts.scheme == "https" else 80)
+        scope_port = scope_parts.port or (443 if scope_parts.scheme == "https" else 80)
+    except ValueError:
+        return False
+    if target_port != scope_port:
+        return False
+
+    def canonical_path(raw_path: str) -> str | None:
+        decoded = raw_path or "/"
+        for _ in range(4):
+            next_decoded = unquote(decoded)
+            if next_decoded == decoded:
+                break
+            decoded = next_decoded
+        else:
+            return None
+        if "\\" in decoded or "\x00" in decoded:
+            return None
+        canonical = posixpath.normpath(decoded)
+        return canonical if canonical.startswith("/") else f"/{canonical}"
+
+    scope_path = canonical_path(scope_parts.path)
+    target_path = canonical_path(target_parts.path)
+    if scope_path is None or target_path is None:
+        return False
+    if scope_path == "/":
+        return True
+    scope_root = scope_path.rstrip("/")
+    return target_path == scope_root or target_path.startswith(scope_root + "/")
 
 
 def target_within_scopes(target: str, scopes: tuple[str, ...]) -> bool:

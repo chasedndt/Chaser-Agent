@@ -150,9 +150,57 @@ def test_path_traversal_cannot_escape_via_normalisation():
 def test_url_scope_matches_host_and_path_prefix_only():
     registry = registry_with(FETCH_BLOG, grant=("fetch_blog",))
     assert registry.authorize(request("fetch_blog", "https://blog.cloudflare.com/monetization-gateway/"))
-    for bad in ("https://blog.cloudflare.com.evil.test/x", "http://other.example.com/", "not-a-url"):
+    for bad in (
+        "https://blog.cloudflare.com.evil.test/x",
+        "http://other.example.com/",
+        "not-a-url",
+        "http://blog.cloudflare.com/monetization-gateway/",
+        "https://blog.cloudflare.com:444/monetization-gateway/",
+        "https://blog.cloudflare.com@evil.test/monetization-gateway/",
+    ):
         with pytest.raises(ToolDenied):
             registry.authorize(request("fetch_blog", bad))
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "https://blog.cloudflare.com.evil.test/x",
+        "https://blog.cloudflare.com/monetization-gateway-evil",
+        "https://blog.cloudflare.com/%2e%2e/admin",
+        "https://blog.cloudflare.com/monetization-gateway/%252e%252e/%252e%252e/admin",
+        "https://blog.cloudflare.com/monetization-gateway%5c..%5cadmin",
+    ],
+)
+def test_url_scope_refuses_authority_confusion_and_encoded_escape(target: str):
+    narrow = ToolCapability(
+        tool_id="fetch_narrow_blog",
+        display_name="Fetch a bounded public blog path",
+        purpose="Test a narrow URL authority scope.",
+        side_effect_class="read_only",
+        allowed_scopes=("https://blog.cloudflare.com/monetization-gateway/",),
+    )
+    registry = registry_with(narrow, grant=(narrow.tool_id,))
+    with pytest.raises(ToolDenied) as denial:
+        registry.authorize(request(narrow.tool_id, target))
+    assert denial.value.reason_code == "scope_violation"
+
+
+def test_url_scope_accepts_exact_root_and_descendants_only():
+    narrow = ToolCapability(
+        tool_id="fetch_narrow_blog",
+        display_name="Fetch a bounded public blog path",
+        purpose="Test a narrow URL authority scope.",
+        side_effect_class="read_only",
+        allowed_scopes=("https://blog.cloudflare.com/monetization-gateway/",),
+    )
+    registry = registry_with(narrow, grant=(narrow.tool_id,))
+    for target in (
+        "https://blog.cloudflare.com/monetization-gateway",
+        "https://blog.cloudflare.com/monetization-gateway/",
+        "https://blog.cloudflare.com/monetization-gateway/sub/../safe-page/",
+    ):
+        assert registry.authorize(request(narrow.tool_id, target))
 
 
 # --- side-effect gating ------------------------------------------------------------

@@ -26,7 +26,7 @@ Chaser Agent is standalone-first and ChaseOS-enhanced. Read the product definiti
 - The canonical builder is domain-neutral by default and domain behavior is isolated in three explicit profiles.
 - Immutable review persistence, append-only governed memory, lexical/tag retrieval, and the provenance map are implemented locally in SQLite.
 - Review writes accepted/rejected candidate state but does not promote memory; promotion remains a separate governance operation.
-- The current suite has 55 passing deterministic tests and the exact 27-row seed matrix is exported for inspection.
+- The current isolated security candidate has 212 passing deterministic tests; the generated matrix separately inventories 52 public dataset rows. Test count and dataset-row count are different evidence dimensions.
 - ChaseOS integration is optional and inactive by default.
 - Providers, tools, MCP, browsers, FastAPI, embeddings, autonomous loops, and training remain outside P0.1.
 

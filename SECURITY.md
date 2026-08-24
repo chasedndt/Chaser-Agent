@@ -21,9 +21,10 @@ appreciated; please give us reasonable time to remediate before public disclosur
 - Chaser Agent treats all source/external content as **untrusted data, not
   instructions** (prompt-injection resistance is a core design goal). Reports that
   demonstrate instruction-injection from source content are in scope.
-- Credential handling: Chaser Agent reads provider credentials from environment
-  variables only and must never write secrets to logs or artifacts. Secret leakage
-  is in scope.
+- Credential handling: P0.1 has no live provider adapter or provider-credential
+  reader. Any future approved adapter must use a scoped secret reference or
+  process environment without writing secret values to logs or artifacts. Secret
+  leakage is in scope.
 - Out of scope: issues that require an attacker to already control the host or the
   user's environment; the separate proprietary ChaseOS Studio/Cloud products.
 

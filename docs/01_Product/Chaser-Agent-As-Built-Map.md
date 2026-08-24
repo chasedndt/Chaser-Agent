@@ -20,7 +20,7 @@ This page maps executable repository truth to Layer 0 plus the 17 engineering la
 | Layer 0 contract eval | `evals/contract_runner.py` | `contract-eval` | 30 executable cases / 154 artifact assertions, all pending operator review |
 | Workflow episode eval | `evals/workflow_episode.py` | `workflow-episode-validate`, `workflow-trace-eval` | Dependencies, evidence, authority, artifacts, proof and handoff scored; human usefulness remains unreviewed |
 | Provider boundary | `providers/` | Python protocol/API | Fake only; sensitive-data gate, budgets, rate/latency ceilings, quarantine and baseline comparison; no live provider |
-| Tool/MCP boundary | `tools/` | Python protocol/API | Registry/grant/scope/budget planning and fake-result quarantine; execution deliberately raises |
+| Tool/MCP boundary | `tools/` | Python protocol/API | Registry/grant/canonical path-and-URL scope/budget planning and fake-result quarantine; execution deliberately raises |
 | Skill gate | `skillgate.py` | `skill-gate` | Bounded review packet only; no apply path |
 | Visual completion evaluator | `visual_completion.py` | `visual-eval` | Evidence metadata only; cannot mark complete |
 

@@ -128,6 +128,7 @@ Chaser Agent is not currently:
 - Never auto-promote a memory candidate.
 - Never mutate original run artifacts during review or correction.
 - Never activate providers, tools, MCP, browsers, public actions, payments, trading, deployment, or model training in P0.1.
+- Treat URL tool scopes as exact scheme, host, effective port, and canonical path boundaries; a string prefix is never authority.
 - Never mutate ChaseOS canonical state from the standalone core.
 - Keep generated run and research artifacts ignored unless separately reviewed for provenance, privacy, and licensing.
 
