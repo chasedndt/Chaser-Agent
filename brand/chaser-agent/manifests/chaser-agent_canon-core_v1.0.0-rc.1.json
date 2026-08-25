@@ -1,0 +1,768 @@
+{
+    "schema_version":  1,
+    "canon_id":  "chaser-agent",
+    "canon_version":  "1.0.0",
+    "asset_release_version":  "1.0.0-rc.1",
+    "model_version":  "v0.37.0",
+    "status":  "operator-approved-canon-core-release-candidate-not-public-release",
+    "generated_on":  "2026-08-25",
+    "public_name":  "Chaser Agent",
+    "source_model":  {
+                         "path":  "brand/chaser-agent/source/production-model/v1.0.0-rc.1/chaser-agent_production-model_operator-approved_v0.37.0_20260824.blend",
+                         "sha256":  "ba2872e369b191592434ec702176b562af9f69f1e99b08aadac445faaa8d4608",
+                         "operator_visual_approved":  true,
+                         "operator_approved_on":  "2026-08-24"
+                     },
+    "content":  {
+                    "transparent_turnaround_masters":  4,
+                    "head_shoulders_master":  1,
+                    "avatar_png_sizes":  [
+                                             1024,
+                                             512,
+                                             256,
+                                             128,
+                                             64,
+                                             32,
+                                             16
+                                         ],
+                    "avatar_previews":  [
+                                            "circle-dark",
+                                            "rounded-dark",
+                                            "rounded-light"
+                                        ],
+                    "silhouette_variants":  [
+                                                "black",
+                                                "white"
+                                            ],
+                    "model_sheets":  [
+                                         "four-view",
+                                         "height-comparison"
+                                     ],
+                    "clean_turntable_frames":  48,
+                    "clean_turntable_video_formats":  [
+                                                          "mp4",
+                                                          "webm"
+                                                      ],
+                    "interoperability":  [
+                                             "glb"
+                                         ]
+                },
+    "public_media_policy":  {
+                                "clean_camera_renders_only":  true,
+                                "blender_viewport_ui_public_use":  false,
+                                "xyz_gizmo_public_use":  false,
+                                "recordly_product_capture":  "deferred-separate-pass"
+                            },
+    "boundaries":  {
+                       "full_runtime_state_pack_complete":  false,
+                       "canonical_asset_release_published":  false,
+                       "github_release_published":  false,
+                       "chasintech_implemented":  false,
+                       "chaseos_ai_implemented":  false,
+                       "deployed":  false
+                   },
+    "assets":  [
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/avatar/chaser-agent_avatar-circle-dark_512x512.png",
+                       "role":  "avatar",
+                       "format":  "png",
+                       "bytes":  179921,
+                       "width":  512,
+                       "height":  512,
+                       "sha256":  "1ecf6f8911c2991b997c340888e086e2689e8cd42024e497139359f0d1cf875f"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/avatar/chaser-agent_avatar-rounded-dark_512x512.png",
+                       "role":  "avatar",
+                       "format":  "png",
+                       "bytes":  182745,
+                       "width":  512,
+                       "height":  512,
+                       "sha256":  "fe0716b767e246c95102bba478e921daacd0e3e79436124d6dee2233cbb49697"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/avatar/chaser-agent_avatar-rounded-light_512x512.png",
+                       "role":  "avatar",
+                       "format":  "png",
+                       "bytes":  182834,
+                       "width":  512,
+                       "height":  512,
+                       "sha256":  "5b6c5b900bd678c4e01212707753912ee3cd7c20e632f07603fd8bf43253addb"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/avatar/chaser-agent_avatar-transparent_1024x1024.png",
+                       "role":  "avatar",
+                       "format":  "png",
+                       "bytes":  694665,
+                       "width":  1024,
+                       "height":  1024,
+                       "sha256":  "00bbc9f1d4988d1698a547a54fef4d9da45a3068b2d77ad0265c24ec70a32ec6"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/avatar/chaser-agent_avatar-transparent_128x128.png",
+                       "role":  "avatar",
+                       "format":  "png",
+                       "bytes":  21388,
+                       "width":  128,
+                       "height":  128,
+                       "sha256":  "ebcdc7a45d1e6fb20a5f8f2315637c5b4909354517c56bca0c72227bbf59a450"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/avatar/chaser-agent_avatar-transparent_16x16.png",
+                       "role":  "avatar",
+                       "format":  "png",
+                       "bytes":  828,
+                       "width":  16,
+                       "height":  16,
+                       "sha256":  "37aeb0f0fd919f9ee1269bfec0f0dbdefe130bc8ffa5c9c752f87b40b585a4bb"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/avatar/chaser-agent_avatar-transparent_256x256.png",
+                       "role":  "avatar",
+                       "format":  "png",
+                       "bytes":  64033,
+                       "width":  256,
+                       "height":  256,
+                       "sha256":  "472eda63f98acffd7e039ac7cf5ef433ac15821edaa0233284c437cc59ffd626"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/avatar/chaser-agent_avatar-transparent_32x32.png",
+                       "role":  "avatar",
+                       "format":  "png",
+                       "bytes":  2339,
+                       "width":  32,
+                       "height":  32,
+                       "sha256":  "bd90d4f16153af22a789d8818c648ab0d7c28d6b97819010eb4b78b8bbfbed09"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/avatar/chaser-agent_avatar-transparent_512x512.png",
+                       "role":  "avatar",
+                       "format":  "png",
+                       "bytes":  198550,
+                       "width":  512,
+                       "height":  512,
+                       "sha256":  "fded7a2cdd1cc470df2cae2d8c1b41d1d33aa3d5bb658cb69b8c65c6930610b6"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/avatar/chaser-agent_avatar-transparent_64x64.png",
+                       "role":  "avatar",
+                       "format":  "png",
+                       "bytes":  6988,
+                       "width":  64,
+                       "height":  64,
+                       "sha256":  "71d6c4c523277015f0c231e136ed16be144fd4300f10918c62a11dbe5d7aec2e"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/interoperability/chaser-agent_model_operator-approved_v0.37.0.glb",
+                       "role":  "interoperability-model",
+                       "format":  "glb",
+                       "bytes":  23742060,
+                       "width":  null,
+                       "height":  null,
+                       "sha256":  "79a7affe5f1f7e166ae94a8c79c793bb93c8c86b8671719e7942bca87bd093c3"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/masters/chaser-agent_head-shoulders_transparent_2048x2048.png",
+                       "role":  "character-master",
+                       "format":  "png",
+                       "bytes":  3135137,
+                       "width":  2048,
+                       "height":  2048,
+                       "sha256":  "74df6e204f7a5cef3a6d91da52e877a64f5daf4dbb2c2f4d39432d2b086d9913"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/masters/chaser-agent_neutral-back_transparent_1800x2400.png",
+                       "role":  "character-master",
+                       "format":  "png",
+                       "bytes":  2803682,
+                       "width":  1800,
+                       "height":  2400,
+                       "sha256":  "7fe88a69c4c2a93ef435b7baf40662be6cd9f6f9bf3a0edde1dcb3ddfbb6829f"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/masters/chaser-agent_neutral-front_transparent_1800x2400.png",
+                       "role":  "character-master",
+                       "format":  "png",
+                       "bytes":  2893091,
+                       "width":  1800,
+                       "height":  2400,
+                       "sha256":  "a77ef29d50f7a2d5be8951221f1cc919e43bb5b0bc07e78089d456b9a7bb0957"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/masters/chaser-agent_neutral-side_transparent_1800x2400.png",
+                       "role":  "character-master",
+                       "format":  "png",
+                       "bytes":  2313600,
+                       "width":  1800,
+                       "height":  2400,
+                       "sha256":  "d025ef95ac0237912255619a314df1ea95e0662100d887f404b7d9b07bfa089a"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/masters/chaser-agent_neutral-three-quarter_transparent_1800x2400.png",
+                       "role":  "character-master",
+                       "format":  "png",
+                       "bytes":  2856580,
+                       "width":  1800,
+                       "height":  2400,
+                       "sha256":  "ebecb9f684e7c4526b758b2c6a8ff5dace69bf1a663d00fd3e83f2fd44e743f3"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/model-sheet/chaser-agent_height-comparison_2048x2048.png",
+                       "role":  "model-sheet",
+                       "format":  "png",
+                       "bytes":  220097,
+                       "width":  2048,
+                       "height":  2048,
+                       "sha256":  "e3c556fee7fb9909df626e661dd49936566e4a8f22ae7dce5fa8a2afdf6743b9"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/model-sheet/chaser-agent_model-sheet_operator-approved_4096x3072.png",
+                       "role":  "model-sheet",
+                       "format":  "png",
+                       "bytes":  2294531,
+                       "width":  4096,
+                       "height":  3072,
+                       "sha256":  "09e5c8c02e7116cbf5eac09a9555429ca364c552fadc445f209e62caaed6ff57"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/README.md",
+                       "role":  "supporting-asset",
+                       "format":  "md",
+                       "bytes":  1230,
+                       "width":  null,
+                       "height":  null,
+                       "sha256":  "8d9580ed0d48d56205c1be82e6b0c8b04799e56fdf2a952d6580857437006621"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/silhouette/chaser-agent_silhouette-black_1024x1536.png",
+                       "role":  "silhouette",
+                       "format":  "png",
+                       "bytes":  981335,
+                       "width":  1024,
+                       "height":  1536,
+                       "sha256":  "7b603e7329dc6c42dca4c9f51b16a4d299e34b2dea24dee6c7f00979124e9292"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/silhouette/chaser-agent_silhouette-white_1024x1536.png",
+                       "role":  "silhouette",
+                       "format":  "png",
+                       "bytes":  1003193,
+                       "width":  1024,
+                       "height":  1536,
+                       "sha256":  "88b4c7ad72a2ca00710655d145a6afe9269848d1a4cca98b94d8771b7cfadcef"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/chaser-agent_turntable-studio_720x720_h264.mp4",
+                       "role":  "turntable-media",
+                       "format":  "mp4",
+                       "bytes":  360357,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "14fd81c76e6b0ae52f4f6e2b9965895723ccd4ba9c0ffa342848d9cfb4f610b2"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/chaser-agent_turntable-studio_720x720_vp9.webm",
+                       "role":  "turntable-media",
+                       "format":  "webm",
+                       "bytes":  184788,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "1d5df98d46e7e94f808e1b2378e2bd19870070e2f0798a41548ebe37948c12e4"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/chaser-agent_turntable-studio_poster.png",
+                       "role":  "turntable-media",
+                       "format":  "png",
+                       "bytes":  483703,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "ff1a2ea843aea6eac43f3fffa7b7a235f8c9e33dc847872957a9b023f568f82d"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_000.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  483488,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "98d8bdcb73c39647fbbebbbb5b8da2f57d322e03498b5a369e12c9cc7f955ce7"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_001.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  483718,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "234bb3286d540e177b86850ff7aea08b82428769d6617685bbcca3657734e29e"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_002.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  487121,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "cb0ffec2451f7e7169ecfb1c39bbb68e9d3cfdb0a9b5e84f0ad36258e534fc53"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_003.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  490242,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "7e9523bd4704b1a783b2e0167b7a74e5268ca8d7af020ae405a36da7861c7a5c"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_004.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  492081,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "6213bd8c575c55a874b25ba7e955e1ce97a4cfae1b12cc9c9cdeeb57448cd241"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_005.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  489598,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "36755898fbe3f6fb098a9dfdcbd01dd5a3b36a2c73e5547ac1e2ded857751548"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_006.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  483703,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "ff1a2ea843aea6eac43f3fffa7b7a235f8c9e33dc847872957a9b023f568f82d"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_007.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  473991,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "72c7747efaec7acc7b2c29d5f110f094ea0f885e74177f11013b09bdfc355b20"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_008.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  463276,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "82aba0cf2fb8f3979cdb7f28ae1475bd49414c10ad6a10036c2f446246926025"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_009.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  453611,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "07b8fafbccf5a65bc378a89392ccb330bd5e9fd4307adc580ca1bd6dcb7d8989"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_010.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  445666,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "f60d6378744fa2cd5ed0c6bfe54cf1c98ab18eea81f97c00b8878aeaa200b146"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_011.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  437772,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "ed1e86db62f14c9d765b75a44b7d8b7cb2e1383942d058c17a5fb9f61f764968"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_012.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  431262,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "0e71049c6bfae8e1cb9ed896f81c87775dc9edcaa4efb6432c84e19b8f32662a"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_013.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  432845,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "f3b1322989fd88818789ee3eb473b8d7978a143064081750fee98905d2371284"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_014.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  439342,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "bbf96023cc5ae8ced8980de19418cafdb290ed59efb452aa42a1e3d3417c777b"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_015.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  446209,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "324bcbd74e7b3a4e120dcaaffe260704d42b68aa334f06840333354f2ecad752"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_016.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  453628,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "dc7eafc326c1bb6d31f3ad68ea7f22447d604eeb3e1969b269e9dbe3f5868ff3"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_017.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  459842,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "877b01fadb676bc7a8ef875be4c36a6b969d445cab2e67fde7bd39ddef854da0"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_018.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  463467,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "fef75decdfed447d0d48fbe900c8d7c2940eece76b1230622b7111e70a61fdb1"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_019.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  468299,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "fb315a892ce25f609896ba80f2fb009fc77b0ca469673935b2e617aa56d5eb6d"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_020.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  470198,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "434624f2bfc0910e6da94776773807ad1fc8be982052886ec8815a50592c6812"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_021.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  470675,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "aa8f50ca7553f6f20357c6acf4543e95da0be10fbee45f6a135b7a1d5f6a30b5"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_022.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  470030,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "8238713d085e75940f278300e99795638d1ebae9a9b1c2c74539a8126efca268"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_023.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  468082,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "44c9714880ea9955994a6868732c05109b5334b3c3ae8b84d19dcdf9871f7ed3"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_024.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  465560,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "3258591cd1bcf5f0ff67dc736a9d506331279e485b6af0199ff821cdb63670a3"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_025.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  466255,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "ceb0052da86fa54e92a6e73535078fcfac11d9e1225fddaaa005e4a769854303"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_026.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  468196,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "c7b69547aa7480665c46d5d97e20d8a751a25e8688c4ce1825f7f66ed1d29e0b"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_027.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  469154,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "6ab6e1c77d09012ceccb63ef106be55c215100dccae49870f55462ccfb6c97c6"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_028.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  468450,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "0e8efbb23aceec6ae255638e75b1578a91fdcd2b308fd250b85fd9ef5c24df1e"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_029.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  467232,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "17786d566cf1be99c821cfc5732105adf2a0f0efe1f5e1a8093ebd6582a33547"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_030.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  463837,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "294fed994e47bc1b9d02c2078d6a95f0f91c09dca4360782397bd17412b9fcfc"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_031.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  460803,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "937f6eb689dd5ed0526c050bbe3f04be02359fe099d6f182062b3583b94161d9"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_032.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  455592,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "42016914c2f899ef2c032b25ad981614092d663e6a232f901f74debb1c9180bc"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_033.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  450885,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "f24605b9d84de7fd132cf55c4b175d71a4fe25bbfc7b477126f1297ac551efe4"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_034.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  445300,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "678fa48d9a4114ab7b905c2160810f9f788d3c969e205f426b1c9cd546051917"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_035.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  439084,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "83dd137031f48a19d174450265e0801223cda4ff1a8aaf7a1e23bbe9507bc2fe"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_036.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  436932,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "dd9f9c98fc7b1a6cc1810de0fc4bcee5a722692810ad331e035c6ca6215b5d30"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_037.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  441341,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "80e52c75859d55e05b0af101945c186ae7977385bdad977e4052e53d961b2d38"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_038.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  449292,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "8372474054bb29907095ddf5499583c47a4ad199e0bb185054785cbba78875bc"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_039.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  455769,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "fda3a028a514903f648dcc17e0b73b88b7e612aeeccefc7dc42a9b55c7ffbd1b"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_040.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  464322,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "21eb373673271a1ab7d5260683181910769d16ed3dd10d01d0e9c0df33cfb290"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_041.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  472896,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "383cadf637870fc39a05d4c2194ab2b35d7db0efa473997e0b3fe0887d59993e"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_042.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  480495,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "b57ec001bda24aade1d9a9cfaf72f4c95a6b67e4e36a9d947d50a7b4bf5cb566"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_043.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  488842,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "1376a189bde1eec1a39d894694ff8c4cda3b0719be4e15e53d575d298bfc66f6"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_044.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  494021,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "ce0680e5b806844328db4da336330f39ffbbf8cb3d75ad8c16902cf85cc4572f"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_045.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  494428,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "eff3a61860b40f8f6bb8f8ee7077b03c6843a3bebf1e6fd06fdc5fc1cf826a57"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_046.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  491739,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "29e671ea4f7c7a3e907a71b3e4bd9df1f807ed4cf7974c73bce7bd57c613aacb"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/turntable/frames/chaser-agent_turntable_047.png",
+                       "role":  "turntable-frame",
+                       "format":  "png",
+                       "bytes":  488138,
+                       "width":  720,
+                       "height":  720,
+                       "sha256":  "1d825cd9080784394c0cb6ea5423228cb3e973184163994bb8fd036a0eebe852"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/web/chaser-agent_head-shoulders_transparent_2048x2048.webp",
+                       "role":  "web-media",
+                       "format":  "webp",
+                       "bytes":  111036,
+                       "width":  2048,
+                       "height":  2048,
+                       "sha256":  "c9614e9da8e49150a7d238e0e818b6138a0e69b24043296aa5ce9d98b1627fb5"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/web/chaser-agent_neutral-front_transparent_1800x2400.webp",
+                       "role":  "web-media",
+                       "format":  "webp",
+                       "bytes":  131918,
+                       "width":  1800,
+                       "height":  2400,
+                       "sha256":  "a1eae19cf6f2161dfcb7c000b039826e6bc263ee21a71bb5d2a326a3a97cca6c"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/web/chaser-agent_web-hero_studio-dark_1920x1080.avif",
+                       "role":  "web-media",
+                       "format":  "avif",
+                       "bytes":  19693,
+                       "width":  1920,
+                       "height":  1080,
+                       "sha256":  "f132368979e98a783e1f3f89bccd29a8eec76c8dbed3133f5162e7fa4b6089bf"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/web/chaser-agent_web-hero_studio-dark_1920x1080.png",
+                       "role":  "web-media",
+                       "format":  "png",
+                       "bytes":  2018849,
+                       "width":  1920,
+                       "height":  1080,
+                       "sha256":  "61786d8f3bd44be07ef3184d4965a6e898affedc35981676bb0d28787acb9bb7"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/web/chaser-agent_web-hero_studio-dark_1920x1080.webp",
+                       "role":  "web-media",
+                       "format":  "webp",
+                       "bytes":  40674,
+                       "width":  1920,
+                       "height":  1080,
+                       "sha256":  "762f815f6e5806d4214ec5ea7d520b74d7ad70d7085992bb2ee03f9f1b6c80e9"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/source/production-model/v1.0.0-rc.1/chaser-agent_production-model_operator-approved_v0.37.0_20260824.blend",
+                       "role":  "editable-source-model",
+                       "format":  "blend",
+                       "bytes":  16460957,
+                       "width":  null,
+                       "height":  null,
+                       "sha256":  "ba2872e369b191592434ec702176b562af9f69f1e99b08aadac445faaa8d4608"
+                   }
+               ]
+}
