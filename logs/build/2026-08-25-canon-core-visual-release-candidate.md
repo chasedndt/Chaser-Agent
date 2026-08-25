@@ -22,9 +22,13 @@ This does not promote the asset pack to a public release, complete the runtime-s
 - Rendered transparent turnaround/head masters, a studio web hero, avatars from 1024 px to 16 px, solid silhouettes, a four-view model sheet, and a target-height comparison.
 - Rendered 48 clean 720 px turntable frames and encoded four-second H.264 and VP9 videos at 24 fps.
 - Exported a GLB interoperability model.
-- Added a hash, byte-length, format, dimension, policy, and release-boundary manifest containing 78 records including the locked source.
+- Added a hash, byte-length, format, dimension, policy, and release-boundary manifest containing 80 records including the locked source.
 - Added QA and website-media handoff documentation.
 - Marked binary media types in `.gitattributes`.
+
+## Centered review correction
+
+The initial wide hero intentionally positioned the mascot on the right for website copy space, but that composition was not suitable as the primary model-inspection image. Added centered 1920x1080 front and three-quarter studio renders under `exports/canon-core/v1.0.0-rc.1/review/`. The offset hero remains available and is now explicitly documented as a website-layout variant.
 
 ## Visual QA
 

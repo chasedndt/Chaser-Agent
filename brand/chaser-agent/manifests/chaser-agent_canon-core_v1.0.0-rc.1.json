@@ -38,6 +38,7 @@
                                          "four-view",
                                          "height-comparison"
                                      ],
+                    "centered_review_stills":  2,
                     "clean_turntable_frames":  48,
                     "clean_turntable_video_formats":  [
                                                           "mp4",
@@ -228,10 +229,28 @@
                        "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/README.md",
                        "role":  "supporting-asset",
                        "format":  "md",
-                       "bytes":  1230,
+                       "bytes":  1497,
                        "width":  null,
                        "height":  null,
-                       "sha256":  "8d9580ed0d48d56205c1be82e6b0c8b04799e56fdf2a952d6580857437006621"
+                       "sha256":  "221cfe76a5591db1cf554fa87ca17f4799fd16d8e0c0e1680b6260c0971441c9"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/review/chaser-agent_review-front-centered_studio-dark_1920x1080.png",
+                       "role":  "supporting-asset",
+                       "format":  "png",
+                       "bytes":  1926957,
+                       "width":  1920,
+                       "height":  1080,
+                       "sha256":  "63af4c07486d91de4c46b1bd41f1b7a949997455270dee45a325faccc9153f63"
+                   },
+                   {
+                       "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/review/chaser-agent_review-three-quarter-centered_studio-dark_1920x1080.png",
+                       "role":  "supporting-asset",
+                       "format":  "png",
+                       "bytes":  1971871,
+                       "width":  1920,
+                       "height":  1080,
+                       "sha256":  "40bd0687ae576df49072265f9d49ab29a27e0e230a9062e807718081dded3b61"
                    },
                    {
                        "path":  "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/silhouette/chaser-agent_silhouette-black_1024x1536.png",

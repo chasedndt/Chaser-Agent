@@ -57,6 +57,8 @@ def test_required_media_contract_is_complete() -> None:
         f"{prefix}/masters/chaser-agent_neutral-front_transparent_1800x2400.png": (1800, 2400),
         f"{prefix}/masters/chaser-agent_head-shoulders_transparent_2048x2048.png": (2048, 2048),
         f"{prefix}/web/chaser-agent_web-hero_studio-dark_1920x1080.png": (1920, 1080),
+        f"{prefix}/review/chaser-agent_review-front-centered_studio-dark_1920x1080.png": (1920, 1080),
+        f"{prefix}/review/chaser-agent_review-three-quarter-centered_studio-dark_1920x1080.png": (1920, 1080),
         f"{prefix}/model-sheet/chaser-agent_model-sheet_operator-approved_4096x3072.png": (4096, 3072),
         f"{prefix}/turntable/chaser-agent_turntable-studio_720x720_h264.mp4": (720, 720),
         f"{prefix}/turntable/chaser-agent_turntable-studio_720x720_vp9.webm": (720, 720),

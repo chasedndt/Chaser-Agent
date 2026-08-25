@@ -17,6 +17,7 @@ Date: `2026-08-25`
 - The avatar remains recognizable at 64 px. The 32 px and 16 px variants are utility fallbacks and intentionally lose surface detail.
 - Public turntable media is camera-rendered studio imagery without Blender interface, grid, axis, or XYZ overlays.
 - `turntable-contact-sheet.png` samples eight evenly spaced angles and passed technical readback for framing and visual continuity.
+- Centered front and three-quarter studio stills are the primary framing-review images. The separate web hero remains deliberately right-weighted for left-side website copy.
 
 ## Mechanical checks
 

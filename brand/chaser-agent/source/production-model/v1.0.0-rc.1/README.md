@@ -15,7 +15,7 @@ Do not alter the approved source while creating derivatives. The export script v
 
 ## Deterministic export sequence
 
-Run from the repository root. Set `CHASER_EXPORT_MODE` to `masters`, `silhouette`, or `turntable`, then run Blender in background mode with `scripts/export_canon_core.py`. Run the PowerShell builders after their inputs exist:
+Run from the repository root. Set `CHASER_EXPORT_MODE` to `masters`, `silhouette`, `review`, or `turntable`, then run Blender in background mode with `scripts/export_canon_core.py`. Run the PowerShell builders after their inputs exist:
 
 ```powershell
 $env:CHASER_EXPORT_MODE = 'masters'
@@ -25,6 +25,9 @@ $env:CHASER_EXPORT_MODE = 'silhouette'
 & 'E:\ChaserAgentCreative\Apps\blender-5.2.0-windows-x64\blender.exe' -b '.\brand\chaser-agent\source\production-model\v1.0.0-rc.1\chaser-agent_production-model_operator-approved_v0.37.0_20260824.blend' -P '.\brand\chaser-agent\source\production-model\v1.0.0-rc.1\scripts\export_canon_core.py'
 
 & '.\brand\chaser-agent\source\production-model\v1.0.0-rc.1\scripts\build_static_derivatives.ps1'
+
+$env:CHASER_EXPORT_MODE = 'review'
+& 'E:\ChaserAgentCreative\Apps\blender-5.2.0-windows-x64\blender.exe' -b '.\brand\chaser-agent\source\production-model\v1.0.0-rc.1\chaser-agent_production-model_operator-approved_v0.37.0_20260824.blend' -P '.\brand\chaser-agent\source\production-model\v1.0.0-rc.1\scripts\export_canon_core.py'
 
 $env:CHASER_EXPORT_MODE = 'turntable'
 & 'E:\ChaserAgentCreative\Apps\blender-5.2.0-windows-x64\blender.exe' -b '.\brand\chaser-agent\source\production-model\v1.0.0-rc.1\chaser-agent_production-model_operator-approved_v0.37.0_20260824.blend' -P '.\brand\chaser-agent\source\production-model\v1.0.0-rc.1\scripts\export_canon_core.py'

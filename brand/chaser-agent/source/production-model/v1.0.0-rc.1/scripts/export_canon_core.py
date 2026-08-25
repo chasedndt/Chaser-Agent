@@ -197,6 +197,27 @@ def render_masters(cameras) -> None:
     render_silhouette(front, EXPORT_DIR / "silhouette" / "chaser-agent_silhouette-white_1024x1536.png", white)
 
 
+def render_centered_review(cameras) -> None:
+    front, three_quarter, _side, _back, _head, _hero = cameras
+    review = EXPORT_DIR / "review"
+    render(
+        front,
+        review / "chaser-agent_review-front-centered_studio-dark_1920x1080.png",
+        1920,
+        1080,
+        False,
+        True,
+    )
+    render(
+        three_quarter,
+        review / "chaser-agent_review-three-quarter-centered_studio-dark_1920x1080.png",
+        1920,
+        1080,
+        False,
+        True,
+    )
+
+
 def render_turntable(root, front) -> None:
     frame_dir = EXPORT_DIR / "turntable" / "frames"
     frame_dir.mkdir(parents=True, exist_ok=True)
@@ -231,10 +252,13 @@ def main() -> None:
         white = silhouette_material("QA Canon White Silhouette", (0.92, 0.93, 0.94, 1.0))
         render_silhouette(cameras[0], EXPORT_DIR / "silhouette" / "chaser-agent_silhouette-black_1024x1536.png", black)
         render_silhouette(cameras[0], EXPORT_DIR / "silhouette" / "chaser-agent_silhouette-white_1024x1536.png", white)
+    elif mode == "review":
+        render_centered_review(cameras)
     elif mode == "turntable":
         render_turntable(root, cameras[0])
     elif mode == "all":
         render_masters(cameras)
+        render_centered_review(cameras)
         render_turntable(root, cameras[0])
     else:
         raise RuntimeError(f"Unsupported CHASER_EXPORT_MODE={mode}")

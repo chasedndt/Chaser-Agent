@@ -84,6 +84,7 @@ $manifest = [ordered]@{
         avatar_previews = @('circle-dark', 'rounded-dark', 'rounded-light')
         silhouette_variants = @('black', 'white')
         model_sheets = @('four-view', 'height-comparison')
+        centered_review_stills = 2
         clean_turntable_frames = 48
         clean_turntable_video_formats = @('mp4', 'webm')
         interoperability = @('glb')
