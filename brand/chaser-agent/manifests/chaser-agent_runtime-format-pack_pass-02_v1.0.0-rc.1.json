@@ -1,0 +1,888 @@
+{
+  "schema_version": 1,
+  "canon_id": "chaser-agent",
+  "state_rig_version": "1.0.0-rc.1",
+  "pass": "runtime-format-pack-pass-02",
+  "status": "runtime-format-pack-pass-02-ready-for-operator-review",
+  "generated_on": "2026-08-28",
+  "supersedes": "runtime-format-pack-pass-01",
+  "state_count": 10,
+  "approved_family_source": {
+    "path": "brand/chaser-agent/manifests/chaser-agent_runtime-state-family_operator-approved_batch-pass-01_v1.0.0-rc.1.json",
+    "role": "operator-approved-runtime-state-family-manifest",
+    "bytes": 2127,
+    "sha256": "4c975eccf05aa0c25b1176724d4761b86f477a606e619b8ef0460debfd760855"
+  },
+  "state_spec": {
+    "path": "brand/chaser-agent/source/state-core/v1.0.0-rc.1/state-spec.json",
+    "role": "canonical-runtime-state-spec",
+    "bytes": 4590,
+    "sha256": "072de51dbd32177af46bbfdc3afc8a01d574b1174637f9a03c46f6b18baa4e08"
+  },
+  "font_inputs": [
+    {
+      "path": "C:\\Windows\\Fonts\\segoeui.ttf",
+      "role": "review-sheet-regular-typeface",
+      "bytes": 959752,
+      "sha256": "8134dbcd09e7b123c9a7f229d49cffbcb01352cc72ea5e1076b65d0dca9f73cd",
+      "repository_input": false
+    },
+    {
+      "path": "C:\\Windows\\Fonts\\segoeuib.ttf",
+      "role": "review-sheet-bold-typeface",
+      "bytes": 947092,
+      "sha256": "aeb9e4a6ec5cc59f4d72df8189032d7dbb28f45161cf1552174818b5465dac4e",
+      "repository_input": false
+    },
+    {
+      "path": "C:\\Windows\\Fonts\\consola.ttf",
+      "role": "review-sheet-monospace-typeface",
+      "bytes": 453088,
+      "sha256": "cf00b507b3286870cc5064ebd0633c303f70b491a4af25eec2d32df413db0179",
+      "repository_input": false
+    }
+  ],
+  "operator_feedback": {
+    "path": "brand/chaser-agent/manifests/chaser-agent_runtime-format-pack_operator-feedback-pass-01.json",
+    "role": "operator-format-pack-pass-01-layout-feedback",
+    "bytes": 1384,
+    "sha256": "76a968026935dc7453ea901d9cc7d9e7548fcdee1bd6e31cd859d58d56787eaa"
+  },
+  "operator_followup_feedback": {
+    "path": "brand/chaser-agent/manifests/chaser-agent_runtime-format-pack_operator-feedback-pass-02.json",
+    "role": "operator-format-pack-pass-02-micro-label-removal",
+    "bytes": 670,
+    "sha256": "0b259e8f32d3c99d07906ae5a233d3b0107db8ed7f636a1b4782361b3eaf0aae"
+  },
+  "semantics": {
+    "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/chaser-agent_runtime-state-semantics_v1.0.0-rc.1.json",
+    "role": "runtime-state-colour-and-alt-text-contract",
+    "bytes": 5189,
+    "sha256": "7fe8d87904349ed9100ef91b488f7a5735f53339ef8671fb1b96d04be93486d3"
+  },
+  "states": [
+    {
+      "id": "dormant",
+      "label": "Dormant",
+      "primary_token": "ink",
+      "secondary_token": "runtime-teal-dim",
+      "alt_text": "Chaser Agent hovering calmly with a dim visor signal and no provenance ribbon.",
+      "source": {
+        "path": "brand/chaser-agent/qa/state-rig/v1.0.0-rc.1/runtime-format-pack-pass-02/source-captures/chaser-agent_state-dormant_runtime-format_head-source_700x700.png",
+        "role": "operator-approved-state-head-source",
+        "bytes": 297208,
+        "sha256": "f7d9939545b1bf0f1200f23cf139f690759d5530cff1aca4d794138a37bde558",
+        "width": 700,
+        "height": 700,
+        "mode": "RGBA"
+      },
+      "detected_visor_box": [
+        177,
+        261,
+        523,
+        447
+      ],
+      "profile_horizontal_clearance_px": {
+        "left": 40,
+        "right": 39
+      },
+      "assets": {
+        "head_profile": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/dormant/chaser-agent_state-dormant_head-profile_512x512.png",
+          "role": "head-profile-crop",
+          "bytes": 162284,
+          "sha256": "6e7469a797b05d0527f8d2e8d80221556f9084f0e93ee459804db275801248b0",
+          "width": 512,
+          "height": 512,
+          "mode": "RGBA"
+        },
+        "visor_glyph": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/dormant/chaser-agent_state-dormant_visor-glyph_512x256.png",
+          "role": "visor-only-glyph",
+          "bytes": 57463,
+          "sha256": "d22d69cbc5e4a1fe1269bf1e13a0f88c9c5a7ece140222ffbd7bb30090331265",
+          "width": 512,
+          "height": 256,
+          "mode": "RGBA"
+        },
+        "ui_badge": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/dormant/chaser-agent_state-dormant_ui-badge_640x160.png",
+          "role": "runtime-ui-badge",
+          "bytes": 15213,
+          "sha256": "0cb21c9d323a9d79547732f0933de9b27c847a76cdee4b954cb19c704d17d2f7",
+          "width": 640,
+          "height": 160,
+          "mode": "RGBA"
+        },
+        "icon_64": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/dormant/chaser-agent_state-dormant_icon_64x64.png",
+          "role": "runtime-icon-64px",
+          "bytes": 4480,
+          "sha256": "5bb00a31581aae5b2b1b59fd0e497f2baa60ee3722493ab2cf2e07da28a3aa2a",
+          "width": 64,
+          "height": 64,
+          "mode": "RGBA"
+        },
+        "icon_32": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/dormant/chaser-agent_state-dormant_icon_32x32.png",
+          "role": "runtime-icon-32px",
+          "bytes": 1762,
+          "sha256": "b20d0f54ee2bcfe07ef5a7d75c7bbf501a86a8e0d6b2f80d8303a8e09e7dc08f",
+          "width": 32,
+          "height": 32,
+          "mode": "RGBA"
+        }
+      }
+    },
+    {
+      "id": "tracking",
+      "label": "Tracking",
+      "primary_token": "runtime-teal",
+      "secondary_token": "signature-edge-start",
+      "alt_text": "Chaser Agent leaning toward a goal while a teal provenance trail carries linked source points.",
+      "source": {
+        "path": "brand/chaser-agent/qa/state-rig/v1.0.0-rc.1/runtime-format-pack-pass-02/source-captures/chaser-agent_state-tracking_runtime-format_head-source_700x700.png",
+        "role": "operator-approved-state-head-source",
+        "bytes": 302377,
+        "sha256": "d94c8b0d17d3f7dd9745672f499271e30ae891d9ca7bdab537501d17ff8ce6d1",
+        "width": 700,
+        "height": 700,
+        "mode": "RGBA"
+      },
+      "detected_visor_box": [
+        177,
+        261,
+        523,
+        447
+      ],
+      "profile_horizontal_clearance_px": {
+        "left": 40,
+        "right": 39
+      },
+      "assets": {
+        "head_profile": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/tracking/chaser-agent_state-tracking_head-profile_512x512.png",
+          "role": "head-profile-crop",
+          "bytes": 167574,
+          "sha256": "d80db4fb2b33046f4dfce23d92a758a8e137cca8a86951ad4fa89147007fb89d",
+          "width": 512,
+          "height": 512,
+          "mode": "RGBA"
+        },
+        "visor_glyph": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/tracking/chaser-agent_state-tracking_visor-glyph_512x256.png",
+          "role": "visor-only-glyph",
+          "bytes": 65413,
+          "sha256": "148a6357444475f3c0d690088ce804f6049e670e9373e21da2c7c5b74f385166",
+          "width": 512,
+          "height": 256,
+          "mode": "RGBA"
+        },
+        "ui_badge": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/tracking/chaser-agent_state-tracking_ui-badge_640x160.png",
+          "role": "runtime-ui-badge",
+          "bytes": 17668,
+          "sha256": "c31504dc001b0491273746f75e9ab15f4c1d5544a1202f497a92aec38ee5db4e",
+          "width": 640,
+          "height": 160,
+          "mode": "RGBA"
+        },
+        "icon_64": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/tracking/chaser-agent_state-tracking_icon_64x64.png",
+          "role": "runtime-icon-64px",
+          "bytes": 4762,
+          "sha256": "855ea2f0c6b2d599bd372a20b882a7282331829ebb6f11e3fc4bba1019fd0c88",
+          "width": 64,
+          "height": 64,
+          "mode": "RGBA"
+        },
+        "icon_32": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/tracking/chaser-agent_state-tracking_icon_32x32.png",
+          "role": "runtime-icon-32px",
+          "bytes": 1836,
+          "sha256": "aed6fc668793320ff864b0db14bb2ff4599c51e85ce287f6fa09ff59449396e4",
+          "width": 32,
+          "height": 32,
+          "mode": "RGBA"
+        }
+      }
+    },
+    {
+      "id": "compiling",
+      "label": "Compiling",
+      "primary_token": "runtime-teal",
+      "secondary_token": "graph-violet",
+      "alt_text": "Chaser Agent arranging teal and violet evidence fragments into a structured packet.",
+      "source": {
+        "path": "brand/chaser-agent/qa/state-rig/v1.0.0-rc.1/runtime-format-pack-pass-02/source-captures/chaser-agent_state-compiling_runtime-format_head-source_700x700.png",
+        "role": "operator-approved-state-head-source",
+        "bytes": 309075,
+        "sha256": "525eda72af3ee807dc205e2d96726cf804e08df8a9f1b0353ef9e6f7221f65c0",
+        "width": 700,
+        "height": 700,
+        "mode": "RGBA"
+      },
+      "detected_visor_box": [
+        177,
+        261,
+        523,
+        447
+      ],
+      "profile_horizontal_clearance_px": {
+        "left": 40,
+        "right": 39
+      },
+      "assets": {
+        "head_profile": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/compiling/chaser-agent_state-compiling_head-profile_512x512.png",
+          "role": "head-profile-crop",
+          "bytes": 175367,
+          "sha256": "73f746495b65abe06fc793806f31eded68cb6b7c2818535cfb76028afdbed494",
+          "width": 512,
+          "height": 512,
+          "mode": "RGBA"
+        },
+        "visor_glyph": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/compiling/chaser-agent_state-compiling_visor-glyph_512x256.png",
+          "role": "visor-only-glyph",
+          "bytes": 79330,
+          "sha256": "5c05fd7704e5b9030a3619ab858c5ff8522a86edac61a0e87a9ccffa15b3f405",
+          "width": 512,
+          "height": 256,
+          "mode": "RGBA"
+        },
+        "ui_badge": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/compiling/chaser-agent_state-compiling_ui-badge_640x160.png",
+          "role": "runtime-ui-badge",
+          "bytes": 19910,
+          "sha256": "f5c272ee5ec230aee0409893597fc8782249135681d0867fa48d5508a66b279a",
+          "width": 640,
+          "height": 160,
+          "mode": "RGBA"
+        },
+        "icon_64": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/compiling/chaser-agent_state-compiling_icon_64x64.png",
+          "role": "runtime-icon-64px",
+          "bytes": 5090,
+          "sha256": "f72e1ba9317794451d4a19c03822cc151442a989e39738f227a512559e249ba3",
+          "width": 64,
+          "height": 64,
+          "mode": "RGBA"
+        },
+        "icon_32": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/compiling/chaser-agent_state-compiling_icon_32x32.png",
+          "role": "runtime-icon-32px",
+          "bytes": 1945,
+          "sha256": "f37ea701c11b43e5005739cf6848d4d16844f3ddfcf776c598355bce8bf7321d",
+          "width": 32,
+          "height": 32,
+          "mode": "RGBA"
+        }
+      }
+    },
+    {
+      "id": "uncertain",
+      "label": "Uncertain",
+      "primary_token": "approval-amber",
+      "secondary_token": "bone",
+      "alt_text": "Chaser Agent pauses with an amber question signal and two visibly unresolved options.",
+      "source": {
+        "path": "brand/chaser-agent/qa/state-rig/v1.0.0-rc.1/runtime-format-pack-pass-02/source-captures/chaser-agent_state-uncertain_runtime-format_head-source_700x700.png",
+        "role": "operator-approved-state-head-source",
+        "bytes": 304249,
+        "sha256": "58833ef4edca73e1913fa208330c1d164e5cd369d4939b56ec0a4a66b324acba",
+        "width": 700,
+        "height": 700,
+        "mode": "RGBA"
+      },
+      "detected_visor_box": [
+        177,
+        261,
+        523,
+        447
+      ],
+      "profile_horizontal_clearance_px": {
+        "left": 40,
+        "right": 39
+      },
+      "assets": {
+        "head_profile": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/uncertain/chaser-agent_state-uncertain_head-profile_512x512.png",
+          "role": "head-profile-crop",
+          "bytes": 169243,
+          "sha256": "0d2d498ee358fdcdef27417ef43afff368d8dcd7ee5446e157cdac8181597c8c",
+          "width": 512,
+          "height": 512,
+          "mode": "RGBA"
+        },
+        "visor_glyph": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/uncertain/chaser-agent_state-uncertain_visor-glyph_512x256.png",
+          "role": "visor-only-glyph",
+          "bytes": 68795,
+          "sha256": "488d1cf8515e57a5daaefd034af49ee3da9e957341c2d7220b9d7ebbc242a91b",
+          "width": 512,
+          "height": 256,
+          "mode": "RGBA"
+        },
+        "ui_badge": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/uncertain/chaser-agent_state-uncertain_ui-badge_640x160.png",
+          "role": "runtime-ui-badge",
+          "bytes": 17717,
+          "sha256": "cfacfa0644e2337c7c7a07fe8f4aa902834fc0f1e7d5c58ed6e022d4842a82b2",
+          "width": 640,
+          "height": 160,
+          "mode": "RGBA"
+        },
+        "icon_64": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/uncertain/chaser-agent_state-uncertain_icon_64x64.png",
+          "role": "runtime-icon-64px",
+          "bytes": 4896,
+          "sha256": "0a71e2c181ba8b734d21e8471f999e6bc553f738cb426e52432566239987ef68",
+          "width": 64,
+          "height": 64,
+          "mode": "RGBA"
+        },
+        "icon_32": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/uncertain/chaser-agent_state-uncertain_icon_32x32.png",
+          "role": "runtime-icon-32px",
+          "bytes": 1894,
+          "sha256": "f4db23f4947a0c54765f780a0c0e5f88547af1899da07cd03ca66f3ce26dd26c",
+          "width": 32,
+          "height": 32,
+          "mode": "RGBA"
+        }
+      }
+    },
+    {
+      "id": "contradiction",
+      "label": "Contradiction",
+      "primary_token": "graph-violet",
+      "secondary_token": "signature-edge-start",
+      "alt_text": "Chaser Agent presents two unresolved blue and violet evidence paths without using blocked red.",
+      "source": {
+        "path": "brand/chaser-agent/qa/state-rig/v1.0.0-rc.1/runtime-format-pack-pass-02/source-captures/chaser-agent_state-contradiction_runtime-format_head-source_700x700.png",
+        "role": "operator-approved-state-head-source",
+        "bytes": 307688,
+        "sha256": "f46581a5d9a3bdc8f2786c7c80299441f1489e426a9eaea0b85dc2a09ae28e8f",
+        "width": 700,
+        "height": 700,
+        "mode": "RGBA"
+      },
+      "detected_visor_box": [
+        177,
+        261,
+        523,
+        447
+      ],
+      "profile_horizontal_clearance_px": {
+        "left": 40,
+        "right": 39
+      },
+      "assets": {
+        "head_profile": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/contradiction/chaser-agent_state-contradiction_head-profile_512x512.png",
+          "role": "head-profile-crop",
+          "bytes": 173414,
+          "sha256": "1b0beecd9088ca67ce6916f02596cd7a132f4d8f7896cd5385f0de653aa06e46",
+          "width": 512,
+          "height": 512,
+          "mode": "RGBA"
+        },
+        "visor_glyph": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/contradiction/chaser-agent_state-contradiction_visor-glyph_512x256.png",
+          "role": "visor-only-glyph",
+          "bytes": 75587,
+          "sha256": "dd75ac8dabb2c8619e4ae4805fe1c66ee8c3a364845cf26d4593e9aa7dddb74e",
+          "width": 512,
+          "height": 256,
+          "mode": "RGBA"
+        },
+        "ui_badge": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/contradiction/chaser-agent_state-contradiction_ui-badge_640x160.png",
+          "role": "runtime-ui-badge",
+          "bytes": 19834,
+          "sha256": "60a8b28531400b7f440b45a79c8199fab77ab35a207d401df246fcbf0b1fc1d4",
+          "width": 640,
+          "height": 160,
+          "mode": "RGBA"
+        },
+        "icon_64": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/contradiction/chaser-agent_state-contradiction_icon_64x64.png",
+          "role": "runtime-icon-64px",
+          "bytes": 5070,
+          "sha256": "1d603719959f7e0adce8becad4de2ac2c602f806e9372666e877f426e1cf0a18",
+          "width": 64,
+          "height": 64,
+          "mode": "RGBA"
+        },
+        "icon_32": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/contradiction/chaser-agent_state-contradiction_icon_32x32.png",
+          "role": "runtime-icon-32px",
+          "bytes": 1957,
+          "sha256": "5778d727bbdbdb03ffa38d745f3321c3a0f4906b46877a2d4ebffc761bf47d9f",
+          "width": 32,
+          "height": 32,
+          "mode": "RGBA"
+        }
+      }
+    },
+    {
+      "id": "awaiting-approval",
+      "label": "Awaiting Approval",
+      "primary_token": "approval-amber",
+      "secondary_token": "bone",
+      "alt_text": "Chaser Agent stands grounded beside an amber approval gate and a proposed packet, waiting for the operator.",
+      "source": {
+        "path": "brand/chaser-agent/qa/state-rig/v1.0.0-rc.1/runtime-format-pack-pass-02/source-captures/chaser-agent_state-awaiting-approval_runtime-format_head-source_700x700.png",
+        "role": "operator-approved-state-head-source",
+        "bytes": 299572,
+        "sha256": "b2a65d66b6073077d102745f411e0f063c1ff234d6e1d568ea1dccbc22ef53bd",
+        "width": 700,
+        "height": 700,
+        "mode": "RGBA"
+      },
+      "detected_visor_box": [
+        177,
+        261,
+        523,
+        447
+      ],
+      "profile_horizontal_clearance_px": {
+        "left": 40,
+        "right": 39
+      },
+      "assets": {
+        "head_profile": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/awaiting-approval/chaser-agent_state-awaiting-approval_head-profile_512x512.png",
+          "role": "head-profile-crop",
+          "bytes": 164895,
+          "sha256": "5b3f0fcfb9e681251db7b12edf26c02ad611aced0cac3c88fcb4b2e8d30f11ea",
+          "width": 512,
+          "height": 512,
+          "mode": "RGBA"
+        },
+        "visor_glyph": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/awaiting-approval/chaser-agent_state-awaiting-approval_visor-glyph_512x256.png",
+          "role": "visor-only-glyph",
+          "bytes": 60176,
+          "sha256": "2c99d342c15e7f332b4f4cf0372d7fbc554a465d71981bade5ce23f66ea43a4e",
+          "width": 512,
+          "height": 256,
+          "mode": "RGBA"
+        },
+        "ui_badge": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/awaiting-approval/chaser-agent_state-awaiting-approval_ui-badge_640x160.png",
+          "role": "runtime-ui-badge",
+          "bytes": 17963,
+          "sha256": "fa876269c7a0eaa09538773d49b82c87ab315db56ed4730abddcfd4a461e100c",
+          "width": 640,
+          "height": 160,
+          "mode": "RGBA"
+        },
+        "icon_64": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/awaiting-approval/chaser-agent_state-awaiting-approval_icon_64x64.png",
+          "role": "runtime-icon-64px",
+          "bytes": 4702,
+          "sha256": "0c332e7266a327a89b87b2b6409a0002a099bc88597c5ea962a6a90f992b5513",
+          "width": 64,
+          "height": 64,
+          "mode": "RGBA"
+        },
+        "icon_32": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/awaiting-approval/chaser-agent_state-awaiting-approval_icon_32x32.png",
+          "role": "runtime-icon-32px",
+          "bytes": 1843,
+          "sha256": "f7113805ce329ac460393909898c59c2215c4aba0efc385d777b3a1cae5e5d7f",
+          "width": 32,
+          "height": 32,
+          "mode": "RGBA"
+        }
+      }
+    },
+    {
+      "id": "approved",
+      "label": "Approved",
+      "primary_token": "runtime-teal",
+      "secondary_token": "bone",
+      "alt_text": "Chaser Agent continues a teal path beside a verified bone-white packet after operator approval.",
+      "source": {
+        "path": "brand/chaser-agent/qa/state-rig/v1.0.0-rc.1/runtime-format-pack-pass-02/source-captures/chaser-agent_state-approved_runtime-format_head-source_700x700.png",
+        "role": "operator-approved-state-head-source",
+        "bytes": 304877,
+        "sha256": "1ca89ed92a49a4324fd985b05c514642c1d694f046bbd4bf62a1184e37846fbb",
+        "width": 700,
+        "height": 700,
+        "mode": "RGBA"
+      },
+      "detected_visor_box": [
+        177,
+        261,
+        523,
+        447
+      ],
+      "profile_horizontal_clearance_px": {
+        "left": 40,
+        "right": 39
+      },
+      "assets": {
+        "head_profile": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/approved/chaser-agent_state-approved_head-profile_512x512.png",
+          "role": "head-profile-crop",
+          "bytes": 170896,
+          "sha256": "d15f32afb8955c20f58e215180e09983d8b78ba084b7ed6842f433410e92198a",
+          "width": 512,
+          "height": 512,
+          "mode": "RGBA"
+        },
+        "visor_glyph": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/approved/chaser-agent_state-approved_visor-glyph_512x256.png",
+          "role": "visor-only-glyph",
+          "bytes": 70672,
+          "sha256": "e7d07ccfb2c692e4bf610b7c81d3f44527a8ad03474145712d6c92b346087134",
+          "width": 512,
+          "height": 256,
+          "mode": "RGBA"
+        },
+        "ui_badge": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/approved/chaser-agent_state-approved_ui-badge_640x160.png",
+          "role": "runtime-ui-badge",
+          "bytes": 18936,
+          "sha256": "2278255f87f89f137014469bfc89f4909dfa0e16d3bcea5d4c1131d4fb1f61e7",
+          "width": 640,
+          "height": 160,
+          "mode": "RGBA"
+        },
+        "icon_64": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/approved/chaser-agent_state-approved_icon_64x64.png",
+          "role": "runtime-icon-64px",
+          "bytes": 4959,
+          "sha256": "03e6dafe5022eed658280956598830a3daa6b030bf3fc01e79e04c7cbe85453f",
+          "width": 64,
+          "height": 64,
+          "mode": "RGBA"
+        },
+        "icon_32": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/approved/chaser-agent_state-approved_icon_32x32.png",
+          "role": "runtime-icon-32px",
+          "bytes": 1937,
+          "sha256": "c46ed50c47a16e30396940b0e09991305a7673a38c1809b49b83640a30843e4f",
+          "width": 32,
+          "height": 32,
+          "mode": "RGBA"
+        }
+      }
+    },
+    {
+      "id": "correction",
+      "label": "Correction",
+      "primary_token": "graph-violet",
+      "secondary_token": "bone",
+      "alt_text": "Chaser Agent transparently retracts a violet path while evidence fragments reorder into a corrected packet.",
+      "source": {
+        "path": "brand/chaser-agent/qa/state-rig/v1.0.0-rc.1/runtime-format-pack-pass-02/source-captures/chaser-agent_state-correction_runtime-format_head-source_700x700.png",
+        "role": "operator-approved-state-head-source",
+        "bytes": 305658,
+        "sha256": "4f70bd4fcb99d9f55332f10d7f04bc45097d44018227c65e92ae7fd63be5af56",
+        "width": 700,
+        "height": 700,
+        "mode": "RGBA"
+      },
+      "detected_visor_box": [
+        177,
+        261,
+        523,
+        447
+      ],
+      "profile_horizontal_clearance_px": {
+        "left": 40,
+        "right": 39
+      },
+      "assets": {
+        "head_profile": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/correction/chaser-agent_state-correction_head-profile_512x512.png",
+          "role": "head-profile-crop",
+          "bytes": 170590,
+          "sha256": "f10667efc65719dd5028cd6d0d9a0cb982ba76d9f0dc7422854f1234d6079e29",
+          "width": 512,
+          "height": 512,
+          "mode": "RGBA"
+        },
+        "visor_glyph": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/correction/chaser-agent_state-correction_visor-glyph_512x256.png",
+          "role": "visor-only-glyph",
+          "bytes": 72291,
+          "sha256": "a01ca4975361e5900790ad41172e78d78beabdad21a9761ebd06868719d6e820",
+          "width": 512,
+          "height": 256,
+          "mode": "RGBA"
+        },
+        "ui_badge": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/correction/chaser-agent_state-correction_ui-badge_640x160.png",
+          "role": "runtime-ui-badge",
+          "bytes": 18065,
+          "sha256": "ee38282a772e9ea5576b7516c9e1fc20fd9c36b80ffd8b8c02f8ddca7c520fad",
+          "width": 640,
+          "height": 160,
+          "mode": "RGBA"
+        },
+        "icon_64": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/correction/chaser-agent_state-correction_icon_64x64.png",
+          "role": "runtime-icon-64px",
+          "bytes": 4923,
+          "sha256": "29660bc54644ec9e70f27b7bc419e28ec46ab6dd9ed2d977f8262323f0bd0357",
+          "width": 64,
+          "height": 64,
+          "mode": "RGBA"
+        },
+        "icon_32": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/correction/chaser-agent_state-correction_icon_32x32.png",
+          "role": "runtime-icon-32px",
+          "bytes": 1918,
+          "sha256": "74137904285dfb0ea49a6b6447be9995895b61580d2f823c4954783c5b4d5097",
+          "width": 32,
+          "height": 32,
+          "mode": "RGBA"
+        }
+      }
+    },
+    {
+      "id": "blocked",
+      "label": "Blocked",
+      "primary_token": "blocked-red",
+      "secondary_token": "ink",
+      "alt_text": "Chaser Agent stops a red unsafe path at a visible protected boundary while its body remains mineral blue.",
+      "source": {
+        "path": "brand/chaser-agent/qa/state-rig/v1.0.0-rc.1/runtime-format-pack-pass-02/source-captures/chaser-agent_state-blocked_runtime-format_head-source_700x700.png",
+        "role": "operator-approved-state-head-source",
+        "bytes": 302271,
+        "sha256": "c291bca0ab3338c3c7da90f1084f6c858851f33a796a06ac586c9cf4da9bf6eb",
+        "width": 700,
+        "height": 700,
+        "mode": "RGBA"
+      },
+      "detected_visor_box": [
+        177,
+        261,
+        523,
+        447
+      ],
+      "profile_horizontal_clearance_px": {
+        "left": 40,
+        "right": 39
+      },
+      "assets": {
+        "head_profile": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/blocked/chaser-agent_state-blocked_head-profile_512x512.png",
+          "role": "head-profile-crop",
+          "bytes": 169317,
+          "sha256": "4b84d1dbe7dfe6391cfae5df59272b71e3e77e418de77355ec5f54152eb26570",
+          "width": 512,
+          "height": 512,
+          "mode": "RGBA"
+        },
+        "visor_glyph": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/blocked/chaser-agent_state-blocked_visor-glyph_512x256.png",
+          "role": "visor-only-glyph",
+          "bytes": 73678,
+          "sha256": "85505853b9cef8b49143173177a4d43aff2bb473562700a99974e3b5f6023712",
+          "width": 512,
+          "height": 256,
+          "mode": "RGBA"
+        },
+        "ui_badge": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/blocked/chaser-agent_state-blocked_ui-badge_640x160.png",
+          "role": "runtime-ui-badge",
+          "bytes": 18536,
+          "sha256": "75a9faf45f4e674fb4a4146eafcfcb47a42bf69541e84907badabba5e638aa24",
+          "width": 640,
+          "height": 160,
+          "mode": "RGBA"
+        },
+        "icon_64": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/blocked/chaser-agent_state-blocked_icon_64x64.png",
+          "role": "runtime-icon-64px",
+          "bytes": 4951,
+          "sha256": "a15e9d8d746ab960bd123a127b1be98a79d5093715a237459a2613ac34d098e3",
+          "width": 64,
+          "height": 64,
+          "mode": "RGBA"
+        },
+        "icon_32": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/blocked/chaser-agent_state-blocked_icon_32x32.png",
+          "role": "runtime-icon-32px",
+          "bytes": 1932,
+          "sha256": "3be434d3f1d5b40822fde9d0473a42c36991e48632d85a49b215c53bdfac3f45",
+          "width": 32,
+          "height": 32,
+          "mode": "RGBA"
+        }
+      }
+    },
+    {
+      "id": "complete",
+      "label": "Complete",
+      "primary_token": "bone",
+      "secondary_token": "runtime-teal",
+      "alt_text": "Chaser Agent stands calmly beside a stable proof object with sparse provenance remaining inspectable.",
+      "source": {
+        "path": "brand/chaser-agent/qa/state-rig/v1.0.0-rc.1/runtime-format-pack-pass-02/source-captures/chaser-agent_state-complete_runtime-format_head-source_700x700.png",
+        "role": "operator-approved-state-head-source",
+        "bytes": 299716,
+        "sha256": "9656ca579e79b7c7bd6b911209bd1b147dab952a45d5fdfd9e11c902c472a295",
+        "width": 700,
+        "height": 700,
+        "mode": "RGBA"
+      },
+      "detected_visor_box": [
+        177,
+        261,
+        523,
+        447
+      ],
+      "profile_horizontal_clearance_px": {
+        "left": 40,
+        "right": 39
+      },
+      "assets": {
+        "head_profile": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/complete/chaser-agent_state-complete_head-profile_512x512.png",
+          "role": "head-profile-crop",
+          "bytes": 164739,
+          "sha256": "9fc24c3dd6fa8f4a79d631cdd93cae9351e2b518d42eb507129ecffca9e21b86",
+          "width": 512,
+          "height": 512,
+          "mode": "RGBA"
+        },
+        "visor_glyph": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/complete/chaser-agent_state-complete_visor-glyph_512x256.png",
+          "role": "visor-only-glyph",
+          "bytes": 60124,
+          "sha256": "bf297e8ccf3f4fcf19428309c25d1de6dad693e6ef5d0150e0f71214ae3c3e4f",
+          "width": 512,
+          "height": 256,
+          "mode": "RGBA"
+        },
+        "ui_badge": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/complete/chaser-agent_state-complete_ui-badge_640x160.png",
+          "role": "runtime-ui-badge",
+          "bytes": 15962,
+          "sha256": "784a3d559ad70d778532abc71c4885b41d65214a868f635eda6f132f8462e58a",
+          "width": 640,
+          "height": 160,
+          "mode": "RGBA"
+        },
+        "icon_64": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/complete/chaser-agent_state-complete_icon_64x64.png",
+          "role": "runtime-icon-64px",
+          "bytes": 4727,
+          "sha256": "fb330f84bf90a39212a332f30bb85d828977200a8392aa10e3093103c36cbf65",
+          "width": 64,
+          "height": 64,
+          "mode": "RGBA"
+        },
+        "icon_32": {
+          "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/complete/chaser-agent_state-complete_icon_32x32.png",
+          "role": "runtime-icon-32px",
+          "bytes": 1859,
+          "sha256": "de6f8d2bfae50e278e098942b68957ccae695862064076cbeff7d37c61c4a74b",
+          "width": 32,
+          "height": 32,
+          "mode": "RGBA"
+        }
+      }
+    }
+  ],
+  "source_review_sheet": {
+    "path": "brand/chaser-agent/qa/state-rig/v1.0.0-rc.1/runtime-format-pack-pass-02/chaser-agent_runtime-format-pack_pass-02_head-sources_review_3500x1400.png",
+    "role": "ten-state-head-source-clearance-review",
+    "bytes": 616955,
+    "sha256": "61f89fcb1374b5f12ca0d6f3af678af963880b3269ba7b598073f96499e61bbd",
+    "width": 3500,
+    "height": 1400,
+    "mode": "RGB"
+  },
+  "review_sheet": {
+    "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/chaser-agent_runtime-format-pack_pass-02_review_3840x2160.png",
+    "role": "single-sheet-ten-state-format-review",
+    "bytes": 1109302,
+    "sha256": "222a9ea21a81e8e9b5c142e4a40c49230f10e307e4142815b19410cba4224d98",
+    "width": 3840,
+    "height": 2160,
+    "mode": "RGB"
+  },
+  "review_preview": {
+    "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/chaser-agent_runtime-format-pack_pass-02_review-preview_1920x1080.png",
+    "role": "single-sheet-ten-state-format-review-preview",
+    "bytes": 480308,
+    "sha256": "3ad0c71750cbc646bd2e933f93aba9a88159730c4c3cbab63ddecbf3a49cf30e",
+    "width": 1920,
+    "height": 1080,
+    "mode": "RGB"
+  },
+  "visual_contract": {
+    "head_profile_dimensions": [
+      512,
+      512
+    ],
+    "visor_glyph_dimensions": [
+      512,
+      256
+    ],
+    "ui_badge_dimensions": [
+      640,
+      160
+    ],
+    "icon_dimensions": [
+      [
+        64,
+        64
+      ],
+      [
+        32,
+        32
+      ]
+    ],
+    "state_order": [
+      "dormant",
+      "tracking",
+      "compiling",
+      "uncertain",
+      "contradiction",
+      "awaiting-approval",
+      "approved",
+      "correction",
+      "blocked",
+      "complete"
+    ],
+    "source_preservation": "approved-state-pixels-cropped-resampled-and-composed-without-glyph-redrawing",
+    "review_layout": "one-3840x2160-sheet-with-expanded-405px-profiles-compact-230px-visors-and-full-width-badges",
+    "profile_crop": "full-head-with-minimum-24px-horizontal-subject-clearance",
+    "alt_text_delivery": "semantics-json-and-downstream-accessibility-metadata-only-not-baked-into-display-media"
+  },
+  "visual_qa": {
+    "inspected_at_original_resolution": true,
+    "all_ten_head_profiles_present": true,
+    "all_ten_profiles_have_visible_horizontal_breathing_room": true,
+    "all_ten_visor_glyphs_legible_without_labels": true,
+    "badge_labels_clear_at_export_resolution": true,
+    "per_card_alt_text_removed": true,
+    "awaiting_approval_badge_collision": true,
+    "dark_token_labels_have_contrast_safe_text": true,
+    "small_icons_reviewed_on_the_same_sheet": true,
+    "transparent_source_backgrounds_consistent": true,
+    "head_profile_micro_labels_removed": true
+  },
+  "boundaries": {
+    "operator_approved": false,
+    "format_assets_generated": true,
+    "visual_qa_complete": true,
+    "expressive_rig_started": false,
+    "motion_started": false,
+    "product_ui_integration_started": false,
+    "public_identity_integration_started": false,
+    "website_implementation_started": false,
+    "published": false,
+    "deployed": false,
+    "pushed": false
+  }
+}

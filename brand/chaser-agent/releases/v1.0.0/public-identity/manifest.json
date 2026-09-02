@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "release": "chaser-agent-public-identity-v1.0.0",
+  "generated_at": "2026-09-02T00:00:00+01:00",
+  "source_release": "../README.md",
+  "source_model": "../../../exports/canon-core/v1.0.0-rc.1",
+  "preservation_contract": "Deterministic crop, scale, pad or exact copy only. No model redraw or generated copy.",
+  "assets": [
+    {"file": "chaser-agent_github-readme-hero_1600x900.webp", "dimensions": [1600, 900], "bytes": 26996, "sha256": "2d40ac20fa06aa2cc2c0416e4ac5688f65f13a5fafe79ee93b47a8e4af25ae30"},
+    {"file": "chaser-agent_social-launch_1200x675.jpg", "dimensions": [1200, 675], "bytes": 49481, "sha256": "bf1fee4389f37ec8228e0c74884b96584c2899ef3e2679728e53bde323bf63b8"},
+    {"file": "chaser-agent_social-square_1080x1080.png", "dimensions": [1080, 1080], "bytes": 495930, "sha256": "775e530ca9ae762dbe3c8a0ce702b8b10e42f3d0ace1bbc2ee9d892719444d62"},
+    {"file": "chaser-agent_x-profile-banner_1500x500.jpg", "dimensions": [1500, 500], "bytes": 29027, "sha256": "8bde734ce356978c50535345161022303b6dd450d53f92587f96d9273380d34a"},
+    {"file": "chaser-agent_discord-application-avatar_512x512.png", "dimensions": [512, 512], "bytes": 182745, "sha256": "fe0716b767e246c95102bba478e921daacd0e3e79436124d6dee2233cbb49697"},
+    {"file": "chaser-agent_documentation-cover_1600x900.webp", "dimensions": [1600, 900], "bytes": 105268, "sha256": "e380a6aff64e8b75cd52eee9bd147634bda3ff28f5f348701a751923cd5a456a"}
+  ]
+}

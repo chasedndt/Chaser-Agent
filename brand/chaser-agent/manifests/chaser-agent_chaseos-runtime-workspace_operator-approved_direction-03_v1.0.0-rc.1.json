@@ -1,0 +1,95 @@
+{
+  "schema_version": "1.0.0",
+  "canon_id": "chaser-agent",
+  "asset_version": "v1.0.0-rc.1",
+  "status": "operator-approved-chaseos-runtime-workspace-direction-03-local-prototype-not-integrated-not-public",
+  "approved_on": "2026-09-01",
+  "accepted_direction": {
+    "id": "direction-03",
+    "name": "Calm Runtime Workspace",
+    "purpose": "in-product operator workspace for seeing what Chaser Agent is doing"
+  },
+  "operator_interpretation": {
+    "selected_direction_approved": true,
+    "local_interactive_prototype_authorized": true,
+    "github_repository_preview_authorized": true,
+    "all_ten_runtime_states_required": true,
+    "exact_approved_mascot_and_visor_assets_required": true,
+    "duplicate_social_posting_forbidden_without_destination_readback": true
+  },
+  "runtime_states": [
+    "dormant",
+    "tracking",
+    "compiling",
+    "uncertain",
+    "contradiction",
+    "awaiting-approval",
+    "approved",
+    "correction",
+    "blocked",
+    "complete"
+  ],
+  "preview_bundle": {
+    "root": "brand/chaser-agent/exports/product-ui/v1.0.0-rc.1/chaseos-runtime-workspace",
+    "files": [
+      {
+        "path": "brand/chaser-agent/exports/product-ui/v1.0.0-rc.1/chaseos-runtime-workspace/chaser-agent_runtime-workspace_state-tour.gif",
+        "role": "github-state-tour",
+        "bytes": 864551,
+        "sha256": "00cbd47db4672d6e9712ac1ce479c964c88788591262d0a3292354decbd1833d"
+      },
+      {
+        "path": "brand/chaser-agent/exports/product-ui/v1.0.0-rc.1/chaseos-runtime-workspace/chaser-agent_runtime-workspace_state-tour.mp4",
+        "role": "product-video-state-tour",
+        "bytes": 678186,
+        "sha256": "c2c133c6b9f62003d531babb1275707ae968735089d3f35973ffc75227fe55e0"
+      },
+      {
+        "path": "brand/chaser-agent/exports/product-ui/v1.0.0-rc.1/chaseos-runtime-workspace/chaser-agent_runtime-workspace_compiling.png",
+        "role": "desktop-compiling-preview",
+        "bytes": 122552,
+        "sha256": "afef5c21a0eab3158246ff733ae22371a289362b902d7c2f789bcafe92c9fe24"
+      },
+      {
+        "path": "brand/chaser-agent/exports/product-ui/v1.0.0-rc.1/chaseos-runtime-workspace/chaser-agent_runtime-workspace_mobile.png",
+        "role": "mobile-responsive-preview",
+        "bytes": 32807,
+        "sha256": "9b7c2be9df4b65d96951f961c656f115edd910dc5afaf109f3633fc7ca3e36aa"
+      },
+      {
+        "path": "brand/chaser-agent/exports/product-ui/v1.0.0-rc.1/chaseos-runtime-workspace/chaser-agent_runtime-workspace_state-tour_contact-sheet.png",
+        "role": "ten-state-visual-qa",
+        "bytes": 1240063,
+        "sha256": "e3efaeee4fe973d04d302d26170777d7c770e32938f6a18397a550405ecbac79"
+      }
+    ]
+  },
+  "local_implementation": {
+    "prototype_root": "E:/Projects/Chaser Agent/chaseos-runtime-workspace",
+    "visual_qa_root": "E:/Visual QA/Chaser Agent Visual QA/Current Reviews/2026-09-01-chaseos-runtime-workspace",
+    "design_qa_status": "passed",
+    "desktop_viewport": "1487x1058",
+    "mobile_viewport": "390x844",
+    "browser_console_errors": 0,
+    "browser_console_warnings": 0,
+    "runtime_selectors_verified": 10
+  },
+  "motion_and_audio": {
+    "visor_corrected_full_runtime_library_approved": true,
+    "expressive_body_motion_deferred": true,
+    "final_public_audio_mix_deferred": true,
+    "public_mix_must_lower_agent_background_bed": true
+  },
+  "boundaries": {
+    "local_product_ui_prototype_built": true,
+    "github_preview_bundle_added_locally": true,
+    "chaseos_product_repository_integration_started": false,
+    "website_integration_started": false,
+    "social_publication_started": false,
+    "staged": false,
+    "committed": false,
+    "pushed": false,
+    "deployed": false,
+    "published": false
+  }
+}

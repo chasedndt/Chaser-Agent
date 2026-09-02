@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "canon_id": "chaser-agent",
+  "state_rig_version": "1.0.0-rc.1",
+  "status": "operator-approved-ten-state-overview-not-runtime-pack-not-public",
+  "approved_on": "2026-08-27",
+  "accepted_manifest": "brand/chaser-agent/manifests/chaser-agent_static-state-pack_overview_v1.0.0-rc.1.json",
+  "approval_scope": "canonical-ten-state-overview-and-state-language",
+  "accepted_overview": {
+    "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/static-state-pack/chaser-agent_static-state-pack_overview_3000x1300.png",
+    "bytes": 3248462,
+    "width": 3000,
+    "height": 1300,
+    "sha256": "75185458da4cf276b0e2ec511bd917bc96dd4c976bef623fb1c6256bd5f4a974"
+  },
+  "accepted_preview": {
+    "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/static-state-pack/chaser-agent_static-state-pack_overview-preview_1500x650.png",
+    "bytes": 865956,
+    "width": 1500,
+    "height": 650,
+    "sha256": "56bf4dc2f85e82603d691279897d63797c6c5c0f484399f4dfc9ae130562bc8f"
+  },
+  "website_handoff": {
+    "approved_for_future_use": [
+      "chaseos.ai",
+      "chaseintech.com"
+    ],
+    "integration_rule": "work from each website repository local main branch only",
+    "push_authorized": false,
+    "integration_started": false
+  },
+  "boundaries": {
+    "runtime_derivative_pack_complete": false,
+    "expressive_rig_approved": false,
+    "animation_approved": false,
+    "website_implementation_started": false,
+    "published": false,
+    "deployed": false,
+    "pushed": false
+  }
+}

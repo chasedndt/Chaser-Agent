@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "canon_id": "chaser-agent",
+  "public_name": "Chaser Agent",
+  "release_version": "1.0.0",
+  "released_on": "2026-09-02",
+  "status": "canonical-asset-release",
+  "model_version": "v0.37.0",
+  "source_sets": [
+    {
+      "role": "canon-core",
+      "version": "1.0.0-rc.1",
+      "manifest": "brand/chaser-agent/manifests/chaser-agent_canon-core_v1.0.0-rc.1.json",
+      "bytes": 43191,
+      "sha256": "a31f9b814a097813e2e49e3e5a6a2c3aba89f1269713be3618c793fb7b76aa9f",
+      "approval": "operator-approved-neutral-model-and-derivatives"
+    },
+    {
+      "role": "runtime-format-pack",
+      "version": "1.0.0-rc.1-pass-02",
+      "manifest": "brand/chaser-agent/manifests/chaser-agent_runtime-format-pack_pass-02_v1.0.0-rc.1.json",
+      "bytes": 36561,
+      "sha256": "c137f579e9b3f2d0fe0dcdf34f6c37fb05fedfebfb01f74129e377dbfab23c73",
+      "approval_manifest": "brand/chaser-agent/manifests/chaser-agent_runtime-format-pack_operator-approved_pass-02_v1.0.0-rc.1.json",
+      "approval_manifest_sha256": "adf2570221bdb6b350305556ea5e3d2614593507c98b8fac27f00ad914ea13e3",
+      "asset_count": 50,
+      "pack_file_count_including_review_and_semantics": 53,
+      "pack_bytes": 4213894,
+      "pack_tree_sha256": "f99692f5ae2d364b791c7b413d120183ba174449596bdb506fb4216aa654664e"
+    }
+  ],
+  "runtime_states": [
+    "dormant",
+    "tracking",
+    "compiling",
+    "uncertain",
+    "contradiction",
+    "awaiting-approval",
+    "approved",
+    "correction",
+    "blocked",
+    "complete"
+  ],
+  "consumer_surfaces": [
+    "github-readme",
+    "chaseos-ai",
+    "chaseintech-com",
+    "chaser-agent-runtime-workspace",
+    "documentation",
+    "social-and-press-media"
+  ],
+  "public_media_policy": {
+    "clean_camera_renders_only": true,
+    "blender_viewport_ui_public_use": false,
+    "xyz_gizmo_public_use": false,
+    "state_assets_remain_separate": true,
+    "alt_text_required": true,
+    "crop_through_head_allowed": false,
+    "provenance_vfx_over_face_allowed": false
+  },
+  "deferred_layers": [
+    "production-safe-expressive-rig",
+    "full-body-motion-system",
+    "final-audio-mix",
+    "production-provenance-vfx"
+  ]
+}

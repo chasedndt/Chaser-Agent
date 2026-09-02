@@ -66,7 +66,7 @@ def validate_ranking(config: dict[str, Any]) -> list[str]:
 
 
 def build_manifest(repo_root: Path) -> dict[str, Any]:
-    loaded = {str(path): load_yaml(repo_root / path) for path in REQUIRED_CONFIGS}
+    loaded = {path.as_posix(): load_yaml(repo_root / path) for path in REQUIRED_CONFIGS}
     errors: list[str] = []
     errors.extend(validate_sources(loaded["research_intake/sources.yaml"]))
     errors.extend(validate_queries(loaded["research_intake/queries.yaml"]))

@@ -1,6 +1,6 @@
 # Chaser Agent Production Model v0.37.0
 
-Status: `OPERATOR VISUAL APPROVED / CANON-CORE RELEASE CANDIDATE / NOT A PUBLIC RELEASE`.
+Status: `OPERATOR VISUAL APPROVED / LOCKED SOURCE FOR CANONICAL ASSET RELEASE 1.0.0`.
 
 The Blender source in this directory is the operator-approved neutral Chaser Agent model recorded on 2026-08-24. It is the source for Canon/Core asset candidate `1.0.0-rc.1`.
 

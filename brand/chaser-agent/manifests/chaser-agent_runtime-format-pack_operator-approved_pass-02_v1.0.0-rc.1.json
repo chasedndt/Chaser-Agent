@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "canon_id": "chaser-agent",
+  "state_rig_version": "1.0.0-rc.1",
+  "status": "operator-approved-runtime-format-pack-pass-02-not-motion-not-public",
+  "approved_on": "2026-08-28",
+  "accepted_pass": "runtime-format-pack-pass-02",
+  "approval_scope": "all-ten-head-profile-visor-glyph-ui-badge-64px-32px-semantic-token-and-alt-text-assets",
+  "accepted_manifest": {
+    "path": "brand/chaser-agent/manifests/chaser-agent_runtime-format-pack_pass-02_v1.0.0-rc.1.json",
+    "bytes": 36561,
+    "sha256": "c137f579e9b3f2d0fe0dcdf34f6c37fb05fedfebfb01f74129e377dbfab23c73",
+    "role": "visually-verified-runtime-format-pack-pass-02"
+  },
+  "operator_feedback": {
+    "path": "brand/chaser-agent/manifests/chaser-agent_runtime-format-pack_operator-feedback-pass-01.json",
+    "bytes": 1384,
+    "sha256": "76a968026935dc7453ea901d9cc7d9e7548fcdee1bd6e31cd859d58d56787eaa",
+    "role": "operator-layout-feedback-and-corrected-pass-approval-authority"
+  },
+  "operator_followup_feedback": {
+    "path": "brand/chaser-agent/manifests/chaser-agent_runtime-format-pack_operator-feedback-pass-02.json",
+    "bytes": 670,
+    "sha256": "0b259e8f32d3c99d07906ae5a233d3b0107db8ed7f636a1b4782361b3eaf0aae",
+    "role": "operator-format-pack-pass-02-micro-label-removal"
+  },
+  "approved_state_ids": [
+    "dormant",
+    "tracking",
+    "compiling",
+    "uncertain",
+    "contradiction",
+    "awaiting-approval",
+    "approved",
+    "correction",
+    "blocked",
+    "complete"
+  ],
+  "approved_asset_count": 50,
+  "accepted_source_review_sheet": {
+    "path": "brand/chaser-agent/qa/state-rig/v1.0.0-rc.1/runtime-format-pack-pass-02/chaser-agent_runtime-format-pack_pass-02_head-sources_review_3500x1400.png",
+    "role": "ten-state-head-source-clearance-review",
+    "bytes": 616955,
+    "sha256": "61f89fcb1374b5f12ca0d6f3af678af963880b3269ba7b598073f96499e61bbd",
+    "width": 3500,
+    "height": 1400,
+    "mode": "RGB"
+  },
+  "accepted_review_sheet": {
+    "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/chaser-agent_runtime-format-pack_pass-02_review_3840x2160.png",
+    "role": "single-sheet-ten-state-format-review",
+    "bytes": 1109302,
+    "sha256": "222a9ea21a81e8e9b5c142e4a40c49230f10e307e4142815b19410cba4224d98",
+    "width": 3840,
+    "height": 2160,
+    "mode": "RGB"
+  },
+  "accepted_review_preview": {
+    "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/chaser-agent_runtime-format-pack_pass-02_review-preview_1920x1080.png",
+    "role": "single-sheet-ten-state-format-review-preview",
+    "bytes": 480308,
+    "sha256": "3ad0c71750cbc646bd2e933f93aba9a88159730c4c3cbab63ddecbf3a49cf30e",
+    "width": 1920,
+    "height": 1080,
+    "mode": "RGB"
+  },
+  "accepted_semantics": {
+    "path": "brand/chaser-agent/exports/state-rig/v1.0.0-rc.1/runtime-format-pack/pass-02/chaser-agent_runtime-state-semantics_v1.0.0-rc.1.json",
+    "role": "runtime-state-colour-and-alt-text-contract",
+    "bytes": 5189,
+    "sha256": "7fe8d87904349ed9100ef91b488f7a5735f53339ef8671fb1b96d04be93486d3"
+  },
+  "approval_contract": {
+    "full_head_visible": true,
+    "minimum_profile_horizontal_clearance_px": 24,
+    "expanded_profile_review_size_px": [
+      405,
+      405
+    ],
+    "compact_visor_review_size_px": [
+      230,
+      115
+    ],
+    "badge_dimensions_px": [
+      640,
+      160
+    ],
+    "per_card_alt_text_baked_into_display_media": false,
+    "alt_text_retained_as_accessibility_metadata": true,
+    "transparent_source_backgrounds": true,
+    "head_profile_micro_labels_removed": true
+  },
+  "visual_qa": {
+    "inspected_at_original_resolution": true,
+    "all_ten_head_profiles_present": true,
+    "all_ten_profiles_have_visible_horizontal_breathing_room": true,
+    "all_ten_visor_glyphs_legible_without_labels": true,
+    "badge_labels_clear_at_export_resolution": true,
+    "per_card_alt_text_removed": true,
+    "awaiting_approval_badge_collision": true,
+    "dark_token_labels_have_contrast_safe_text": true,
+    "small_icons_reviewed_on_the_same_sheet": true,
+    "transparent_source_backgrounds_consistent": true,
+    "head_profile_micro_labels_removed": true
+  },
+  "boundaries": {
+    "expressive_rig_complete": false,
+    "motion_complete": false,
+    "product_ui_integration_started": false,
+    "public_identity_integration_started": false,
+    "website_implementation_started": false,
+    "published": false,
+    "deployed": false,
+    "pushed": false
+  }
+}

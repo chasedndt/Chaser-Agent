@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "canon_id": "chaser-agent",
+  "state_rig_version": "1.0.0-rc.1",
+  "generated_on": "2026-08-28",
+  "status": "runtime-format-semantics-pass-02-ready-for-operator-review",
+  "tokens": {
+    "ink": {
+      "srgb_hex": "#070B14",
+      "source": "brand/chaser-agent/source/state-core/v1.0.0-rc.1/state-spec.json"
+    },
+    "signature-edge-start": {
+      "srgb_hex": "#4EB7FF",
+      "source": "brand/chaser-agent/source/state-core/v1.0.0-rc.1/state-spec.json"
+    },
+    "graph-violet": {
+      "srgb_hex": "#7C5CFF",
+      "source": "brand/chaser-agent/source/state-core/v1.0.0-rc.1/state-spec.json"
+    },
+    "runtime-teal": {
+      "srgb_hex": "#39E6D2",
+      "source": "brand/chaser-agent/source/state-core/v1.0.0-rc.1/state-spec.json"
+    },
+    "approval-amber": {
+      "srgb_hex": "#F0B45A",
+      "source": "brand/chaser-agent/source/state-core/v1.0.0-rc.1/state-spec.json"
+    },
+    "blocked-red": {
+      "srgb_hex": "#FF4D6D",
+      "source": "brand/chaser-agent/source/state-core/v1.0.0-rc.1/state-spec.json"
+    },
+    "bone": {
+      "srgb_hex": "#F4F1EA",
+      "source": "brand/chaser-agent/source/state-core/v1.0.0-rc.1/state-spec.json"
+    },
+    "runtime-teal-dim": {
+      "srgb_hex": "#2C766F",
+      "linear_rgba": [
+        0.025,
+        0.18,
+        0.16,
+        1.0
+      ],
+      "source": "brand/chaser-agent/source/state-core/v1.0.0-rc.1/scripts/render_state_direction.py",
+      "conversion": "IEC-61966-2-1-linear-to-srgb-rounded-to-nearest-8-bit"
+    }
+  },
+  "states": [
+    {
+      "id": "dormant",
+      "label": "Dormant",
+      "primary_token": "ink",
+      "primary_srgb_hex": "#070B14",
+      "secondary_token": "runtime-teal-dim",
+      "secondary_srgb_hex": "#2C766F",
+      "alt_text": "Chaser Agent hovering calmly with a dim visor signal and no provenance ribbon."
+    },
+    {
+      "id": "tracking",
+      "label": "Tracking",
+      "primary_token": "runtime-teal",
+      "primary_srgb_hex": "#39E6D2",
+      "secondary_token": "signature-edge-start",
+      "secondary_srgb_hex": "#4EB7FF",
+      "alt_text": "Chaser Agent leaning toward a goal while a teal provenance trail carries linked source points."
+    },
+    {
+      "id": "compiling",
+      "label": "Compiling",
+      "primary_token": "runtime-teal",
+      "primary_srgb_hex": "#39E6D2",
+      "secondary_token": "graph-violet",
+      "secondary_srgb_hex": "#7C5CFF",
+      "alt_text": "Chaser Agent arranging teal and violet evidence fragments into a structured packet."
+    },
+    {
+      "id": "uncertain",
+      "label": "Uncertain",
+      "primary_token": "approval-amber",
+      "primary_srgb_hex": "#F0B45A",
+      "secondary_token": "bone",
+      "secondary_srgb_hex": "#F4F1EA",
+      "alt_text": "Chaser Agent pauses with an amber question signal and two visibly unresolved options."
+    },
+    {
+      "id": "contradiction",
+      "label": "Contradiction",
+      "primary_token": "graph-violet",
+      "primary_srgb_hex": "#7C5CFF",
+      "secondary_token": "signature-edge-start",
+      "secondary_srgb_hex": "#4EB7FF",
+      "alt_text": "Chaser Agent presents two unresolved blue and violet evidence paths without using blocked red."
+    },
+    {
+      "id": "awaiting-approval",
+      "label": "Awaiting Approval",
+      "primary_token": "approval-amber",
+      "primary_srgb_hex": "#F0B45A",
+      "secondary_token": "bone",
+      "secondary_srgb_hex": "#F4F1EA",
+      "alt_text": "Chaser Agent stands grounded beside an amber approval gate and a proposed packet, waiting for the operator."
+    },
+    {
+      "id": "approved",
+      "label": "Approved",
+      "primary_token": "runtime-teal",
+      "primary_srgb_hex": "#39E6D2",
+      "secondary_token": "bone",
+      "secondary_srgb_hex": "#F4F1EA",
+      "alt_text": "Chaser Agent continues a teal path beside a verified bone-white packet after operator approval."
+    },
+    {
+      "id": "correction",
+      "label": "Correction",
+      "primary_token": "graph-violet",
+      "primary_srgb_hex": "#7C5CFF",
+      "secondary_token": "bone",
+      "secondary_srgb_hex": "#F4F1EA",
+      "alt_text": "Chaser Agent transparently retracts a violet path while evidence fragments reorder into a corrected packet."
+    },
+    {
+      "id": "blocked",
+      "label": "Blocked",
+      "primary_token": "blocked-red",
+      "primary_srgb_hex": "#FF4D6D",
+      "secondary_token": "ink",
+      "secondary_srgb_hex": "#070B14",
+      "alt_text": "Chaser Agent stops a red unsafe path at a visible protected boundary while its body remains mineral blue."
+    },
+    {
+      "id": "complete",
+      "label": "Complete",
+      "primary_token": "bone",
+      "primary_srgb_hex": "#F4F1EA",
+      "secondary_token": "runtime-teal",
+      "secondary_srgb_hex": "#39E6D2",
+      "alt_text": "Chaser Agent stands calmly beside a stable proof object with sparse provenance remaining inspectable."
+    }
+  ],
+  "boundaries": {
+    "operator_approved": false,
+    "website_implementation_started": false,
+    "published": false,
+    "deployed": false
+  }
+}

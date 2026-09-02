@@ -4,11 +4,16 @@
 
 Chaser Agent is a standalone-first, local-first agent harness for turning goals and sources into evidence-linked, reviewable work. Its MIT-licensed core runs independently, learns from explicit human review, preserves approved local memory, and curates a user-owned provenance map. Optional ChaseOS integration adds shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory.
 
+![Chaser Agent canonical identity](brand/chaser-agent/releases/v1.0.0/public-identity/chaser-agent_github-readme-hero_1600x900.webp)
+
+## See the review boundary
+
 ![Chaser Agent review-first runtime workspace development preview](docs/media/chaser-agent-campaign-r3-readme.gif)
 
 <p align="center">
-  <strong>P0.1 development preview:</strong> evidence is assembled, uncertainty remains visible, and action pauses at the human approval boundary.<br />
-  <a href="https://chaser-agent-runtime-workspace.chaseintech.chatgpt.site/#workspace">Open the interactive runtime workspace</a> ·
+  <strong>P0.1 browser-local run:</strong> one source becomes eight inspectable artifacts and nothing is promoted or executed without human review.<br />
+  <a href="https://chaser-agent-runtime-workspace.chaseintech.chatgpt.site/#run">Run one source locally</a> ·
+  <a href="https://chaser-agent-runtime-workspace.chaseintech.chatgpt.site/#workspace">Explore all ten runtime states</a> ·
   <a href="https://chaseos.ai/chaser-agent">ChaseOS product page</a> ·
   <a href="https://chaseintech.com/projects/chaser-agent/">ChaseInTech case study</a>
 </p>
@@ -24,6 +29,7 @@ ChaseOS remains the parent operating system/control plane and canonical governan
 - ChaseOS relationship: **Runs independently. Works best with ChaseOS.**
 - Human authority: generated output, learned preference, or agent confidence never grants permanent permission.
 - Visual canon: [character specification](docs/brand/chaser-agent/CHASER-AGENT-CHARACTER-CANON-AND-VISUAL-SPEC.md) and [production roadmap](docs/brand/chaser-agent/CHASER-AGENT-FULL-ASSET-ROADMAP-AND-PRODUCTION-SPEC.md).
+- Canonical consumer release: [visual assets and public identity v1.0.0](brand/chaser-agent/releases/v1.0.0/README.md).
 
 This is product and identity canon, not a claim that the current P0.1 implementation is a continuously running production agent. Current implementation truth remains below.
 
@@ -58,7 +64,7 @@ See:
 
 ## Current maturity
 
-Chaser Agent is a **P0.1 / pre-alpha standalone deterministic harness** on the review branch. The implementation is locally verified but not merged or released; promotion terminology and operator acceptance remain open.
+Chaser Agent is a **P0.1 / pre-alpha standalone deterministic harness**. The canonical visual asset release and browser-local one-time run are public consumer surfaces; provider routing, browser authority, autonomous execution and managed hosting remain future engineering lanes.
 
 Verified P0.1 implementation:
 
