@@ -4,6 +4,15 @@
 
 Chaser Agent is a governed, local-first source-intelligence and harness-development repo derived from ChaseOS. It turns safe source inputs into structured review artifacts that separate what the source says, what the agent infers, what remains uncertain, what actions might follow, and what memory candidates may be worth human review.
 
+![Chaser Agent review-first runtime workspace development preview](docs/media/chaser-agent-campaign-r3-readme.gif)
+
+<p align="center">
+  <strong>P0.1 development preview:</strong> evidence is assembled, uncertainty remains visible, and action pauses at the human approval boundary.<br />
+  <a href="https://chaser-agent-runtime-workspace.chaseintech.chatgpt.site/#workspace">Open the interactive runtime workspace</a> ·
+  <a href="https://chaseos.ai/chaser-agent">ChaseOS product page</a> ·
+  <a href="https://chaseintech.com/projects/chaser-agent/">ChaseInTech case study</a>
+</p>
+
 ChaseOS remains the parent operating system/control plane and canonical governance owner. Chaser Agent is the focused product/runtime implementation and learning lab. It is not a foundation model, not production-ready autonomy, not a canonical truth engine, and not a replacement for ChaseOS.
 
 ---
