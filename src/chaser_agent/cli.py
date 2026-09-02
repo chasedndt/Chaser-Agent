@@ -13,7 +13,14 @@ from chaser_agent.chaseos_native import (
     validate_chaseos_workflow,
     write_chaseos_native_run,
 )
+from chaser_agent.evals.contract_runner import run_contract_jsonl_eval
 from chaser_agent.run_artifacts import build_run_log, write_artifact_set
+from chaser_agent.reviews.service import artifact_hashes, create_review_record
+from chaser_agent.reviews.sqlite_store import SQLiteReviewStore
+from chaser_agent.memory.service import reviewed_memories_from_review
+from chaser_agent.memory.sqlite_store import SQLiteMemoryStore
+from chaser_agent.knowledge.service import index_reviewed_run
+from chaser_agent.knowledge.sqlite_store import SQLiteKnowledgeMapStore
 from chaser_agent.source_card import (
     build_source_card_artifacts,
     make_run_id,
@@ -45,11 +52,16 @@ def run_source_card_command(args: argparse.Namespace) -> int:
     run_folder = out_root / run_id
 
     source = source_input_from_file(input_path, privacy_class=args.privacy_class)
-    artifacts = build_source_card_artifacts(source, input_path, run_id, created_at)
+    try:
+        artifacts = build_source_card_artifacts(source, input_path, run_id, created_at, profile_id=args.profile)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     planned_output_paths = [run_folder / filename for filename in [*artifacts.keys(), "run_log.json"]]
-    command = "python -m chaser_agent.cli source-card --input {input} --out {out}".format(
+    command = "python -m chaser_agent.cli source-card --input {input} --out {out} --profile {profile}".format(
         input=input_path.as_posix(),
         out=out_root.as_posix(),
+        profile=args.profile,
     )
     run_log = build_run_log(
         run_id=run_id,
@@ -164,8 +176,78 @@ def run_visual_eval_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_contract_eval_command(args: argparse.Namespace) -> int:
+    input_path = Path(args.input)
+    if not input_path.exists() or not input_path.is_file():
+        print(f"error: input file not found: {input_path}", file=sys.stderr)
+        return 2
+    output_path = Path(args.out)
+    try:
+        results = run_contract_jsonl_eval(input_path, output_path, repo_root=_repo_root())
+    except (json.JSONDecodeError, ValueError) as exc:
+        print(f"error: invalid contract eval input: {exc}", file=sys.stderr)
+        return 2
+    print(output_path.as_posix())
+    return 0 if all(result.passed for result in results) else 1
+
+
+def run_review_command(args: argparse.Namespace) -> int:
+    run_folder = Path(args.run_folder)
+    if not run_folder.is_dir():
+        print(f"error: run folder not found: {run_folder}", file=sys.stderr)
+        return 2
+    before_hashes = artifact_hashes(run_folder)
+    try:
+        review = create_review_record(
+            run_folder,
+            reviewer_id=args.reviewer_id,
+            scores=(
+                args.source_fidelity_score,
+                args.inference_separation_score,
+                args.uncertainty_handling_score,
+                args.action_usefulness_score,
+                args.memory_safety_score,
+            ),
+            decision=args.decision,
+            reviewer_notes=args.reviewer_notes,
+            corrected_claims=tuple(args.corrected_claim),
+            corrected_inferences=tuple(args.corrected_inference),
+            accepted_action_ids=tuple(args.accept_action),
+            rejected_action_ids=tuple(args.reject_action),
+            accepted_memory_ids=tuple(args.accept_memory),
+            rejected_memory_ids=tuple(args.reject_memory),
+        )
+        store = SQLiteReviewStore(args.database)
+        store.add(review)
+        memory_records = reviewed_memories_from_review(SQLiteMemoryStore(args.database), run_folder, review)
+        graph_counts = index_reviewed_run(SQLiteKnowledgeMapStore(args.database), run_folder, review, memory_records)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if before_hashes != artifact_hashes(run_folder):
+        print("error: original run artifacts changed during review", file=sys.stderr)
+        return 3
+    print(
+        json.dumps(
+            {
+                "review_id": review.review_id,
+                "run_id": review.run_id,
+                "decision": review.decision,
+                "total_score": review.total_score,
+                "database_path": str(store.database_path),
+                "original_artifacts_unchanged": True,
+                "memory_promotion": "not_performed",
+                "memory_records_created": [record.memory_id for record in memory_records],
+                "knowledge_map_entries": graph_counts,
+            },
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="chaser-agent", description="Chaser agent local deterministic harness CLI")
+    parser = argparse.ArgumentParser(prog="chaser-agent", description="Chaser Agent local deterministic harness CLI")
     subparsers = parser.add_subparsers(dest="command")
 
     source_card = subparsers.add_parser(
@@ -178,6 +260,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--privacy-class",
         default="public_toy",
         help="Privacy class to stamp on artifacts; defaults to public_toy for the Phase 1 toy harness.",
+    )
+    source_card.add_argument(
+        "--profile",
+        default="general_source_review",
+        help="Workflow profile ID; defaults to general_source_review.",
     )
     source_card.set_defaults(func=run_source_card_command)
 
@@ -221,6 +308,39 @@ def build_parser() -> argparse.ArgumentParser:
     visual_eval.add_argument("--input", required=True, help="JSONL file of visual completion evidence cases.")
     visual_eval.add_argument("--out", required=True, help="Output root directory for unique visual eval run folders.")
     visual_eval.set_defaults(func=run_visual_eval_command)
+
+    contract_eval = subparsers.add_parser(
+        "contract-eval",
+        help="Run deterministic Layer 0 artifact assertions over public-safe contract cases.",
+    )
+    contract_eval.add_argument("--input", required=True, help="JSONL file of Layer 0 contract cases.")
+    contract_eval.add_argument("--out", required=True, help="JSONL destination for assertion-level eval results.")
+    contract_eval.set_defaults(func=run_contract_eval_command)
+
+    review = subparsers.add_parser(
+        "review",
+        help="Persist an immutable human review for an existing source-card run without changing its artifacts.",
+    )
+    review.add_argument("run_folder", help="Existing source-card run folder.")
+    review.add_argument("--database", help="SQLite database path; defaults to ~/.chaser-agent/chaser-agent.db.")
+    review.add_argument("--reviewer-id", required=True, help="Stable local identifier for the human reviewer.")
+    for option in (
+        "source-fidelity-score",
+        "inference-separation-score",
+        "uncertainty-handling-score",
+        "action-usefulness-score",
+        "memory-safety-score",
+    ):
+        review.add_argument(f"--{option}", required=True, type=int, choices=range(4))
+    review.add_argument("--decision", required=True, choices=("pass", "needs_revision", "fail"))
+    review.add_argument("--reviewer-notes", default="")
+    review.add_argument("--corrected-claim", action="append", default=[])
+    review.add_argument("--corrected-inference", action="append", default=[])
+    review.add_argument("--accept-action", action="append", default=[])
+    review.add_argument("--reject-action", action="append", default=[])
+    review.add_argument("--accept-memory", action="append", default=[])
+    review.add_argument("--reject-memory", action="append", default=[])
+    review.set_defaults(func=run_review_command)
     return parser
 
 

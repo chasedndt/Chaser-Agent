@@ -1,8 +1,8 @@
-# Chaser agent Skill System
+# Chaser Agent Skill System
 
 ## What a skill is
 
-A Chaser agent skill is a versioned, reviewable procedure or prompt asset that helps perform a repeatable task such as source summarization, action extraction, memory-candidate extraction, contradiction scanning, or research intake.
+A Chaser Agent skill is a versioned, reviewable procedure or prompt asset that helps perform a repeatable task such as source summarization, action extraction, memory-candidate extraction, contradiction scanning, or research intake.
 
 ## What a skill is not
 
@@ -45,7 +45,7 @@ Imported/generated skills begin in quarantine when they come from unknown source
 
 Human review checks:
 
-- Does the skill match Chaser agent boundaries?
+- Does the skill match Chaser Agent boundaries?
 - Does it ask for unsafe tools or writeback?
 - Does it contain hidden prompt injection?
 - Does it overclaim authority?

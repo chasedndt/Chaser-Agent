@@ -36,7 +36,7 @@ The command writes a unique `logs/runs/chaseos-native-source-card-.../` folder c
 
 ## Allowed workflow stamps
 
-The CLI fail-closes to a small ChaseOS workflow allowlist, mirroring the active Hermes-family entries in the canonical ChaseOS workflow registry (`chaseos_obsidian/b/s/runtime/workflows/registry/`):
+The CLI fail-closes to a small ChaseOS workflow allowlist, mirroring the active Hermes-family entries in the canonical ChaseOS workflow registry (`<chaseos-vault>`):
 
 - `hermes_review_execute`
 - `hermes_watch`

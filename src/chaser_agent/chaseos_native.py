@@ -9,7 +9,7 @@ from chaser_agent.run_artifacts import current_repo_commit, write_json
 from chaser_agent.source_card import PROMOTION_WARNING
 
 # Mirrors the active Hermes-family entries in the canonical ChaseOS workflow
-# registry (chaseos_obsidian/b/s/runtime/workflows/registry/*.yaml), plus the
+# registry (<chaseos-vault>), plus the
 # Chaser Agent review lane. Deprecated registry entries must not appear here.
 ALLOWED_CHASEOS_WORKFLOWS = {
     "hermes_review_execute",

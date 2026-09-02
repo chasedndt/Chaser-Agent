@@ -1,6 +1,6 @@
-# Chaser agent OpenClaw / Hermes / Competitor Map
+# Chaser Agent OpenClaw / Hermes / Competitor Map
 
-This map turns runtime and competitor lessons into Chaser agent design constraints. It is not adapter activation authority.
+This map turns runtime and competitor lessons into Chaser Agent design constraints. It is not adapter activation authority.
 
 ## Hermes lessons
 
@@ -111,9 +111,9 @@ Required evals: skill regression, held-out examples, rollback verification.
 
 ## Remote GUI / private networking lesson
 
-Remote GUI, Tailscale, localhost bridges, and private gateways are operational surfaces, not automatic authority grants. Chaser agent should document readiness and risk before it interacts with any such surface.
+Remote GUI, Tailscale, localhost bridges, and private gateways are operational surfaces, not automatic authority grants. Chaser Agent should document readiness and risk before it interacts with any such surface.
 
-## What Chaser agent should copy
+## What Chaser Agent should copy
 
 - eval-first behavior;
 - explicit authority ceilings;
@@ -122,7 +122,7 @@ Remote GUI, Tailscale, localhost bridges, and private gateways are operational s
 - fallback transparency;
 - human review gates.
 
-## What Chaser agent should avoid
+## What Chaser Agent should avoid
 
 - production claims without tests;
 - connector activation before safety evals;

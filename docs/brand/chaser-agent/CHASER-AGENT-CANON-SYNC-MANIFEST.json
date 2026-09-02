@@ -1,0 +1,81 @@
+{
+  "canon_id": "chaser-agent",
+  "canon_version": "1.0.0",
+  "asset_release_version": null,
+  "status": "canonical-knowledge-selected-base-reference-production-reconstruction-pending",
+  "approved_on": "2026-08-17",
+  "public_name": "Chaser Agent",
+  "parent_platform": "ChaseOS",
+  "relationship_to_chaseos": "runs-independently-works-best-with-chaseos",
+  "selected_reference": {
+    "original_filename": "8855e326-3986-4e75-b19c-fd2fa7089de2.png",
+    "canonical_filename": "chaser-agent_canonical-base-mascot_selected-v1_20260817.png",
+    "relative_path": "assets/reference/chaser-agent_canonical-base-mascot_selected-v1_20260817.png",
+    "sha256": "94395115b572e8020c7d06ec73956c581877c793d5f07f84291969828d4425d8",
+    "width": 1448,
+    "height": 1086,
+    "mode": "RGBA",
+    "status": "selected-base-reference",
+    "note": "Visual direction is canonical. Embedded generated text and token values are not authoritative."
+  },
+  "authority": {
+    "character_canon": "chaser-agent-repository",
+    "standalone_product_identity": "chaser-agent-repository",
+    "editable_source_assets": "chaser-agent-repository",
+    "released_asset_bundles": "chaser-agent-repository",
+    "chaseos_parent_identity": "chaseos-repository",
+    "chaseos_integration": "chaseos-repository",
+    "user_instance_profiles": "chaseos-repository",
+    "cross_companion_presentation": "chaseos-repository"
+  },
+  "canonical_documents": [
+    "01-CHASER-AGENT-CHARACTER-CANON-AND-VISUAL-SPEC.md",
+    "02-CHASER-AGENT-FULL-ASSET-ROADMAP-AND-PRODUCTION-SPEC.md",
+    "03-CHASEOS-REPOSITORY-INTEGRATION-HANDOVER.md",
+    "04-CHASER-AGENT-REPOSITORY-CANON-HANDOVER.md"
+  ],
+  "semantic_tokens": {
+    "ink": "#070B14",
+    "signature_edge_start": "#4EB7FF",
+    "graph_violet": "#7C5CFF",
+    "runtime_teal": "#39E6D2",
+    "approval_amber": "#F0B45A",
+    "blocked_red": "#FF4D6D",
+    "bone": "#F4F1EA",
+    "chaser_mineral_body": "#7EA1AC"
+  },
+  "fixed_anatomy": {
+    "height_m": 0.9,
+    "form": "organic-digital-synthetic-life-form",
+    "head": "rounded-square-organic-skull",
+    "visor": "wide-ink-luminous-membrane",
+    "mouth": "minimal-line",
+    "hands": "four-digits-three-fingers-plus-thumb",
+    "feet": "broad-rounded-square-three-toe-forms",
+    "tail": "none",
+    "provenance_ribbon": "projected-non-anatomical-active-only",
+    "symmetry": "base-anatomy-symmetrical"
+  },
+  "approved_visual_personalisation": [
+    "runtime-instance-display-name",
+    "small-surface-marking-pattern-within-approved-zones"
+  ],
+  "required_states": [
+    "dormant",
+    "tracking",
+    "compiling",
+    "uncertain",
+    "contradiction",
+    "awaiting-approval",
+    "approved",
+    "correction",
+    "blocked",
+    "complete"
+  ],
+  "sync_policy": {
+    "chaser_agent_repo_publishes": true,
+    "chaseos_repo_consumes_versioned_release": true,
+    "mirrors_must_not_be_edited_independently": true,
+    "manifest_required_in_both_repositories": true
+  }
+}

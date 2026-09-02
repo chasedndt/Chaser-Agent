@@ -6,7 +6,7 @@ Updated the public repo `README.md` for Chaser Agent to be more contextful and c
 
 ## Branch / repo
 
-- Repo: `/mnt/c/Users/chaseos/Documents/Projects/chaser-agent`
+- Repo: `<repo-root>`
 - Branch started: `main`
 - Branch ended: `main`
 - Remote: `git@github.com:chasedndt/Chaser-Agent.git`

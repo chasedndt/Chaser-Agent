@@ -2,8 +2,8 @@
 
 Date: 2026-06-09
 Runtime lane: Hermes / Optimus
-Workspace: `C:\Users\chaseos\Documents\chaseos_obsidian`
-WSL path: `/mnt/c/Users/chaseos/Documents/chaseos_obsidian`
+Workspace: `<chaseos-vault>`
+WSL path: `<chaseos-vault>`
 
 ## Purpose
 
@@ -16,20 +16,20 @@ This handover is for using a separate ChatGPT study/explanation session alongsid
 The repository already had a WSL/Linux virtual environment:
 
 ```text
-/mnt/c/Users/chaseos/Documents/chaseos_obsidian/.venv
+<chaseos-vault>
 ```
 
 It points to a uv-managed CPython:
 
 ```text
 Python 3.11.15
-.venv/bin/python -> /home/chaseos/.local/share/uv/python/cpython-3.11-linux-x86_64-gnu/bin/python3.11
+.venv/bin/python -> <local-path>
 ```
 
 This is a **WSL/Linux venv**, not a Windows `Scripts\\python.exe` venv. Use it from WSL/terminal commands like:
 
 ```bash
-cd /mnt/c/Users/chaseos/Documents/chaseos_obsidian
+cd <chaseos-vault>
 PYTHONPATH=. .venv/bin/python -m pytest <test-path> -q
 ```
 
@@ -67,7 +67,7 @@ dev = [
 Future intended setup command:
 
 ```bash
-cd /mnt/c/Users/chaseos/Documents/chaseos_obsidian
+cd <chaseos-vault>
 uv venv .venv --python 3.11
 uv pip install --python .venv/bin/python pytest pytest-cov pyyaml
 ```
@@ -199,10 +199,10 @@ Use this pattern when asking the study chat for help:
 
 ```text
 I am working in the local ChaseOS repository at:
-C:\Users\chaseos\Documents\chaseos_obsidian
+<chaseos-vault>
 
 Current WSL path:
-/mnt/c/Users/chaseos/Documents/chaseos_obsidian
+<chaseos-vault>
 
 The local WSL venv is:
 .venv/bin/python
@@ -225,7 +225,7 @@ When the study chat gives advice, bring it back to Hermes/Optimus as one of:
 
 At the time this handover was created:
 
-- Workspace path: `/mnt/c/Users/chaseos/Documents/chaseos_obsidian`
+- Workspace path: `<chaseos-vault>`
 - Git branch reported earlier: `codex/2026-06-09-voice-mode-panel-under-main`
 - There was no commit yet and no remote configured in this repo from WSL.
 - The repository has many untracked files, so push/commit flow needs deliberate setup before publishing.
@@ -236,7 +236,7 @@ Do not assume GitHub has this state until a remote is configured, a commit exist
 
 1. Keep using the local venv:
    ```bash
-   cd /mnt/c/Users/chaseos/Documents/chaseos_obsidian
+   cd <chaseos-vault>
    PYTHONPATH=. .venv/bin/python -m pytest runtime/studio/test_voice_mode_main_nav.py -q
    ```
 

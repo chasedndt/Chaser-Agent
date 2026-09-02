@@ -1,60 +1,41 @@
-
 # Chaser Agent Next Steps
 
-## Current state
+## Approved direction
 
-Chaser agent is reset to the correct thinking order: Layer 0 first, V0 Definition second, V0 Blueprint third, 17 layers as a subordinate map, learning foundations before deeper evals, and implementation only after behavior is defined.
+Chaser Agent is standalone-first, local-first, open-source, domain-neutral, and human-governed. ChaseOS is an optional enhancement through adapters rather than a dependency of the core.
 
-## Completed foundation
+## Active P0.1 acceptance pass
 
-- Layer 0 Behaviour Contract created.
-- V0 Definition created.
-- V0 Blueprint created.
-- First-Principles model created.
-- Product Thesis rewritten from Layer 0.
-- Roadmap restarted from fundamentals.
-- 17-layer architecture depends on Layer 0.
-- AI engineering learning ladder expanded.
-- Maths foundation handout expanded.
-- University module linkage expanded.
-- Existing tests/JSONL classified as smoke/schema unless they test Layer 0 behavior.
-- Source Summary Spec marked as first V0 behavior implementation and review-only.
+The standalone foundations are implemented and locally verified on the review branch. Before any new authority or model work:
 
-## Current next implementation pass
+1. inspect a real local review record, reviewed/rejected memory history, and provenance trace;
+2. accept or revise the proposed review threshold and durable-state terminology;
+3. decide the first official domain pack and profile-discovery direction;
+4. add human-reviewed product-quality cases beyond the six contract wiring seeds;
+5. decide export/deletion and retention semantics before exposing management commands.
 
-**Phase 1 — Source Card Harness V0 is implemented.**
+## Operator gates
 
-Run it from the repo root:
+- Review example operator records before accepting promotion semantics.
+- Review durable-state terminology and lifecycle policy.
+- Keep the proposed 12/15 review threshold configurable and unapproved.
+- Do not invent final data-class definitions, profile discovery, sync/conflict, export/deletion, or retention policy.
 
-```bash
-.venv/bin/python -m chaser_agent.cli source-card --input examples/sources/toy_website_design_note.md --out logs/runs
-```
-
-It writes a unique `logs/runs/source-card-.../` folder containing source-card, claims-table, evidence-snippet, uncertainty-label, action-candidate, memory-candidate, human-review-packet, and run-log JSON artifacts.
-
-The artifacts prove the local V0 shape only. They are deterministic and not LLM-powered. They remain review-only and do not promote memory, execute actions, call providers/APIs, activate runtime adapters/MCP/browser/computer-use, fine-tune models, mutate ChaseOS canonical truth, or claim production readiness.
-
-## Long-range Chaser Agent multi-domain harness direction
-
-The orchestration/harness product is **Chaser Agent**—not “Chase Agent.” Chaser Agent is not primarily a trading agent. It is the governed, computer-local, multi-domain harness for reusable skills, workflows, datasets, evals, tools, and approval boundaries.
-
-Trading/StrikeZone is one methodology pack alongside source intelligence, social-media growth/control, web and UI design, coding, business operations, and future personal workflows. Each domain must keep separate authority, evidence, evaluation, review, and rollback contracts.
-
-The overall progression is bounded source/review foundations → evaluated domain skills → governed workflow execution → separately approved higher-authority capabilities. Within the trading pack only, execution progression remains observation-only → structured candidates → paper/digital twin → shadow live → human-approved orders → bounded autonomy.
-
-See [`docs/plans/2026-07-11-multi-domain-agent-harness-direction.md`](docs/plans/2026-07-11-multi-domain-agent-harness-direction.md). The immediate V0 pass remains Source Card Harness Review or Contract Eval Seeds.
-
-## Not next anymore
-
-Eval harness v0.2 is not the immediate next step. The next pass after Source Card Harness V0 should be **Source Card Harness Review** or **Contract Eval Seeds**, using the generated artifacts as the first shape proof.
+See `docs/01_Product/Chaser-Agent-P0.1-Open-Decisions.md`.
 
 ## Not now
 
-- no provider/API calls;
-- no Hermes/OpenClaw adapter activation;
-- no MCP tools/resources;
-- no browser/computer-use runtime;
-- no fine-tuning, LoRA, PEFT, or model training;
-- no private dataset ingestion;
-- no ChaseOS canonical mutation;
-- no production-readiness claims.
+- FastAPI or web UI;
+- live providers or local-model inference;
+- semantic RAG, embeddings, or vector databases;
+- MCP/tool/browser execution;
+- autonomous planner/executor loops;
+- public posting, payments, trading, deployment, or credentials;
+- model training, fine-tuning, LoRA, or PEFT;
+- automatic skill optimisation;
+- ChaseOS canonical mutation;
+- merge to `main`.
+
+## Later bounded pass
+
+After operator acceptance of P0.1, the likely next pass is a provider-neutral fake adapter plus reviewed AI-engineering examples and a first product-quality eval set. Do not start it automatically.

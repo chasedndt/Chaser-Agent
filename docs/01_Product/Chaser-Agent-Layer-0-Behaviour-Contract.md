@@ -1,132 +1,135 @@
-# Chaser agent Layer 0 Behaviour Contract / Product Constitution
+# Chaser Agent Layer 0 Behaviour Contract / Product Constitution
 
-## Why Layer 0 exists before the 17 layers
+## Why Layer 0 exists
 
-Layer 0 defines what Chaser agent is allowed to mean before any implementation layer, harness, runtime adapter, dataset, or skill claims capability. It is not a runtime layer. It is the product constitution that every later layer must obey.
+Layer 0 defines what Chaser Agent is allowed to mean before any architecture, provider, tool, memory store, workflow profile, skill, or runtime claims capability. Every later layer and deployment mode must obey it.
 
-Without Layer 0, the repo can accidentally confuse scaffold tests with product proof, notes with implementation, research signals with truth, or runtime adapter docs with live authority.
+Without this contract, the project can confuse generated output with truth, candidates with actions or memory, passing syntax checks with product quality, workflow specialisation with authority, or an integration packet with live dispatch.
 
-Layer 0 also carries the ChaseOS control-plane philosophy into Chaser agent before Chaser agent becomes powerful: agents need defined permissions, approvals, read boundaries, output targets, writeback rules, trust tiers, and failure handling before they are allowed to operate with meaningful authority. This is especially important after observing the OpenClaw-style risk pattern where a high-privilege local agent can collapse trust boundaries across filesystem, shell, browser, SaaS, credentials, and persistent state if boundaries are not defined first.
+## Product identity
 
-## What Chaser agent V0 is
+Chaser Agent is an open-source, standalone-first, local-first agent harness for turning goals and sources into evidence-linked, reviewable work. It can run independently and integrate optionally with ChaseOS.
 
-Chaser agent V0 is a small, bounded, review-first source-intelligence and harness-foundation loop.
+The core must remain usable without ChaseOS. ChaseOS remains the optional integrated control plane for shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory.
 
-Given safe, reviewable source input, Chaser agent should produce a structured review artifact that separates:
+## Deployment-scoped authority
 
-- what the source says;
-- what Chaser agent infers;
-- what remains uncertain;
-- what actions may follow;
-- what memory candidates may be proposed;
-- what should not be promoted automatically.
+### Standalone deployment
 
-## What Chaser agent V0 is not
+- The human operator is the approval authority.
+- Local governance validates review, promotion, and allowed transitions.
+- Human-approved durable local state may be persisted.
+- Local state remains user-owned and exportable/removable under policies still requiring operator definition.
+- No output approves or promotes itself.
 
-Chaser agent V0 is not:
+### ChaseOS-integrated deployment
 
-- all 17 layers implemented;
-- a foundation model;
-- production-ready autonomy;
-- a replacement for ChaseOS;
-- a canonical memory owner;
-- a provider/API integration;
-- a Hermes/OpenClaw/Codex activation layer;
-- a browser/computer-use runtime;
-- a fine-tuning or LoRA pipeline.
+- The same core interfaces remain in use.
+- An optional adapter may produce ChaseOS-shaped proposals.
+- ChaseOS may govern shared canonical state, policy, permissions, approvals, routing, and orchestration.
+- P0.1 does not consume a ChaseOS approval or dispatch live work.
 
-## Expected behaviour
+In both deployments:
 
-For each source-summary loop, Chaser agent V0 should:
+```text
+generated output != approved truth
+memory candidate != memory
+action candidate != action
+review packet != approval
+integration packet != dispatch
+agent confidence != authority
+```
 
-1. accept only safe/reviewable input;
-2. record source metadata and privacy class;
-3. produce a source card;
-4. separate source claims from Chaser agent inferences;
-5. label uncertainty and contradictions;
-6. propose scoped action candidates;
-7. propose memory candidates without promotion;
-8. write reviewable output and run logs only in declared repo locations;
-9. require human review for promotion, roadmap changes, skills, memory, runtime authority, or public claims.
+## Expected P0.1 behaviour
+
+For a bounded source-review run, Chaser Agent should:
+
+1. accept only declared safe/reviewable input;
+2. record source identity, origin, trust, privacy, and selected workflow profile;
+3. preserve headings separately from factual claim candidates;
+4. create evidence-linked source claims;
+5. keep source claims separate from Chaser Agent inference;
+6. label uncertainty and contradiction status honestly;
+7. retrieve only eligible reviewed/promoted memory and identify any memory influence;
+8. propose scoped action candidates without execution;
+9. propose memory candidates without promotion;
+10. persist an immutable human-review record separately from original run artifacts;
+11. allow only a governance backend to perform a valid local memory transition;
+12. retain provenance from durable memory back to source, evidence, run, and review.
+
+## Core and profile boundary
+
+The default core is domain-neutral. Domain-specific behaviour belongs in an explicit `WorkflowProfile`.
+
+A profile may guide claim hints, add labelled domain inference, add uncertainty rules, and propose review actions or memory candidates. It may not call a provider, grant a tool, execute an action, modify governance, bypass review, promote memory, or increase authority.
 
 ## Input boundaries
 
-Allowed V0 inputs:
+Allowed P0.1 inputs:
 
-- public/scrubbed text;
-- operator-provided source notes;
-- safe toy JSONL rows;
-- repo docs and tests;
-- reviewed research-register entries.
+- public or public-toy text;
+- explicitly scrubbed text;
+- explicitly classified local notes;
+- repo docs/tests and public-safe JSONL fixtures;
+- reviewed research-register entries without secrets/private raw data.
 
 Blocked by default:
 
-- secrets, credentials, raw private logs, private datasets, account data, tokens, cookies;
-- web browsing or live API calls unless a later approved pass grants it;
-- external runtime state outside declared repo paths.
+- credentials, tokens, cookies, private keys, secrets;
+- unclassified raw private datasets or personal logs;
+- live provider, browser, MCP, tool, account, payment, or trading state;
+- any input whose required data class is unresolved and unsafe to infer.
+
+The final definitions of `public`, `scrubbed`, `internal_safe`, `private`, and `secret` remain operator decisions. Labels do not grant authority.
 
 ## Output boundaries
 
-Allowed V0 outputs:
+Allowed:
 
-- source cards;
-- claims tables;
-- uncertainty labels;
-- contradiction notes;
-- action candidates;
-- memory candidates;
-- JSONL eval/smoke outputs;
-- run logs and handovers.
+- source cards, claims, evidence, uncertainty, contradiction status;
+- action and memory candidates;
+- immutable review records and corrections;
+- governance audit records;
+- local memory records following valid transitions;
+- knowledge-map nodes/edges;
+- eval/test-matrix results, run logs, and handovers.
 
-Blocked outputs:
+Blocked:
 
-- canonical ChaseOS promotion;
-- direct memory writes treated as truth;
-- public production claims;
-- provider credentials or private data;
-- writes outside declared outputs/logs.
+- self-approved truth or memory;
+- mutation of original run artifacts during review;
+- public claims/actions without explicit later authority;
+- providers, MCP/tools, browsers, hosted services, payments, trades, deployments, credential operations, or model training;
+- ChaseOS canonical mutation from the standalone core.
 
-## Safety boundaries
+## Human review
 
-Chaser agent V0 must not auto-promote memory, mutate ChaseOS canonical truth, call external APIs by default, browse the web by default, activate Hermes/OpenClaw runtime adapters by default, fine-tune models, read secrets, write outside declared outputs/logs, treat generated output as canonical truth, or claim production readiness.
+Human review is part of the product, eval system, and memory lifecycle. It records scores, decision, notes, corrections, and accepted/rejected candidate identifiers. A review record is immutable and does not itself promote memory.
 
-## Human review requirements
+The proposed initial pass rule—12/15, no score below 2, and no critical safety failure—is configurable and pending operator confirmation.
 
-Human review is required for:
+## Local memory promotion
 
-- accepting memory candidates;
-- turning actions into work items;
-- changing roadmap priorities;
-- committing private/sensitive datasets;
-- publishing claims;
-- changing skills used for production-like work;
-- activating tools, providers, browsers, or runtime adapters.
+Standalone promotion means a candidate was reviewed, accepted by the operator, validated by local governance, and persisted as approved durable local state with provenance. It does not mean the content is globally or objectively true.
 
-## Canonical-promotion boundary
+Only a `GovernanceBackend` may approve a transition. Rejected candidates cannot promote. Stale and disputed records remain visible. Supersession creates a link rather than overwriting history.
 
-Chaser agent can propose. ChaseOS governance decides canonical promotion. This applies to memory, policy, feature registers, runtime authority, and durable truth.
+## Least authority
 
-## Relationship to ChaseOS
+Provider, adapter, profile, skill, model, confidence, or data availability never implies permission. Authority must be explicit, scoped, revocable, logged, and reviewable.
 
-ChaseOS is the parent operating system/control plane and canonical governance owner. Chaser agent is a focused product/runtime implementation and harness-development repo derived from ChaseOS. Chaser agent may align to ChaseOS, but it does not replace ChaseOS.
+P0.1 may propose inspection, comparison, evidence requests, eval candidates, documentation candidates, bounded task candidates, and memory candidates. It may not execute external side effects.
 
-## Relationship to Hermes, OpenClaw, Codex, OpenAI, and local models
+## Deterministic and eval boundaries
 
-Hermes, OpenClaw, Codex, OpenAI models, and local models are possible lessons or future adapters. In V0 they are not activated by default. Their role is to inform safety boundaries, eval design, and future mock/dry-run adapter contracts.
+The deterministic harness remains a reference implementation, fallback, and test oracle. JSONL validity, imports, and smoke tests are not product proof. Contract seeds remain unreviewed until the operator accepts their labels and expected behaviour.
 
-## Smoke testing vs real behaviour proof
+## Public claims allowed now
 
-Smoke/schema tests prove the repo can run, imports work, JSONL parses, or a stub returns a shape. Real behaviour proof requires Layer 0-aligned cases that measure source fidelity, inference separation, uncertainty, action usefulness, memory-candidate safety, and human-review boundaries.
+The repository may describe Chaser Agent as an open-source, standalone-first, local-first, human-governed agent-harness architecture with deterministic P0 foundations and P0.1 standalone work on a review branch.
 
-## Public claims allowed right now
+It may not claim production autonomy, semantic intelligence, private-data safety, live providers/tools/browser execution, finished canonical memory, fine-tuned behaviour, or all-layer completion.
 
-The repo may claim it is a scaffolded, eval-first, source-intelligence and harness-development project. It may not claim production autonomy, full agent runtime implementation, live provider routing, canonical memory, fine-tuned behavior, or all-layer completion.
+## Open decisions
 
-## What remains unknown
-
-- Exact V0 source-card schema stability;
-- human review UI/process details;
-- future provider/model choices;
-- whether fine-tuning will be useful;
-- exact private dataset policy beyond “do not commit raw private data”;
-- how much of the 17-layer architecture should become code versus documentation.
+The exact data classes, review threshold, public memory terminology, first official domain pack, profile discovery mechanism, later provider/RAG/tool/sandbox choices, standalone/ChaseOS synchronisation and conflict policy, export/deletion semantics, and retention policy remain in `Chaser-Agent-P0.1-Open-Decisions.md`.

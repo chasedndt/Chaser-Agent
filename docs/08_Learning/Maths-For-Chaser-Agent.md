@@ -1,8 +1,8 @@
-# Maths For Chaser agent
+# Maths For Chaser Agent
 
-This handout builds the maths intuition needed for Chaser agent without jumping straight to advanced eval implementation.
+This handout builds the maths intuition needed for Chaser Agent without jumping straight to advanced eval implementation.
 
-| Concept | Plain-English explanation | Where it appears in Chaser agent | University module link | First mini-exercise |
+| Concept | Plain-English explanation | Where it appears in Chaser Agent | University module link | First mini-exercise |
 |---|---|---|---|---|
 | Sets and functions | Sets collect things; functions map inputs to outputs. | Dataset rows and source-card transforms. | Mathematics for Computer Science, Programming. | Treat source text as input and source card as output. |
 | Sequences | Ordered lists. | JSONL rows, run logs, action steps. | Programming, Algorithms. | Number each step in the V0 loop. |

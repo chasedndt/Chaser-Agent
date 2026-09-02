@@ -1,5 +1,5 @@
 
-# Chaser agent Source Summary Spec
+# Chaser Agent Source Summary Spec
 
 ## Required upstream docs
 
@@ -13,16 +13,16 @@ Source summary is the first V0 behaviour implementation. Read these docs before 
 
 ## Layer 0 inheritance
 
-Source summary must obey Layer 0. It turns safe source input into a structured review artifact that separates source claims, Chaser agent inferences, uncertainty, actions, memory candidates, and non-promotion notes.
+Source summary must obey Layer 0. It turns safe source input into a structured review artifact that separates source claims, Chaser Agent inferences, uncertainty, actions, memory candidates, and non-promotion notes.
 
-Nothing in the source-summary loop is canonical without ChaseOS governance.
+Nothing in the source-summary loop is approved durable state without an explicit governance decision. Standalone governance can approve local durable state; ChaseOS governance controls shared canonical state in an integrated deployment.
 
 ## V0 behaviour implementation
 
 The first V0 behavior implementation is available through the deterministic local Source Card Harness V0:
 
 ```bash
-.venv/bin/python -m chaser_agent.cli source-card --input examples/sources/toy_website_design_note.md --out logs/runs
+.venv/bin/python -m chaser_agent.cli source-card --input examples/sources/toy_website_design_note.md --out logs/runs --profile website_design_review
 ```
 
 The command writes a unique run folder under `logs/runs/` and produces:
@@ -41,7 +41,7 @@ safe source input
 → run_log.json
 ```
 
-The implementation is local, deterministic, review-only, and provider-free until a later approved pass changes that boundary. It uses transparent stub logic only: first-sentence/character-limited summaries, keyword-based source-claim extraction, copied evidence snippets, fixed uncertainty labels for missing design metrics/context, review-only action candidates, and candidate-only memory suggestions.
+The implementation is local, deterministic, review-only, and provider-free. It skips Markdown headings as claims, preserves source order, classifies how a source presents a statement rather than calling it a fact, links copied evidence snippets, and delegates domain-specific inference, uncertainty, actions, and memory proposals to an explicit workflow profile. The general profile is the default; AI-engineering and website-design profiles are opt-in.
 
 ## Output status
 
@@ -64,6 +64,8 @@ Use `docs/03_Summary_Intelligence/Chaser-Agent-V0-Source-Card-Schema.md` as the 
 - `source_type`
 - `source_origin`
 - `privacy_class`
+- `workflow_profile`
+- `workflow_profile_version`
 - `trust_state`
 - `source_summary`
 - `source_claims`
@@ -84,8 +86,8 @@ Use `docs/03_Summary_Intelligence/Chaser-Agent-V0-Source-Card-Schema.md` as the 
 - Roadmap impacts do not automatically update the roadmap.
 - Source summaries do not become public claims.
 - Generated text is not canonical truth.
-- Chaser agent does not mutate ChaseOS canonical docs.
-- ChaseOS governance owns canonical promotion.
+- Chaser Agent does not mutate ChaseOS canonical docs.
+- Standalone local governance owns approved durable local promotion; ChaseOS governance owns shared canonical promotion.
 
 ## Forbidden in this V0 source-summary path
 
@@ -106,6 +108,6 @@ Use `docs/03_Summary_Intelligence/Chaser-Agent-V0-Source-Card-Schema.md` as the 
 - actions written as commands rather than candidates;
 - private data leakage;
 - treating a weak source as authoritative;
-- confusing Chaser agent notes with ChaseOS governance;
+- confusing Chaser Agent notes with ChaseOS governance;
 - using generated output as canonical truth;
 - failing to record blocked promotion/tool/provider behavior.

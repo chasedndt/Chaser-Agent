@@ -1,2 +1,2 @@
-"""Chaser agent scaffold package."""
+"""Standalone-first Chaser Agent package."""
 __version__ = "0.1.0"

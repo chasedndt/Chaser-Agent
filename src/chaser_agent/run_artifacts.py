@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +13,17 @@ def write_json(path: Path, data: Any) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+@lru_cache(maxsize=None)
 def current_repo_commit(repo_root: Path | None = None) -> str | None:
+    """Return the short HEAD hash, memoised per repo root.
+
+    Every run log stamps the commit, and a contract-eval pass builds one run log
+    per case, so this shelled out to git once per case. The hash is constant for
+    the life of a process here (batch CLI invocations and test runs), so the
+    lookup is cached. A long-lived process that commits mid-run would see a stale
+    value; nothing in this package is long-lived, and correctness of the stamp
+    within a single run is what the artifact needs.
+    """
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],

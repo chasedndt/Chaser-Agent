@@ -1,6 +1,6 @@
-# Chaser agent From First Principles
+# Chaser Agent From First Principles
 
-Chaser agent starts with a human and a source. Everything else exists to make the source easier to review without pretending the output is automatically true.
+Chaser Agent starts with a human and a source. Everything else exists to make the source easier to review without pretending the output is automatically true.
 
 ## 1. Human operator
 
@@ -12,7 +12,7 @@ A source is a piece of text, document, repo note, research signal, or operator n
 
 ## 3. Context
 
-Context is helpful background, but it can be wrong or stale. Chaser agent should separate source facts from context-driven inference.
+Context is helpful background, but it can be wrong or stale. Chaser Agent should separate source facts from context-driven inference.
 
 ## 4. Model/provider
 
@@ -44,6 +44,6 @@ A memory candidate is a suggestion that might become durable later. It is not me
 
 ## 11. Later promotion through ChaseOS
 
-If something should become canonical truth, it routes through ChaseOS governance. Chaser agent does not silently promote it.
+If something should become canonical truth, it routes through ChaseOS governance. Chaser Agent does not silently promote it.
 
 See also `docs/08_Learning/Harness-Engineering-Glossary.md` for terms such as source card, eval, JSONL, memory candidate, and writeback.
