@@ -8,3 +8,4 @@ docs/99_HANDOVERS/2026-08-11-CHASER_AGENT_STANDALONE_FIRST_MASTER_REDESIGN_HANDO
 *.avif binary
 *.mp4 binary
 *.webm binary
+brand/chaser-agent/releases/motion-v1.1.0/manifest.json -text -whitespace

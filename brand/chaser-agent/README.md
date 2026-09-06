@@ -2,6 +2,10 @@
 
 This is the authoritative repository for Chaser Agent character canon, editable brand sources, and released asset bundles.
 
+The separately versioned [native state-motion pack v1.1.0](releases/motion-v1.1.0/README.md)
+was operator-approved on 2026-09-06. It adds ten Blender-rendered motion loops and
+provenance choreography without replacing the immutable visual identity release.
+
 Current state: `CANONICAL KNOWLEDGE / OPERATOR-APPROVED VISUAL MODEL V0.37.0 / CANONICAL ASSET RELEASE 1.0.0`.
 
 - Canon version: `1.0.0`

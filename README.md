@@ -12,11 +12,22 @@ Chaser Agent is a standalone-first, local-first agent harness for turning goals 
 
 <p align="center">
   <strong>P0.1 browser-local run:</strong> one source becomes eight inspectable artifacts and nothing is promoted or executed without human review.<br />
-  <a href="https://chaser-agent-runtime-workspace.chaseintech.chatgpt.site/#run">Run one source locally</a> ·
-  <a href="https://chaser-agent-runtime-workspace.chaseintech.chatgpt.site/#workspace">Explore all ten runtime states</a> ·
+  <a href="https://chaseos.ai/chaser-agent/workspace/#run">Run one source locally</a> ·
+  <a href="https://chaseintech.com/projects/chaser-agent/workspace/#workspace">Explore all ten runtime states</a> ·
   <a href="https://chaseos.ai/chaser-agent">ChaseOS product page</a> ·
   <a href="https://chaseintech.com/projects/chaser-agent/">ChaseInTech case study</a>
 </p>
+
+### Every state, one companion
+
+![Chaser Agent in ten native 3D runtime motions, with connected provenance and clear state labels](docs/media/chaser-agent-native-motion-v1.1.gif)
+
+The approved **native motion pack v1.1.0** adds deliberate steps, evidence-gathering
+gestures, planted approval and stop boundaries, and scene-native provenance.
+[Watch the full-quality reel with sound](brand/chaser-agent/releases/motion-v1.1.0/all-ten-native-motions.mp4)
+or [read the versioned asset contract](brand/chaser-agent/releases/motion-v1.1.0/README.md).
+These are character animations illustrating runtime states—not proof of live
+autonomous activity. Front-view media remains available; speech is a separate study.
 
 ChaseOS remains the parent operating system/control plane and canonical governance owner. Chaser Agent is the focused product/runtime implementation and learning lab. It is not a foundation model, not production-ready autonomy, not a canonical truth engine, and not a replacement for ChaseOS.
 
