@@ -13,6 +13,15 @@ python -m chaser_agent.cli serve --data-dir 'E:\Projects\Chaser Agent\Local Runt
 
 The process stays in the foreground. Stop it with Ctrl+C. It prints its health URL and the **path** of its generated bearer-token file, never the token value. Use a private data directory outside the source repository. Startup now checks the directory, token, run directory and optional voice directory permissions before binding. On Windows, only the current user, SYSTEM and Administrators may have allow entries; on POSIX, group/other access is refused. It does **not** change permissions automatically. The existing E: runtime fails this check and requires operator-approved ACL repair and token rotation before reuse. The default listener is `127.0.0.1:8765`; an occupied port fails startup instead of silently changing ports. No provider key or ChaseOS process is required.
 
+Before launch, a read-only preflight can inspect the existing runtime path and briefly probe the intended port:
+
+```powershell
+$env:PYTHONPATH = (Join-Path (Get-Location) 'src')
+python -m chaser_agent.cli doctor --data-dir 'E:\Projects\Chaser Agent\Local Runtime\2026-09-27-http-foundation' --port 8765
+```
+
+`doctor --json` gives the same facts for local automation. The actual 2026-09-27 readback found broad ACLs on the runtime directory, control-token file and runs directory; the port was available **at that check**. The command does not create paths, read token contents, change ACLs, rotate a token or start a server. A `preflight_clear` result is not a live startup or port-ownership guarantee. The command exits nonzero for blocked or incomplete checks; an unavailable ACL inspector is reported as unverified rather than treated as private.
+
 For one foreground process that owns both the API and a visible desktop HUD, use `desktop` with the same data directory and port:
 
 ```powershell

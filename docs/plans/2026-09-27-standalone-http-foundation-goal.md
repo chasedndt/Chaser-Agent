@@ -16,6 +16,8 @@ Desktop-voice follow-on, 2026-09-27: optional explicit push-to-talk was added in
 
 Voice-state follow-on, 2026-09-27: per-take IDs now prevent an old queued draft or cancel event from appearing over a newer active recording, and cancellation before final emission discards the draft. Deterministic race tests passed; live microphone and operator voice acceptance remain open. The full goal remains active.
 
+HTTP-security follow-on, 2026-09-27: a read-only `doctor` command now reports ACL and port preflight without reading token contents or changing state. It confirmed three broad-ACL blockers in the actual E: runtime and a momentarily available `127.0.0.1:8765`. No service startup occurred; the full goal remains active.
+
 ## Goal to create in the engineering task
 
 Build and verify Chaser Agent's standalone, local-only HTTP foundation so the deterministic harness can be invoked through a bounded loopback service without ChaseOS. Start with a read-only/review-only source-card path and explicit health/status; then add only the review and run retrieval operations whose authority boundaries can be tested. Keep the service secure by default, documented, and independently runnable. Do not generate human product-quality labels or treat pending eval fixtures as golden answers.

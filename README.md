@@ -83,6 +83,8 @@ A `desktop` CLI now owns the loopback API and a visible idle HUD in one foregrou
 
 The local HTTP listener now caps simultaneous client handlers at 16 and returns `503` when full, in addition to its authenticated POST rate limit. This bounds one local connection-exhaustion path; it does not make the service safe for public or LAN exposure.
 
+Run `python -m chaser_agent.cli doctor --data-dir <local-runtime-directory>` for a read-only check of the runtime ACLs and fixed loopback port before launching. It never reads the bearer-token value or changes permissions; a clear preflight still does not prove successful startup.
+
 An optional `desktop --model-dir <pinned-local-STT-model>` adds a push-to-talk panel: Talk starts one bounded take, Cancel discards it, and the transcript is shown as an unverified in-memory draft. With an explicitly configured local Pocket Alba library, the operator may separately click Speak status for a few exact read-only questions. No microphone opens on launch, and neither a draft nor a button click grants tool authority. The panel has synthetic visual QA and local-model-load proof, not operator microphone or audible-response acceptance.
 
 Verified P0.1 implementation:

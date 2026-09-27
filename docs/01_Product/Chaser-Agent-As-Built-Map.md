@@ -8,6 +8,8 @@ This page maps executable repository truth to the 17-layer architecture. The ful
 
 The isolated loopback listener now caps simultaneous client handlers at 16 and rejects excess connections with `503`, alongside its separate authenticated POST rate limit. This is bounded local transport hardening, not public-service readiness or a cure for the existing broad-ACL runtime.
 
+A read-only `doctor` CLI now reports runtime-directory/token/run ACL states and whether the configured loopback port can bind at check time. It makes no data, token or permission changes and cannot claim the service launched; the current E: runtime reports three broad-ACL blockers.
+
 Further engineering in the same isolated worktree adds optional local Pocket Alba speech-out jobs with a prewarmed worker, and an executor-gated HUD bridge plus synthetic desktop preview. A second warm reply was measured end-to-end at 4.52 seconds on this machine. The HUD now has tested button-request, pending-state and matching-acknowledgement wiring with a fake executor; the normal CLI attaches no executor. This does **not** supply real computer control, human listening acceptance, or a complete two-way conversational voice mode.
 
 Later on 2026-09-27, the same isolated worktree added an [opt-in offline voice-input CLI](../05_Runtime_Adapters/Chaser-Agent-Local-Voice-Input.md). It locally transcribed a public/toy WAV using a pinned, receipt-verified faster-whisper tiny English model on E:. Interactive microphone code opens only after Enter, but live operator microphone behavior is not verified. A fixed Pocket Alba acknowledgement can be requested separately; it is not a task answer. These additions do not activate a reasoning model, agent actions, computer use or full-duplex voice.
