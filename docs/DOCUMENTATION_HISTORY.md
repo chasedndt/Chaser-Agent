@@ -21,3 +21,4 @@
 # 2026-09-27 — approved runtime activation
 
 Current Mermaid and offline 18-layer explorer added; old ACL-blocked prose marked historical or corrected. See [activation evidence](../logs/build/2026-09-27-runtime-activation.md). Public site changes are source-only until deployment credentials are available.
+- 2026-09-27: added research-to-experiment companion roadmap, native HUD window controls and confirmed website publication; see [release receipt](../logs/build/2026-09-27-companion-release.md).

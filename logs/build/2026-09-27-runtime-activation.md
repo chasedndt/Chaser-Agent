@@ -1,5 +1,7 @@
 # Approved private runtime activation — 27 September 2026
 
+Later release update: the CLI authentication gap below was resolved through the authorized browser OAuth flow. Both website changes were pushed and deployed; see [publication receipt](2026-09-27-companion-release.md). The earlier blocked status is retained as historical evidence only.
+
 ## Repo-truth delta
 
 The earlier Windows ACL blocker is resolved. The operator explicitly approved Chaser Agent engineering and runtime repair in this task. This does not activate the canonical ChaseOS integration or supply human eval verdicts.

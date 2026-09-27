@@ -1,5 +1,58 @@
 import pytest
 
+
+def test_minimize_stops_voice_without_dispatching_executor_control():
+    import threading
+    from types import SimpleNamespace
+    from chaser_agent.hud_window import HudWindow
+
+    cancelled = []
+    window = object.__new__(HudWindow)
+    window.root = object()
+    window._closed = False
+    window._barge_in_pending = True
+    window._speech_cancel = threading.Event()
+    window._voice_controller = SimpleNamespace(cancel=lambda: cancelled.append(True))
+    window.voice_model_dir = None
+    window._voice_draft = "old"
+    window._active_capture_id = 3
+    window._request_control = lambda *_: pytest.fail("Window state must not dispatch a control")
+    window._on_unmap(SimpleNamespace(widget=object()))
+    assert not cancelled and window._barge_in_pending
+    window._on_unmap(SimpleNamespace(widget=window.root))
+    assert cancelled == [True] and window._speech_cancel.is_set()
+    assert not window._barge_in_pending and window._voice_draft is None
+    assert window._voice_suspended and window._active_capture_id == 3
+
+
+def test_late_draft_after_minimize_is_discarded_but_talk_recovers():
+    from types import SimpleNamespace
+    from chaser_agent.hud_window import HudWindow
+    labels = {}
+    window = object.__new__(HudWindow)
+    window._closed = False
+    window._voice_suspended = True
+    window._voice_draft = None
+    window._active_capture_id = 7
+    for name in ("talk_button", "voice_draft_label", "voice_state_label"):
+        labels[name] = {}
+        setattr(window, name, SimpleNamespace(configure=lambda _name=name, **values: labels[_name].update(values)))
+    window._on_voice_event("draft", {"capture_id": 7, "text": "Do not retain this take"})
+    assert window._voice_draft is None
+    assert labels["talk_button"]["state"] == "normal"
+    assert labels["voice_state_label"]["text"] == "Take discarded · microphone off"
+
+
+def test_pin_changes_window_only():
+    from types import SimpleNamespace
+    from chaser_agent.hud_window import HudWindow
+    calls = []
+    window = object.__new__(HudWindow)
+    window._pinned = SimpleNamespace(get=lambda: False)
+    window.root = SimpleNamespace(attributes=lambda *args: calls.append(args))
+    window._apply_pin()
+    assert calls == [("-topmost", False)]
+
 from chaser_agent.hud import HudState, apply_status
 from chaser_agent.hud_controls import ControlState, disconnect, receive_status, request_control
 from chaser_agent.hud_runtime import HudBridge, HudRegistry, HudUnavailable
