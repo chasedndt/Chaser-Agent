@@ -302,7 +302,11 @@ def run_hud_command(args: argparse.Namespace) -> int:
     if token_file is not None and (token_file.is_symlink() or not token_file.is_file()):
         print("error: local bearer-token file is missing or is a symlink", file=sys.stderr)
         return 2
-    window = HudWindow(port=args.port, token_file=token_file, preview=args.preview)
+    try:
+        window = HudWindow(port=args.port, token_file=token_file, preview=args.preview)
+    except (OSError, ValueError) as exc:
+        print(f"error: HUD token storage is unavailable: {exc}", file=sys.stderr)
+        return 2
     print("Synthetic HUD preview; no executor connected." if args.preview else "HUD waiting for a computer-use session.")
     window.run()
     return 0
@@ -314,16 +318,28 @@ def run_voice_mode_command(args: argparse.Namespace) -> int:
     if not args.sample_wav and not 0.5 <= args.seconds <= 12:
         print("error: microphone capture must be 0.5–12 seconds", file=sys.stderr)
         return 2
-    if args.speak_ack and not args.data_dir:
-        print("error: --speak-ack requires --data-dir for the running local voice service", file=sys.stderr)
+    speak_status = getattr(args, "speak_status", False)
+    if (args.speak_ack or speak_status) and not args.data_dir:
+        print("error: --speak-ack/--speak-status requires --data-dir for the running local voice service", file=sys.stderr)
         return 2
 
-    def optional_ack(result: dict[str, object]) -> None:
-        if not args.speak_ack or result["status"] != "draft_unverified":
+    def optional_speech(result: dict[str, object]) -> None:
+        if result["status"] != "draft_unverified" or not (args.speak_ack or speak_status):
             return
-        from chaser_agent.voice_ack import speak_ack
+        from chaser_agent.voice_ack import speak_ack, speak_status_reply
 
         try:
+            if speak_status:
+                spoken = speak_status_reply(
+                    data_dir=Path(args.data_dir), transcript=str(result["text"]), port=args.port,
+                )
+                if spoken is not None:
+                    reply, voice_id = spoken
+                    print(f"Read-only local status reply played ({voice_id}): {reply}")
+                    return
+                print("No supported read-only status question; no status reply was generated.")
+            if not args.speak_ack:
+                return
             voice_id = speak_ack(data_dir=Path(args.data_dir), port=args.port)
             print(f"Fixed local acknowledgement played ({voice_id}); it was not an agent answer.")
         except (OSError, ValueError, RuntimeError, TimeoutError) as exc:
@@ -342,7 +358,7 @@ def run_voice_mode_command(args: argparse.Namespace) -> int:
             print(f"error: test WAV could not be transcribed: {exc}", file=sys.stderr)
             return 2
         print(json.dumps(result, ensure_ascii=False))
-        optional_ack(result)
+        optional_speech(result)
         return 0
     while True:
         try:
@@ -373,7 +389,7 @@ def run_voice_mode_command(args: argparse.Namespace) -> int:
             continue
         print(json.dumps(result, ensure_ascii=False))
         print("Review the draft. No tool, computer-use or memory action was dispatched.")
-        optional_ack(result)
+        optional_speech(result)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -506,6 +522,7 @@ def build_parser() -> argparse.ArgumentParser:
     voice_mode.add_argument("--device", type=int, help="Optional PortAudio input-device number; default system device.")
     voice_mode.add_argument("--sample-wav", help="Transcribe a local PCM test WAV without opening the microphone.")
     voice_mode.add_argument("--speak-ack", action="store_true", help="Play a fixed Pocket Alba acknowledgement; never send transcript text.")
+    voice_mode.add_argument("--speak-status", action="store_true", help="Answer exact read-only service status questions; never execute transcript commands.")
     voice_mode.add_argument("--data-dir", help="Data directory of a separately running local voice-enabled HTTP service.")
     voice_mode.add_argument("--port", type=int, default=8765, help="Port of the local voice-enabled HTTP service (default 8765).")
     voice_mode.set_defaults(func=run_voice_mode_command)

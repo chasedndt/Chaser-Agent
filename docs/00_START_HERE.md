@@ -42,6 +42,8 @@ The standalone-first dependency rule is enforced by `tests/test_standalone_indep
 
 Isolated engineering evidence for the new local service: `../logs/build/2026-09-27-standalone-local-http-foundation.md`, `../logs/build/2026-09-27-hud-and-local-voice-bridge.md`, `../logs/build/2026-09-27-warm-voice-worker.md`, `../logs/build/2026-09-27-hud-control-contract.md`, `../logs/build/2026-09-27-offline-voice-input.md`, and `../logs/build/2026-09-27-local-http-acl-gate.md`. The existing runtime is now refused because of broad Windows ACLs; no service-live claim follows from these tests. These records do not replace the older P0.1 acceptance state.
 
+The follow-on [client-security and read-only voice status receipt](../logs/build/2026-09-27-client-acl-and-voice-status.md) covers the HUD/voice credential gate and exact status-question reply. It does not close the broader active HTTP/HUD/voice engineering goal.
+
 The isolated-worktree [documentation history](DOCUMENTATION_HISTORY.md), [daily engineering index](../logs/daily/README.md), and [agent activity index](../logs/agent-activity/README.md) track this local pass without changing ChaseOS canonical state.
 
 ## Truth boundary

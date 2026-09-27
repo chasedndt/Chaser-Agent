@@ -19,10 +19,10 @@ Start the normal HUD in a separate terminal after starting the local service:
 
 ```powershell
 $env:PYTHONPATH = (Join-Path (Get-Location) 'src')
-python -m chaser_agent.cli hud --data-dir 'E:\Projects\Chaser Agent\Local Runtime\http-foundation' --port 8765
+python -m chaser_agent.cli hud --data-dir 'E:\Projects\Chaser Agent\Local Runtime\2026-09-27-http-foundation' --port 8765
 ```
 
-For layout inspection only: `python -m chaser_agent.cli hud --preview`. The preview opens without a server and cannot affect the desktop outside its own window.
+The normal HUD checks the runtime and token-file ACL before reading its credential or opening a window, then holds that token in memory; restart it after an approved token rotation. The existing E: runtime currently fails this check. For layout inspection only: `python -m chaser_agent.cli hud --preview`. The preview opens without a server and cannot affect the desktop outside its own window.
 
 ## Verified and unverified
 

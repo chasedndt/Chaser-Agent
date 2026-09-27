@@ -10,6 +10,8 @@ Further engineering in the same isolated worktree adds optional local Pocket Alb
 
 Later on 2026-09-27, the same isolated worktree added an [opt-in offline voice-input CLI](../05_Runtime_Adapters/Chaser-Agent-Local-Voice-Input.md). It locally transcribed a public/toy WAV using a pinned, receipt-verified faster-whisper tiny English model on E:. Interactive microphone code opens only after Enter, but live operator microphone behavior is not verified. A fixed Pocket Alba acknowledgement can be requested separately; it is not a task answer. These additions do not activate a reasoning model, agent actions, computer use or full-duplex voice.
 
+The next security and voice-status slice makes the HUD and optional voice client check private runtime/token ACLs before credential use. `voice-mode --speak-status` can answer only a few exact read-only health/HUD questions with bounded speech text. Its HTTP and playback path is mocked in tests; no live reply or microphone acceptance is claimed. The existing runtime remains refused until operator-approved ACL repair and token rotation.
+
 ## Working capabilities
 
 | Capability | Code | Interface | Verified boundary |

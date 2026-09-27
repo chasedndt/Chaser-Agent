@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from chaser_agent.local_acl import (
-    InsecureRuntimePath, _allowed_windows_sddl, assert_private_runtime_path,
+    InsecureRuntimePath, _allowed_windows_sddl, assert_private_runtime_path, read_private_control_token,
 )
 
 SID = "S-1-5-21-100-200-300-1001"
@@ -38,3 +38,31 @@ def test_acl_parser_rejects_unparsed_dacl_text_and_unknown_ace_types():
 def test_missing_runtime_path_fails_closed(tmp_path: Path):
     with pytest.raises(InsecureRuntimePath):
         assert_private_runtime_path(tmp_path / "missing")
+
+
+def test_client_checks_directory_and_token_before_read(tmp_path: Path, monkeypatch):
+    token_path = tmp_path / "control-token"
+    token_path.write_text("a" * 64, encoding="ascii")
+    checked = []
+
+    def private(path: Path):
+        checked.append(path)
+
+    monkeypatch.setattr("chaser_agent.local_acl.assert_private_runtime_path", private)
+    assert read_private_control_token(tmp_path) == "a" * 64
+    assert checked == [tmp_path, token_path]
+    token_path.write_text("not a token", encoding="ascii")
+    with pytest.raises(InsecureRuntimePath, match="invalid"):
+        read_private_control_token(tmp_path)
+
+
+def test_client_never_reads_token_when_directory_is_broad(tmp_path: Path, monkeypatch):
+    (tmp_path / "control-token").write_text("a" * 64, encoding="ascii")
+
+    def broad(path: Path):
+        if path == tmp_path:
+            raise InsecureRuntimePath("broad ACL")
+
+    monkeypatch.setattr("chaser_agent.local_acl.assert_private_runtime_path", broad)
+    with pytest.raises(InsecureRuntimePath, match="broad ACL"):
+        read_private_control_token(tmp_path)

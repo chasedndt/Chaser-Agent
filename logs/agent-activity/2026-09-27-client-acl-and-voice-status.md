@@ -1,0 +1,3 @@
+# Agent activity — 2026-09-27 client ACL and voice status
+
+Actor: Codex / Axiom-Codex. Scope: isolated E: Chaser Agent engineering worktree and read-only testing against the existing broad-ACL local runtime. Result: HUD and voice token reads now fail closed; optional exact read-only spoken status response added with mocked HTTP/audio tests. No runtime permission or token mutation, provider activation, real computer-use executor, canonical ChaseOS write, push or deployment. See [build receipt](../build/2026-09-27-client-acl-and-voice-status.md). The ChaseOS Chaser Agent profile remains `PARTIAL / CORE FOUNDATION PREVIEW / NOT LIVE`; the full Codex engineering goal remains active.

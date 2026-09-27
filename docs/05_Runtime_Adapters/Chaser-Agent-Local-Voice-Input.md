@@ -1,6 +1,6 @@
 # Chaser Agent local voice input — opt-in engineering lane
 
-Status, 2026-09-27: an **interactive push-to-talk CLI** and a pinned offline English speech-to-text model work on a public/toy WAV. Live microphone capture is implemented but has **not** been exercised with the operator's microphone or accepted by a human listener. This is not a conversational agent: the transcript is an unverified draft, no LLM formulates a reply, and no tool/computer-use/memory action is dispatched.
+Status, 2026-09-27: an **interactive push-to-talk CLI** and a pinned offline English speech-to-text model work on a public/toy WAV. Live microphone capture is implemented but has **not** been exercised with the operator's microphone or accepted by a human listener. A new opt-in read-only status response is tested with mocked local HTTP, but not live speech playback. This is not a conversational agent: the transcript is an unverified draft, no LLM formulates a general reply, and no tool/computer-use/memory action is dispatched.
 
 ## What the command does
 
@@ -11,6 +11,8 @@ Each result says `draft_unverified` (or `no_speech`) and `transcript_only_no_dis
 The draft is printed in the local terminal. Operators should use a private terminal session if their shell, screen recorder or support tooling logs console output; this command does not control those external logs.
 
 Optional `--speak-ack` asks a separately running, voice-enabled `127.0.0.1:8765` service to generate and play one fixed public/toy acknowledgement: “I heard you. The draft transcript is ready for your review.” The transcript is never sent to that service. The acknowledgement is not an answer to the user's request. It uses the existing authenticated Pocket Alba route and Windows in-memory WAV playback; the service must already report `voice_runtime: ready`.
+
+Optional `--speak-status` recognizes only a small allowlist of exact questions, such as “What's your status?”, “Is computer use active?” and “What port are you running on?”. It reads local service health and authenticated HUD state, then speaks a bounded answer that does **not** include source text, HUD action, session ID or the transcript. An unknown phrase or command does nothing; if `--speak-ack` is also present, it gets only the fixed acknowledgement. This is a read-only status feature, not general reasoning or voice-to-action. Both speech options refuse broad runtime/token permissions before reading the credential.
 
 ## One-time setup, kept on E:
 
@@ -36,10 +38,10 @@ $env:PYTHONPATH = (Join-Path (Get-Location) 'src')
 & 'E:\Projects\Chaser Agent\Local Runtime\stt-venv\Scripts\python.exe' -m chaser_agent.cli voice-mode --model-dir 'E:\Projects\Chaser Agent\Local Runtime\stt-models\faster-whisper-tiny.en-0d3d19a' --sample-wav 'E:\Projects\Chaser Agent\Local Runtime\stt-test-alba-16k.wav'
 ```
 
-Omit `--sample-wav` for explicit interactive capture. The command never opens the microphone before the operator presses Enter. Add `--speak-ack --data-dir <same-data-dir-as-serve>` only if the local HTTP service was started with `--voice-library` and is ready. The default service port is 8765; use the same `--port` on both commands if changed.
+Omit `--sample-wav` for explicit interactive capture. The command never opens the microphone before the operator presses Enter. Add `--speak-ack` or `--speak-status` with `--data-dir <same-data-dir-as-serve>` only if the local HTTP service was started with `--voice-library` and is ready. The default service port is 8765; use the same `--port` on both commands if changed. The existing E: data directory currently has broad Windows ACLs, so these speech options fail closed until its permissions and token are repaired with operator approval. Plain transcription still works without the service.
 
 ## Evidence and limits
 
 The existing approved Alba toy sample was converted to PCM 16 kHz under the E: local runtime; `voice-mode --sample-wav` transcribed its sentence about Chaser Agent and operator attention correctly on this machine. The sample contained no private operator speech. The local model receipt records the pinned revision and model hashes. Focused tests cover receipt tampering, PCM/WAV limits, explicit microphone opening, no-speech handling, draft-only output, and the fixed-text acknowledgement request. See the [build log](../../logs/build/2026-09-27-offline-voice-input.md).
 
-Still missing: operator microphone acceptance, listening quality, word-error-rate evaluation across accents/noise, interruption/barge-in, streaming, privacy review of the runtime directory/Windows ACLs, per-user voice settings, conversation state, an authorized reasoning/provider adapter, and response text tied to the actual request. The HTTP voice jobs retain generated WAVs and receipts in their configured E: data directory; `voice-mode` itself does not retain the raw capture.
+Still missing: operator microphone acceptance, listening quality, word-error-rate evaluation across accents/noise, interruption/barge-in, streaming, approved ACL repair/token rotation, per-user voice settings, conversation state, an authorized reasoning/provider adapter, and general response text tied to the request. The HTTP voice jobs retain generated WAVs and receipts in their configured E: data directory; `voice-mode` itself does not retain the raw capture. The read-only status reply is unit-tested and mocked end-to-end, not human-auditioned on the current runtime.
