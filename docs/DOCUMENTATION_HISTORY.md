@@ -1,3 +1,4 @@
 # Documentation history — isolated engineering worktree
 
 - 2026-09-27: documented executor-gated HUD control and acknowledgement contract in [local HTTP](05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md), [HUD state](01_Product/Chaser-Agent-Computer-Use-HUD.md), [as-built map](01_Product/Chaser-Agent-As-Built-Map.md), and [Start Here](00_START_HERE.md). This is fake-executor protocol proof only; no real computer-use activation or complete two-way voice.
+- 2026-09-27: documented the [opt-in offline voice-input lane](05_Runtime_Adapters/Chaser-Agent-Local-Voice-Input.md), pinned optional model attribution, toy-audio result and missing operator/microphone gates. The HTTP voice route remains speech-out only; no context-aware agent reply exists.

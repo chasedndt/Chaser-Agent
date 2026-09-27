@@ -43,6 +43,8 @@ HUD control body: `{"session_id":"<current-session>","command":"pause"}`. The se
 
 Voice POST body: `{"text":"Ready for review.","privacy_class":"public_toy"}` (1–500 characters). Wait for `voice_runtime: ready`, then POST; poll the returned `status_url` until `generated_pending_listening_review` and fetch `audio_url`. A request while prewarming or generating gets `409 voice_busy`. The local worker and its Windows child interpreter are stopped when the server closes. The original script, WAV and generation receipt remain under the explicit data directory; a take is **not** accepted media until a human listens. On this machine, the retained model took minutes to load, while a second warm reply completed end-to-end in 4.52 seconds. This is speech-out infrastructure, not microphone interaction or a completed conversational voice mode.
 
+A separate [opt-in offline voice-input CLI](Chaser-Agent-Local-Voice-Input.md) can now transcribe an explicit short microphone take as a draft. Its optional fixed acknowledgement uses this HTTP voice route, but **never sends microphone audio or recognized text to the service**. The HTTP service still does not accept microphone audio, generate context-aware agent answers, or dispatch from voice.
+
 ## Local threat model
 
 - **Bind and DNS rebinding:** socket binds only to `127.0.0.1`; every request must use the exact `Host: 127.0.0.1:<bound-port>` and come from loopback. There is no LAN/public bind option.

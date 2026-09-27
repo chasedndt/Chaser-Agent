@@ -308,6 +308,74 @@ def run_hud_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_voice_mode_command(args: argparse.Namespace) -> int:
+    from chaser_agent.local_stt import OfflineTranscriber, read_pcm_wav, record_once
+
+    if not args.sample_wav and not 0.5 <= args.seconds <= 12:
+        print("error: microphone capture must be 0.5–12 seconds", file=sys.stderr)
+        return 2
+    if args.speak_ack and not args.data_dir:
+        print("error: --speak-ack requires --data-dir for the running local voice service", file=sys.stderr)
+        return 2
+
+    def optional_ack(result: dict[str, object]) -> None:
+        if not args.speak_ack or result["status"] != "draft_unverified":
+            return
+        from chaser_agent.voice_ack import speak_ack
+
+        try:
+            voice_id = speak_ack(data_dir=Path(args.data_dir), port=args.port)
+            print(f"Fixed local acknowledgement played ({voice_id}); it was not an agent answer.")
+        except (OSError, ValueError, RuntimeError, TimeoutError) as exc:
+            print(f"Voice acknowledgement unavailable: {exc}", file=sys.stderr)
+
+    try:
+        transcriber = OfflineTranscriber(Path(args.model_dir))
+    except (OSError, ValueError, ImportError, RuntimeError) as exc:
+        print(f"error: offline speech input unavailable: {exc}", file=sys.stderr)
+        return 2
+    print("Offline voice input ready. Transcripts are drafts; no agent action or provider call occurs.")
+    if args.sample_wav:
+        try:
+            result = transcriber.transcribe(read_pcm_wav(Path(args.sample_wav)))
+        except (OSError, ValueError, RuntimeError) as exc:
+            print(f"error: test WAV could not be transcribed: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(result, ensure_ascii=False))
+        optional_ack(result)
+        return 0
+    while True:
+        try:
+            choice = input("Press Enter to record one take, or q then Enter to quit: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\nVoice input closed; microphone inactive.")
+            return 0
+        if choice == "q":
+            print("Voice input closed; microphone inactive.")
+            return 0
+        if choice:
+            print("Unknown choice; microphone inactive.")
+            continue
+        print(f"MICROPHONE ACTIVE for up to {args.seconds:g} seconds. Ctrl+C cancels this take.", flush=True)
+        try:
+            pcm = record_once(args.seconds, device=args.device)
+        except KeyboardInterrupt:
+            print("\nMICROPHONE OFF. Take discarded.")
+            continue
+        except Exception as exc:
+            print(f"MICROPHONE OFF. Capture discarded ({type(exc).__name__}).", file=sys.stderr)
+            continue
+        print("MICROPHONE OFF. Transcribing locally...", flush=True)
+        try:
+            result = transcriber.transcribe(pcm)
+        except Exception as exc:
+            print(f"error: transcription failed ({type(exc).__name__})", file=sys.stderr)
+            continue
+        print(json.dumps(result, ensure_ascii=False))
+        print("Review the draft. No tool, computer-use or memory action was dispatched.")
+        optional_ack(result)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="chaser-agent", description="Chaser Agent local deterministic harness CLI")
     subparsers = parser.add_subparsers(dest="command")
@@ -430,6 +498,17 @@ def build_parser() -> argparse.ArgumentParser:
     hud.add_argument("--port", type=int, default=8765, help="Loopback API port (default 8765).")
     hud.add_argument("--preview", action="store_true", help="Show an explicit synthetic HUD replay without control authority.")
     hud.set_defaults(func=run_hud_command)
+    voice_mode = subparsers.add_parser(
+        "voice-mode", help="Explicit push-to-talk offline transcription; transcripts never dispatch actions.",
+    )
+    voice_mode.add_argument("--model-dir", required=True, help="Pinned local model directory with stt-model.json receipt.")
+    voice_mode.add_argument("--seconds", type=float, default=5.0, help="Microphone capture length, 0.5–12 seconds (default 5).")
+    voice_mode.add_argument("--device", type=int, help="Optional PortAudio input-device number; default system device.")
+    voice_mode.add_argument("--sample-wav", help="Transcribe a local PCM test WAV without opening the microphone.")
+    voice_mode.add_argument("--speak-ack", action="store_true", help="Play a fixed Pocket Alba acknowledgement; never send transcript text.")
+    voice_mode.add_argument("--data-dir", help="Data directory of a separately running local voice-enabled HTTP service.")
+    voice_mode.add_argument("--port", type=int, default=8765, help="Port of the local voice-enabled HTTP service (default 8765).")
+    voice_mode.set_defaults(func=run_voice_mode_command)
     return parser
 
 
