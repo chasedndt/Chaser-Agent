@@ -83,6 +83,7 @@ class HudWindow:
         self._active_capture_id: int | None = None
         self._speech_cancel = threading.Event()
         self._speech_busy = False
+        self._barge_in_pending = False
         self._voice_events: queue.Queue[tuple[str, dict[str, object] | None]] = queue.Queue()
         self._ui_thread_id = threading.get_ident()
         self.root = tk.Tk()
@@ -307,6 +308,13 @@ class HudWindow:
     def _voice_talk(self) -> None:
         if self._voice_controller is None or self._closed:
             return
+        if self._speech_busy:
+            self._barge_in_pending = True
+            self._speech_cancel.set()
+            self.talk_button.configure(state="disabled", text="Stopping…")
+            self.speak_button.configure(state="disabled", text="Stopping…")
+            self.voice_state_label.configure(text="Stopping reply before opening the microphone…")
+            return
         if self._voice_controller.is_busy():
             self._voice_controller.cancel()
             return
@@ -315,6 +323,7 @@ class HudWindow:
             self.voice_state_label.configure(text="Voice input unavailable · microphone off", fg=MUTED)
 
     def _voice_clear(self) -> None:
+        self._barge_in_pending = False
         if self._speech_busy:
             self._speech_cancel.set()
             self.voice_state_label.configure(text="Stopping the local reply…")
@@ -335,9 +344,10 @@ class HudWindow:
             return
         self._speech_cancel = threading.Event()
         self._speech_busy = True
+        self._barge_in_pending = False
         self.speak_button.configure(state="normal", text="Cancel reply")
-        self.talk_button.configure(state="disabled")
-        self.voice_state_label.configure(text="Preparing a read-only local status reply…")
+        self.talk_button.configure(state="normal", text="Talk next")
+        self.voice_state_label.configure(text="Reply pending · Talk next stops it before recording")
         draft = self._voice_draft
         threading.Thread(target=self._speak_in_background, args=(draft,),
                          name="chaser-local-status-speech", daemon=True).start()
@@ -360,12 +370,16 @@ class HudWindow:
 
     def _finish_speech(self, message: str) -> None:
         self._speech_busy = False
+        barge_in = getattr(self, "_barge_in_pending", False)
+        self._barge_in_pending = False
         self.voice_state_label.configure(text=message, fg=MUTED)
         self.speak_button.configure(text="Speak status", state="disabled")
         if self._voice_controller is not None and not self._voice_controller.is_busy():
             self.talk_button.configure(state="normal", text="Talk")
         if self._voice_draft and status_intent(self._voice_draft):
             self.speak_button.configure(state="normal")
+        if barge_in and not self._closed:
+            self._voice_talk()
 
     def _render(self, state: dict[str, object]) -> None:
         phase = state.get("phase")
@@ -490,6 +504,7 @@ class HudWindow:
         if not self._closed:
             self._closed = True
             self._speech_cancel.set()
+            self._barge_in_pending = False
             if self._voice_controller is not None:
                 self._voice_controller.close()
             self._voice_draft = None
