@@ -79,6 +79,8 @@ Chaser Agent is a **P0.1 / pre-alpha standalone deterministic harness**. The can
 
 An isolated engineering worktree now also has a [local HTTP foundation](docs/05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md): a token-protected `127.0.0.1:8765` source-review API that retains the original submitted public text with each pending run. Its current security gate refuses the existing E: runtime's broad inherited Windows ACL until an operator approves a private ACL and token rotation; the service is not running from that directory. The normal HUD and voice client refuse that token too. An optional Pocket Alba library prewarms locally and generates offline speech-out jobs behind the same token. A separate [opt-in offline voice-input command](docs/05_Runtime_Adapters/Chaser-Agent-Local-Voice-Input.md) transcribes bounded microphone takes as unverified drafts, can play a fixed acknowledgement, and now has a narrowly allowlisted read-only service-status reply. It does not generally reason over the request or dispatch actions. The desktop HUD has a tested, executor-gated control-and-acknowledgement path, but no real computer-use executor is attached. This is local engineering evidence, not a merged release or a complete conversational agent.
 
+A `desktop` CLI now owns the loopback API and a visible idle HUD in one foreground process, shows its fixed port, and stops its owned server when the window closes. Lifecycle tests and a synthetic idle-window capture exist; the current broad-ACL runtime still prevents a real launch. This does not start the microphone or enable computer use.
+
 Verified P0.1 implementation:
 
 - domain-neutral deterministic Source Card Harness with explicit workflow profiles;

@@ -54,13 +54,15 @@ def send_control(*, port: int, token: str, session_id: str, command: str) -> dic
 
 
 class HudWindow:
-    def __init__(self, *, port: int = 8765, token_file: Path | None = None, preview: bool = False):
+    def __init__(self, *, port: int = 8765, token_file: Path | None = None,
+                 preview: bool = False, show_idle: bool = False):
         if not preview and token_file is None:
             raise ValueError("A local token file is required outside preview mode")
         self.port = port
         self.token_file = token_file
         self.token = read_private_control_token(token_file.parent) if token_file is not None and not preview else None
         self.preview = preview
+        self.show_idle = show_idle
         self.root = tk.Tk()
         self.root.title("Chaser Agent HUD")
         self.root.configure(bg=INK)
@@ -79,7 +81,13 @@ class HudWindow:
         if preview:
             self._show_preview()
         else:
-            self.root.withdraw()
+            if show_idle:
+                self._visible = True
+                self.phase_label.configure(text="Connecting")
+                self.action_label.configure(text=f"Starting the local review service on port {port}.")
+                self.notice_label.configure(text="Computer-use controls are inactive until an executor connects.")
+            else:
+                self.root.withdraw()
             self.root.after(100, self._poll)
 
     def _build(self) -> None:
@@ -126,7 +134,15 @@ class HudWindow:
             self._current_session = None
             for button in self.buttons.values():
                 button.configure(state="disabled")
-            if self._visible:
+            if self.show_idle:
+                if not self._visible:
+                    self.root.deiconify()
+                    self._visible = True
+                self.phase_label.configure(text="Local service ready", fg=PHASE_COLORS["running"])
+                self.action_label.configure(text="No computer-use session is connected.")
+                self.session_label.configure(text=f"Local API 127.0.0.1:{self.port}")
+                self.notice_label.configure(text="Review-only · controls require an authorized executor")
+            elif self._visible:
                 self.root.withdraw()
                 self._visible = False
             return
@@ -229,5 +245,9 @@ class HudWindow:
         self.root.mainloop()
 
     def _on_close(self) -> None:
-        self._closed = True
-        self.root.destroy()
+        self.close()
+
+    def close(self) -> None:
+        if not self._closed:
+            self._closed = True
+            self.root.destroy()

@@ -13,6 +13,14 @@ python -m chaser_agent.cli serve --data-dir 'E:\Projects\Chaser Agent\Local Runt
 
 The process stays in the foreground. Stop it with Ctrl+C. It prints its health URL and the **path** of its generated bearer-token file, never the token value. Use a private data directory outside the source repository. Startup now checks the directory, token, run directory and optional voice directory permissions before binding. On Windows, only the current user, SYSTEM and Administrators may have allow entries; on POSIX, group/other access is refused. It does **not** change permissions automatically. The existing E: runtime fails this check and requires operator-approved ACL repair and token rotation before reuse. The default listener is `127.0.0.1:8765`; an occupied port fails startup instead of silently changing ports. No provider key or ChaseOS process is required.
 
+For one foreground process that owns both the API and a visible desktop HUD, use `desktop` with the same data directory and port:
+
+```powershell
+python -m chaser_agent.cli desktop --data-dir 'E:\Projects\Chaser Agent\Local Runtime\2026-09-27-http-foundation' --port 8765
+```
+
+The combined launcher shows the port and an idle, disabled-control HUD even before any computer-use session exists. Closing that window stops only its own HTTP server thread and optional owned local voice worker. It does not start microphone capture, connect an executor, call a model provider or make the current broad-ACL runtime usable. The normal separate `serve` and `hud` commands remain available. `desktop` may also take the same explicit `--voice-library` and `--allowed-origin` options as `serve`.
+
 For an optional offline Pocket Alba speech adapter on this operator's machine, add `--voice-library 'E:\Projects\Chaser Agent\Shared Speech Library'`. Other installations must explicitly provide their own compatible, approved local library; Chaser Agent does not bundle model weights, download a voice, or choose a cloud fallback. The local model prewarms in the background when configured. `/v1/health` reports `voice: configured_local` and `voice_runtime: starting|ready|busy|failed|cold`; only `ready` means the retained model process has loaded. A configured or ready state does **not** mean the take has been listened to or that two-way voice mode exists.
 
 `GET http://127.0.0.1:8765/v1/health` needs no token. All run routes need `Authorization: Bearer <token>`. The first test source must be public/toy, with privacy class `public_toy` or `public`:

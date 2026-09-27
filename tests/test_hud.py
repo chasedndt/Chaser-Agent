@@ -150,3 +150,40 @@ def test_normal_hud_refuses_broad_token_before_opening_window(tmp_path, monkeypa
     monkeypatch.setattr("chaser_agent.hud_window.read_private_control_token", reject)
     with pytest.raises(InsecureRuntimePath, match="broad ACL"):
         HudWindow(token_file=tmp_path / "control-token")
+
+
+def test_desktop_idle_hud_stays_visible_with_port_and_disabled_controls():
+    from chaser_agent.hud_window import HudWindow
+
+    class FakeLabel:
+        def __init__(self):
+            self.values = {}
+
+        def configure(self, **kwargs):
+            self.values.update(kwargs)
+
+    class FakeRoot:
+        def __init__(self):
+            self.shown = False
+
+        def deiconify(self):
+            self.shown = True
+
+    window = object.__new__(HudWindow)
+    window.preview = False
+    window.show_idle = True
+    window.port = 8765
+    window._visible = False
+    window._current_session = "old-session"
+    window.root = FakeRoot()
+    window.buttons = {"pause": FakeLabel(), "stop": FakeLabel()}
+    window.phase_label = FakeLabel()
+    window.action_label = FakeLabel()
+    window.session_label = FakeLabel()
+    window.notice_label = FakeLabel()
+    window._render({"status": "inactive"})
+    assert window.root.shown and window._visible
+    assert window._current_session is None
+    assert window.phase_label.values["text"] == "Local service ready"
+    assert window.session_label.values["text"] == "Local API 127.0.0.1:8765"
+    assert all(button.values["state"] == "disabled" for button in window.buttons.values())

@@ -13,7 +13,7 @@ The window must not cover the active target, capture pointer input outside its c
 - `hud.py` keeps ordered, session-scoped immutable display state. Stale/foreign events and post-terminal updates do not rewrite it.
 - `hud_controls.py` models pending commands and matching acknowledgements in memory. It dispatches nothing.
 - `hud_runtime.py` offers a thread-safe read model plus `HudBridge`. A separately governed in-process executor can attach one session and obtain a bound event callback. Stale callbacks are invalidated on detach. `GET /v1/hud/current` is bearer-protected and says `inactive`, `controls_enabled: false`, and `display_only_no_executor` by default. `POST /v1/hud/controls` accepts a matching session and an available command only if an executor is attached; otherwise it returns `409`. There is **no HTTP route to attach an executor or inject events**.
-- `hud_window.py` is a small always-on-top Windows/Tk desktop shell. Normal mode polls the local read model and stays hidden while inactive. It enables available buttons only for an attached executor, sends authenticated requests, and waits for the matching event before showing the new phase. `chaser-agent hud --preview` shows a clearly marked four-state synthetic replay with all controls disabled. The shipped CLI attaches no executor, so its normal buttons remain disabled.
+- `hud_window.py` is a small always-on-top Windows/Tk desktop shell. Separate normal `hud` mode polls the local read model and stays hidden while inactive. The combined `desktop` launcher keeps an idle status window visible, showing `127.0.0.1:<port>` and disabled controls. During an attached session, buttons follow the same request/acknowledgement contract. `chaser-agent hud --preview` shows a clearly marked four-state synthetic replay with all controls disabled. The shipped CLI attaches no executor, so its normal buttons remain disabled.
 
 Start the normal HUD in a separate terminal after starting the local service:
 
@@ -23,6 +23,8 @@ python -m chaser_agent.cli hud --data-dir 'E:\Projects\Chaser Agent\Local Runtim
 ```
 
 The normal HUD checks the runtime and token-file ACL before reading its credential or opening a window, then holds that token in memory; restart it after an approved token rotation. The existing E: runtime currently fails this check. For layout inspection only: `python -m chaser_agent.cli hud --preview`. The preview opens without a server and cannot affect the desktop outside its own window.
+
+The [combined desktop command](../05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md) runs the loopback API and HUD in one foreground process; closing its HUD stops the owned API thread. A [synthetic idle-window capture](<E:/Visual QA/Chaser Agent Visual QA/Current Reviews/2026-09-27-desktop-launcher/QA.md>) verifies the visible port/no-session/disabled-controls layout at 410 × 284 px. It is not a real service or computer-use visual acceptance run.
 
 ## Verified and unverified
 

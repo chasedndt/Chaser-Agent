@@ -12,6 +12,8 @@ Later on 2026-09-27, the same isolated worktree added an [opt-in offline voice-i
 
 The next security and voice-status slice makes the HUD and optional voice client check private runtime/token ACLs before credential use. `voice-mode --speak-status` can answer only a few exact read-only health/HUD questions with bounded speech text. Its HTTP and playback path is mocked in tests; no live reply or microphone acceptance is claimed. The existing runtime remains refused until operator-approved ACL repair and token rotation.
 
+The `desktop` CLI then combined the loopback API and a visible idle HUD under one foreground lifecycle. A synthetic screenshot shows the port and disabled controls, and a real loopback lifecycle test verifies that the launcher stops only its own server. The actual E: runtime remains ACL-blocked; no real computer-use executor or voice conversation was added.
+
 ## Working capabilities
 
 | Capability | Code | Interface | Verified boundary |
