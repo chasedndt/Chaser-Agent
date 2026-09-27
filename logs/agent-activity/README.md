@@ -11,3 +11,4 @@
 - [2026-09-27 local HTTP doctor](2026-09-27-local-http-doctor.md)
 - [2026-09-27 local voice cancellation](2026-09-27-local-voice-cancellation.md)
 - [2026-09-27 cancellable HUD audio](2026-09-27-cancellable-hud-audio.md)
+- [2026-09-27 HUD owner reconnection](2026-09-27-hud-owner-reconnect.md)

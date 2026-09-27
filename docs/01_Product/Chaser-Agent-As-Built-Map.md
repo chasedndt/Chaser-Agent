@@ -24,6 +24,8 @@ The local Pocket Alba job API now accepts a token-protected cancellation request
 
 For HUD replies, an optional output-only stream now writes roughly 50 ms PCM16 or IEEE-float32 WAV chunks and aborts pending buffers on cancellation. Mocked output tests and the installed environment's 24 kHz mono/int16 and float32 settings checks pass. Audible output and real stop latency remain unverified; the fixed CLI acknowledgement retains its earlier blocking Windows playback.
 
+The HUD bridge also permits the identical in-process executor to reconnect an uncertain, nonterminal session without discarding pending control state. A different executor object cannot claim it, old report callbacks stay invalid, and controls remain disabled until a fresh higher-sequence event arrives. This is fake-executor lifecycle proof only; no real computer-use adapter or process-crash recovery is present.
+
 Synthetic layout QA then exposed fixed-size clipping at simulated 200%-style Tk scaling; scale-aware sizing and a scrollable small-screen container corrected the inspected captures. These are rendered local checks, not live high-DPI or accessibility acceptance.
 
 ## Working capabilities

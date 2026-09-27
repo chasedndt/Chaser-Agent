@@ -12,3 +12,4 @@
 - 2026-09-27: documented the read-only local HTTP `doctor` preflight and actual broad-ACL result for the E: runtime; it does not change permissions or prove live startup.
 - 2026-09-27: documented token-protected per-take local voice cancellation, durable late-audio suppression, HUD Cancel reply, fake-worker recovery and synthetic visual QA. Real playback interruption and operator listening remain unverified.
 - 2026-09-27: documented optional output-only chunked HUD playback with abort-on-cancel, bounded PCM16/IEEE-float32 WAV formats and a read-only output-device settings check. Real audio and stop latency remain unverified; CLI fixed acknowledgement is unchanged.
+- 2026-09-27: documented same-process HUD executor reconnection after uncertain disconnect, with owner identity, stale-callback rejection and fresh-event control gate. Real executor and process-crash recovery remain open.

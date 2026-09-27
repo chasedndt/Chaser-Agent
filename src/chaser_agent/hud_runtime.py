@@ -26,6 +26,14 @@ class HudRegistry:
                 raise ValueError("An active HUD session already exists")
             self._state = ControlState(HudState(session_id))
 
+    def resume_session(self, session_id: str) -> None:
+        """Preserve an uncertain, disconnected session for its original owner."""
+        with self._lock:
+            if (self._state is None or self._state.hud.session_id != session_id
+                    or self._state.connected
+                    or self._state.hud.phase in {"completed", "failed", "stopped"}):
+                raise ValueError("No matching disconnected HUD session")
+
     def receive_event(self, *, session_id: str, sequence: int, phase: str,
                       action: str = "", request_id: str | None = None,
                       accepted: bool = True) -> None:
@@ -97,6 +105,8 @@ class HudBridge:
         self.registry = HudRegistry()
         self._lock = RLock()
         self._executor: HudExecutor | None = None
+        self._detached_executor: HudExecutor | None = None
+        self._detached_session_id: str | None = None
         self._generation = 0
 
     def attach(self, session_id: str, executor: HudExecutor) -> Callable[..., None]:
@@ -106,7 +116,16 @@ class HudBridge:
         with self._lock:
             if self._executor is not None:
                 raise HudUnavailable("A HUD executor is already attached")
-            self.registry.begin_session(session_id)
+            current = self.registry.snapshot()
+            if current["session_id"] is not None and current["phase"] not in {"completed", "failed", "stopped"}:
+                if (session_id != self._detached_session_id or executor is not self._detached_executor
+                        or current["connected"]):
+                    raise HudUnavailable("Only the original executor may reconnect an uncertain session")
+                self.registry.resume_session(session_id)
+            else:
+                self.registry.begin_session(session_id)
+                self._detached_executor = None
+                self._detached_session_id = None
             self._generation += 1
             generation = self._generation
             self._executor = executor
@@ -125,6 +144,9 @@ class HudBridge:
 
     def detach(self) -> None:
         with self._lock:
+            if self._executor is not None:
+                self._detached_executor = self._executor
+                self._detached_session_id = self.registry.snapshot()["session_id"]
             self._executor = None
             self._generation += 1
             self.registry.disconnect()

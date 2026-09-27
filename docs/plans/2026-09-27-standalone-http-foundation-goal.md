@@ -22,6 +22,8 @@ Speech-interruption follow-on, 2026-09-27: an exact authenticated voice-cancel r
 
 HUD-playback follow-on, 2026-09-27: the desktop's cancel-event path now uses output-only PCM16 or IEEE-float32 chunks and aborts pending buffers; the fixed CLI acknowledgement keeps legacy blocking playback. The installed optional audio environment accepted 24 kHz mono/int16 and float32 settings without opening a speaker. Actual audible quality, device stop latency, provider-backed conversation and real executor/HUD integration remain unverified; the full goal stays active.
 
+HUD-reconnect follow-on, 2026-09-27: after a nonterminal disconnect, only the same in-process executor may reattach the same session. Its old callback stays invalid, pending controls remain uncertain, and a fresh higher-sequence event is required to re-enable controls. Fake-executor tests cover this same-process path, not process-crash recovery or real computer use. The full goal stays active.
+
 ## Goal to create in the engineering task
 
 Build and verify Chaser Agent's standalone, local-only HTTP foundation so the deterministic harness can be invoked through a bounded loopback service without ChaseOS. Start with a read-only/review-only source-card path and explicit health/status; then add only the review and run retrieval operations whose authority boundaries can be tested. Keep the service secure by default, documented, and independently runnable. Do not generate human product-quality labels or treat pending eval fixtures as golden answers.
