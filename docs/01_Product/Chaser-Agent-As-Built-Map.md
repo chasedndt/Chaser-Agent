@@ -14,6 +14,10 @@ The next security and voice-status slice makes the HUD and optional voice client
 
 The `desktop` CLI then combined the loopback API and a visible idle HUD under one foreground lifecycle. A synthetic screenshot shows the port and disabled controls, and a real loopback lifecycle test verifies that the launcher stops only its own server. The actual E: runtime remains ACL-blocked; no real computer-use executor or voice conversation was added.
 
+An optional desktop push-to-talk panel now loads the pinned offline STT model asynchronously, paints the microphone indicator before a click-triggered bounded take, supports cancellation, and shows an unverified in-memory draft. Speak status remains a separate exact read-only action with mocked HTTP/audio proof. The optional E: model loaded successfully without opening the microphone; no operator recording, audible reply, real executor or general conversational model was verified.
+
+Synthetic layout QA then exposed fixed-size clipping at simulated 200%-style Tk scaling; scale-aware sizing and a scrollable small-screen container corrected the inspected captures. These are rendered local checks, not live high-DPI or accessibility acceptance.
+
 ## Working capabilities
 
 | Capability | Code | Interface | Verified boundary |

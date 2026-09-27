@@ -6,6 +6,7 @@ import json
 import math
 import struct
 import sys
+import threading
 import types
 import wave
 from pathlib import Path
@@ -13,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from chaser_agent.local_stt import (
-    MODEL_FILES, MODEL_REPO, MODEL_REVISION, OfflineTranscriber,
+    CaptureCancelled, MODEL_FILES, MODEL_REPO, MODEL_REVISION, OfflineTranscriber,
     read_pcm_wav, record_once, validate_pcm, verify_local_model,
 )
 from chaser_agent.cli import run_voice_mode_command
@@ -80,6 +81,35 @@ def test_microphone_opens_only_for_bounded_capture(monkeypatch):
 
     monkeypatch.setitem(sys.modules, "sounddevice", types.SimpleNamespace(RawInputStream=FakeStream))
     assert len(record_once(0.5)) == 16_000
+
+
+def test_cancelled_take_closes_stream_and_discards_partial_audio(monkeypatch):
+    event = threading.Event()
+    event.set()
+    with pytest.raises(CaptureCancelled):
+        record_once(0.5, cancel_event=event)
+
+    event.clear()
+    closed = []
+
+    class FakeStream:
+        def __init__(self, **_kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            closed.append(True)
+
+        def read(self, frames):
+            event.set()
+            return b"\x00\x00" * frames, False
+
+    monkeypatch.setitem(sys.modules, "sounddevice", types.SimpleNamespace(RawInputStream=FakeStream))
+    with pytest.raises(CaptureCancelled):
+        record_once(0.5, cancel_event=event)
+    assert closed == [True]
 
 
 def test_transcription_is_a_draft_and_never_dispatches(model_dir):

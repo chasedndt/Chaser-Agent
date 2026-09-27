@@ -1,6 +1,7 @@
 import io
 import json
 import sys
+import threading
 import types
 from pathlib import Path
 
@@ -86,3 +87,25 @@ def test_spoken_status_queries_hud_read_only_and_never_posts_transcript(monkeypa
     assert posted == {"text": reply, "privacy_class": "public_toy"}
     assert "What's your status" not in json.dumps(posted)
     assert len(played) == 1
+
+
+def test_cancelled_status_speech_never_posts_audio_job(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr("chaser_agent.voice_ack.read_private_control_token", lambda _path: "a" * 64)
+    cancel = threading.Event()
+    seen = []
+
+    def fake_urlopen(request, timeout):
+        url = request.full_url if hasattr(request, "full_url") else request
+        seen.append(url)
+        if url.endswith("/v1/health"):
+            payload = {"service": "chaser-agent", "status": "ready", "bind": "127.0.0.1",
+                       "port": 8765, "mode": "review_with_local_voice", "voice_runtime": "ready"}
+        else:
+            cancel.set()
+            payload = {"status": "inactive"}
+        return io.BytesIO(json.dumps(payload).encode("utf-8"))
+
+    monkeypatch.setattr("chaser_agent.voice_ack.urlopen", fake_urlopen)
+    with pytest.raises(RuntimeError, match="cancelled"):
+        speak_status_reply(data_dir=tmp_path, transcript="What's your status?", cancel_event=cancel)
+    assert not any(url.endswith("/v1/voice/replies") for url in seen)

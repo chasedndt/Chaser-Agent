@@ -331,6 +331,7 @@ def run_desktop_command(args: argparse.Namespace) -> int:
             data_dir=data_dir, port=args.port,
             allowed_origins=tuple(args.allowed_origin),
             voice_library=Path(args.voice_library) if args.voice_library else None,
+            voice_model_dir=Path(args.model_dir) if args.model_dir else None,
         )
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"error: local desktop startup or shutdown failed: {exc}", file=sys.stderr)
@@ -540,6 +541,7 @@ def build_parser() -> argparse.ArgumentParser:
     desktop.add_argument("--allowed-origin", action="append", default=[],
                          help="Optional exact http://127.0.0.1:<port> browser origin.")
     desktop.add_argument("--voice-library", help="Optional operator-approved local Pocket Alba library.")
+    desktop.add_argument("--model-dir", help="Optional pinned offline STT model for explicit HUD push-to-talk; no download.")
     desktop.set_defaults(func=run_desktop_command)
 
     hud = subparsers.add_parser(
