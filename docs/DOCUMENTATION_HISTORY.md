@@ -7,3 +7,4 @@
 - 2026-09-27: documented the one-process `desktop` API/HUD launcher, visible idle port state, owned shutdown, toy loopback test and synthetic visual QA. The real runtime remains ACL-blocked; this is not computer-use or voice acceptance.
 - 2026-09-27: documented optional desktop push-to-talk, cancellation, unverified draft display, exact read-only status speech, pinned E: model-load proof and synthetic voice-panel QA. Live microphone, audible answer, reasoning provider and executor acceptance remain open.
 - 2026-09-27: recorded the synthetic 200%-style clipping found in the first voice-panel capture and the scale-aware/scrollable HUD correction. Real high-DPI and accessibility acceptance remain unverified.
+- 2026-09-27: documented a 16-client concurrency ceiling and minimal `503` overflow response for the loopback HTTP listener, with recovery after a handler exits. This is local transport hardening, not public-service readiness.

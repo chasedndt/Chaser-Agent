@@ -81,6 +81,8 @@ An isolated engineering worktree now also has a [local HTTP foundation](docs/05_
 
 A `desktop` CLI now owns the loopback API and a visible idle HUD in one foreground process, shows its fixed port, and stops its owned server when the window closes. Lifecycle tests and a synthetic idle-window capture exist; the current broad-ACL runtime still prevents a real launch. This does not start the microphone or enable computer use.
 
+The local HTTP listener now caps simultaneous client handlers at 16 and returns `503` when full, in addition to its authenticated POST rate limit. This bounds one local connection-exhaustion path; it does not make the service safe for public or LAN exposure.
+
 An optional `desktop --model-dir <pinned-local-STT-model>` adds a push-to-talk panel: Talk starts one bounded take, Cancel discards it, and the transcript is shown as an unverified in-memory draft. With an explicitly configured local Pocket Alba library, the operator may separately click Speak status for a few exact read-only questions. No microphone opens on launch, and neither a draft nor a button click grants tool authority. The panel has synthetic visual QA and local-model-load proof, not operator microphone or audible-response acceptance.
 
 Verified P0.1 implementation:

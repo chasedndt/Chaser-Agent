@@ -35,6 +35,7 @@ DEFAULT_PORT = 8765
 MAX_BODY_BYTES = 262_144
 MAX_TEXT_CHARS = 100_000
 POSTS_PER_MINUTE = 20
+MAX_CLIENT_WORKERS = 16
 ARTIFACT_NAMES = frozenset(
     {
         "source_card.json",
@@ -124,11 +125,14 @@ class LocalHTTPServer(ThreadingHTTPServer):
         port: int = DEFAULT_PORT,
         allowed_origins: tuple[str, ...] = (),
         voice_library: Path | None = None,
+        max_client_workers: int = MAX_CLIENT_WORKERS,
     ):
         if not re.fullmatch(r"[0-9a-f]{64}", token):
             raise ValueError("A 256-bit hexadecimal bearer token is required")
         if not 0 <= port <= 65535:
             raise ValueError("Port must be between 0 and 65535")
+        if not 1 <= max_client_workers <= MAX_CLIENT_WORKERS:
+            raise ValueError(f"Client worker limit must be 1–{MAX_CLIENT_WORKERS}")
         validated_origins = {validate_allowed_origin(value) for value in allowed_origins}
         if data_dir.is_symlink():
             raise ValueError("Data directory must not be a symlink")
@@ -141,6 +145,7 @@ class LocalHTTPServer(ThreadingHTTPServer):
         assert_private_runtime_path(self.run_root)
         self.token = token
         self.limiter = SlidingWindowLimiter()
+        self._client_slots = threading.BoundedSemaphore(max_client_workers)
         self.hud = HudBridge()
         self.voice = WarmPocketAlbaVoice(library_root=voice_library, data_dir=data_dir) if voice_library else None
         if self.voice is not None:
@@ -150,6 +155,32 @@ class LocalHTTPServer(ThreadingHTTPServer):
         self.allowed_origins.update(validated_origins)
         if self.voice is not None:
             self.voice.prewarm()
+
+    def process_request(self, request, client_address) -> None:
+        if not self._client_slots.acquire(blocking=False):
+            try:
+                request.sendall(
+                    b"HTTP/1.1 503 Service Unavailable\r\n"
+                    b"Content-Length: 0\r\n"
+                    b"Cache-Control: no-store\r\n"
+                    b"Connection: close\r\n\r\n"
+                )
+            except OSError:
+                pass
+            finally:
+                self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except BaseException:
+            self._client_slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address) -> None:
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._client_slots.release()
 
     def server_close(self) -> None:
         try:
@@ -530,6 +561,7 @@ def create_server(
     port: int = DEFAULT_PORT,
     allowed_origins: tuple[str, ...] = (),
     voice_library: Path | None = None,
+    max_client_workers: int = MAX_CLIENT_WORKERS,
 ) -> LocalHTTPServer:
     return LocalHTTPServer(
         data_dir=data_dir,
@@ -537,4 +569,5 @@ def create_server(
         port=port,
         allowed_origins=allowed_origins,
         voice_library=voice_library,
+        max_client_workers=max_client_workers,
     )

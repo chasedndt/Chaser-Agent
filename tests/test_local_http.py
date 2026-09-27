@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import http.client
 import json
+import socket
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -12,6 +14,8 @@ import pytest
 from chaser_agent.local_http import (
     ARTIFACT_NAMES,
     LOOPBACK_HOST,
+    LocalRequestHandler,
+    MAX_CLIENT_WORKERS,
     SlidingWindowLimiter,
     create_server,
     load_or_create_token,
@@ -347,6 +351,56 @@ def test_authenticated_rate_limit_stops_repeated_creation(api):
     assert body["error"]["code"] == "rate_limited"
     assert headers["Retry-After"] == "60"
     assert len(list(api.run_root.iterdir())) == 1
+
+
+def test_client_worker_limit_rejects_excess_and_recovers(tmp_path):
+    entered = threading.Event()
+    release = threading.Event()
+
+    class HoldingHandler(LocalRequestHandler):
+        def handle(self):
+            entered.set()
+            release.wait(timeout=5)
+
+    server = create_server(data_dir=tmp_path, token=TOKEN, port=0, max_client_workers=1)
+    server.RequestHandlerClass = HoldingHandler
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    first = None
+    second = None
+    try:
+        first = socket.create_connection((LOOPBACK_HOST, server.server_port), timeout=3)
+        assert entered.wait(timeout=3)
+        second = socket.create_connection((LOOPBACK_HOST, server.server_port), timeout=3)
+        second.settimeout(3)
+        response = second.recv(512)
+        assert response.startswith(b"HTTP/1.1 503 Service Unavailable\r\n")
+        assert b"Connection: close\r\n" in response
+        server.RequestHandlerClass = LocalRequestHandler
+        release.set()
+        deadline = time.monotonic() + 3
+        while True:
+            status, body, _ = call(server, "GET", "/v1/health")
+            if status == 200:
+                assert body["port"] == server.server_port
+                break
+            assert status == 503 and time.monotonic() < deadline
+            time.sleep(0.02)
+    finally:
+        release.set()
+        if first is not None:
+            first.close()
+        if second is not None:
+            second.close()
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+@pytest.mark.parametrize("limit", [0, MAX_CLIENT_WORKERS + 1])
+def test_client_worker_limit_cannot_be_disabled_or_raised(tmp_path, limit):
+    with pytest.raises(ValueError, match="Client worker limit"):
+        create_server(data_dir=tmp_path, token=TOKEN, port=0, max_client_workers=limit)
 
 
 def test_token_file_is_reused_without_exposing_it(tmp_path):
