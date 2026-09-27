@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import queue
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from chaser_agent.local_voice import PocketAlbaVoice, VoiceBusy
+from chaser_agent.local_voice import PocketAlbaVoice, VoiceBusy, WarmPocketAlbaVoice, stop_owned_process
 
 
 @pytest.fixture
@@ -31,6 +32,7 @@ def library(tmp_path: Path, monkeypatch):
             "chaser_agent_production_voice": {
                 "voice_id": "pocket-alba", "status": "operator-approved canonical production voice"
             },
+            "voices": [{"id": "pocket-alba", "production_root": str(runtime)}],
             "runtime_paths": {
                 "pocket_python": str(python), "pocket_config": str(config), "pocket_voices": str(runtime)
             },
@@ -125,3 +127,95 @@ def test_voice_close_terminates_only_its_active_process(library, tmp_path):
     adapter._process = process
     adapter.close()
     assert process.terminated
+
+
+def test_warm_worker_reuses_one_local_model_process_for_two_takes(library, tmp_path, monkeypatch):
+    processes = []
+    wav_body = b"RIFF" + b"z" * 64
+
+    class FakeWorker:
+        def __init__(self, command, **kwargs):
+            assert "pocket_worker.py" in command[2]
+            assert kwargs["env"]["HF_HUB_OFFLINE"] == "1"
+            self.requests = queue.Queue()
+            self.root = Path(command[command.index("--output-root") + 1])
+            self.stdin = self
+            self.stdout = self.lines()
+            self.terminated = False
+            processes.append(self)
+
+        def lines(self):
+            yield '{"event":"ready"}\n'
+            while True:
+                voice_id = self.requests.get(timeout=5)
+                if voice_id is None:
+                    break
+                wav = self.root / voice_id / "response.wav"
+                wav.write_bytes(wav_body)
+                wav.with_suffix(".json").write_text(
+                    json.dumps({"voice_id": "pocket-alba", "sha256": hashlib.sha256(wav_body).hexdigest(), "duration_seconds": 1.0}),
+                    encoding="utf-8",
+                )
+                yield json.dumps({"event": "done", "voice_id": voice_id}) + "\n"
+
+        def write(self, line):
+            self.requests.put(json.loads(line)["voice_id"])
+
+        def flush(self):
+            pass
+
+        def poll(self):
+            return 0 if self.terminated else None
+
+        def terminate(self):
+            self.terminated = True
+            self.requests.put(None)
+
+        def wait(self, timeout):
+            return 0
+
+    monkeypatch.setattr("chaser_agent.local_voice.subprocess.Popen", FakeWorker)
+    adapter = WarmPocketAlbaVoice(library_root=library, data_dir=tmp_path / "data")
+    adapter.prewarm()
+    adapter._worker_thread.join(timeout=5)
+    assert adapter.runtime_state() == "ready"
+    first = adapter.enqueue("First public toy response")
+    adapter._worker_thread.join(timeout=5)
+    assert adapter.status(first["voice_id"])["status"] == "generated_pending_listening_review"
+    second = adapter.enqueue("Second public toy response")
+    adapter._worker_thread.join(timeout=5)
+    assert adapter.status(second["voice_id"])["status"] == "generated_pending_listening_review"
+    assert len(processes) == 1
+    adapter.close()
+    assert processes[0].terminated
+    assert adapter.runtime_state() == "closed"
+
+
+def test_stop_owned_process_targets_only_the_known_windows_child_tree(monkeypatch):
+    if __import__("os").name != "nt":
+        pytest.skip("Windows process-tree supervision")
+    calls = []
+
+    class Process:
+        pid = 41234
+        alive = True
+
+        def poll(self):
+            return None if self.alive else 0
+
+        def wait(self, timeout):
+            return 0
+
+        def terminate(self):
+            self.alive = False
+
+    process = Process()
+
+    def fake_taskkill(command, **kwargs):
+        calls.append(command)
+        process.alive = False
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr("chaser_agent.local_voice.subprocess.run", fake_taskkill)
+    stop_owned_process(process)
+    assert calls == [["taskkill", "/T", "/F", "/PID", "41234"]]

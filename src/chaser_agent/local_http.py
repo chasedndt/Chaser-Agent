@@ -20,7 +20,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from chaser_agent.hud_runtime import HudRegistry
-from chaser_agent.local_voice import MAX_SPEECH_CHARS, MAX_WAV_BYTES, PocketAlbaVoice, VoiceBusy, VoiceGenerationFailed
+from chaser_agent.local_voice import MAX_SPEECH_CHARS, MAX_WAV_BYTES, WarmPocketAlbaVoice, VoiceBusy, VoiceGenerationFailed
 from chaser_agent.run_artifacts import build_run_log, write_artifact_set
 from chaser_agent.schemas import SourceInput
 from chaser_agent.source_card import (
@@ -135,10 +135,12 @@ class LocalHTTPServer(ThreadingHTTPServer):
         self.token = token
         self.limiter = SlidingWindowLimiter()
         self.hud = HudRegistry()
-        self.voice = PocketAlbaVoice(library_root=voice_library, data_dir=data_dir) if voice_library else None
+        self.voice = WarmPocketAlbaVoice(library_root=voice_library, data_dir=data_dir) if voice_library else None
         super().__init__((LOOPBACK_HOST, port), LocalRequestHandler)
         self.allowed_origins = {f"http://{LOOPBACK_HOST}:{self.server_port}"}
         self.allowed_origins.update(validated_origins)
+        if self.voice is not None:
+            self.voice.prewarm()
 
     def server_close(self) -> None:
         try:
@@ -255,6 +257,7 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
                     "mode": "review_with_local_voice" if self.server.voice else "deterministic_review_only",
                     "hud": "not_connected",
                     "voice": "configured_local" if self.server.voice else "not_connected",
+                    "voice_runtime": self.server.voice.runtime_state() if self.server.voice else "disabled",
                 },
             )
             return
@@ -463,7 +466,7 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
         try:
             result = self.server.voice.enqueue(speech_text)
         except VoiceBusy:
-            self._error(409, "voice_busy", "A local voice take is already generating")
+            self._error(409, "voice_busy", "Local voice is starting or generating another take")
             return
         except (VoiceGenerationFailed, OSError, ValueError):
             self._error(500, "voice_generation_failed", "No verified local voice take was produced")
