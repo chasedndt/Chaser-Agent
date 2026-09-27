@@ -126,6 +126,40 @@ def test_bridge_dispatch_failure_preserves_unknown_execution_state():
     assert state["pending_id"] == "r1" and state["controls_enabled"] is False
 
 
+def test_only_original_executor_reconnects_uncertain_session_with_fresh_event():
+    bridge = HudBridge()
+    owner = RecordingExecutor()
+    old_report = bridge.attach("s", owner)
+    old_report(sequence=0, phase="running", action="Toy task")
+    bridge.request_control(session_id="s", request_id="pause-1", command="pause")
+    bridge.detach()
+    uncertain = bridge.snapshot()
+    assert uncertain["phase"] == "running" and uncertain["connected"] is False
+    assert uncertain["pending_id"] == "pause-1" and not uncertain["controls_enabled"]
+    with pytest.raises(HudUnavailable, match="original executor"):
+        bridge.attach("s", RecordingExecutor())
+    with pytest.raises(HudUnavailable, match="original executor"):
+        bridge.attach("other", owner)
+    report = bridge.attach("s", owner)
+    assert not bridge.snapshot()["controls_enabled"]
+    with pytest.raises(HudUnavailable):
+        old_report(sequence=1, phase="paused", request_id="pause-1")
+    report(sequence=1, phase="paused", request_id="pause-1")
+    restored = bridge.snapshot()
+    assert restored["phase"] == "paused" and restored["connected"] is True
+    assert restored["pending_id"] is None and restored["available_controls"] == ["resume", "stop", "take_over"]
+
+
+def test_terminal_session_can_be_replaced_by_new_executor():
+    bridge = HudBridge()
+    old_report = bridge.attach("old", RecordingExecutor())
+    old_report(sequence=0, phase="stopped")
+    bridge.detach()
+    new_report = bridge.attach("new", RecordingExecutor())
+    new_report(sequence=0, phase="running")
+    assert bridge.snapshot()["session_id"] == "new"
+
+
 def test_bridge_accepts_immediate_ack_and_rejects_missing_executor_contract():
     bridge = HudBridge()
     with pytest.raises(ValueError):
