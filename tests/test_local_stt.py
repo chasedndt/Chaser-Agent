@@ -117,3 +117,34 @@ def test_voice_mode_rejects_bad_capture_or_ack_config_before_model_load(capsys):
     args.speak_ack = True
     assert run_voice_mode_command(args) == 2
     assert "requires --data-dir" in capsys.readouterr().err
+    args.speak_ack = False
+    args.speak_status = True
+    assert run_voice_mode_command(args) == 2
+    assert "requires --data-dir" in capsys.readouterr().err
+
+
+def test_voice_mode_routes_only_status_draft_to_read_only_reply(monkeypatch, tmp_path, capsys):
+    calls = []
+
+    class FakeTranscriber:
+        def __init__(self, _model_dir):
+            pass
+
+        def transcribe(self, _pcm):
+            return {"status": "draft_unverified", "text": "What's your status?",
+                    "authority": "transcript_only_no_dispatch"}
+
+    monkeypatch.setattr("chaser_agent.local_stt.OfflineTranscriber", FakeTranscriber)
+    monkeypatch.setattr("chaser_agent.local_stt.read_pcm_wav", lambda _path: b"toy pcm")
+
+    def fake_reply(**kwargs):
+        calls.append(kwargs)
+        return "No computer-use executor is connected.", "toy-voice-id"
+
+    monkeypatch.setattr("chaser_agent.voice_ack.speak_status_reply", fake_reply)
+    args = argparse.Namespace(model_dir=str(tmp_path), sample_wav=str(tmp_path / "toy.wav"),
+                              seconds=5, speak_ack=False, speak_status=True,
+                              data_dir=str(tmp_path / "runtime"), port=8765, device=None)
+    assert run_voice_mode_command(args) == 0
+    assert calls[0]["transcript"] == "What's your status?"
+    assert "Read-only local status reply played" in capsys.readouterr().out

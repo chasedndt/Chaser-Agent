@@ -1,4 +1,4 @@
-"""Play a fixed, public-safe acknowledgement through the local Pocket Alba API.
+"""Play fixed or tightly bounded read-only replies through local Pocket Alba.
 
 The transcript is never sent to the speech service. This is not an agent reply.
 """
@@ -11,6 +11,9 @@ import time
 from pathlib import Path
 from urllib.request import Request, urlopen
 
+from chaser_agent.local_acl import read_private_control_token
+from chaser_agent.voice_status import public_status_reply, status_intent
+
 ACK_TEXT = "I heard you. The draft transcript is ready for your review."
 VOICE_PATH = re.compile(r"^/v1/voice/voice-[0-9]{8}T[0-9]{12}Z-[0-9a-f]{12}$")
 MAX_AUDIO_BYTES = 10_000_000
@@ -19,19 +22,39 @@ MAX_AUDIO_BYTES = 10_000_000
 def speak_ack(*, data_dir: Path, port: int = 8765, timeout: float = 45.0) -> str:
     if not 1 <= port <= 65535:
         raise ValueError("Invalid local voice port")
-    token_path = data_dir / "control-token"
-    if data_dir.is_symlink() or token_path.is_symlink() or not token_path.is_file():
-        raise ValueError("A real local voice token file is required")
-    token = token_path.read_text(encoding="ascii").strip()
-    if not re.fullmatch(r"[0-9a-f]{64}", token):
-        raise ValueError("Local voice token is invalid")
+    token = read_private_control_token(data_dir)
     base = f"http://127.0.0.1:{port}"
     with urlopen(f"{base}/v1/health", timeout=3) as response:
         health = json.load(response)
     if health.get("voice_runtime") != "ready":
         raise RuntimeError("Local Pocket Alba voice is not ready")
+    return _play_public_text(base=base, token=token, text=ACK_TEXT, timeout=timeout)
+
+
+def speak_status_reply(*, data_dir: Path, transcript: str,
+                       port: int = 8765, timeout: float = 45.0) -> tuple[str, str] | None:
+    """Answer only an exact read-only status question, never a command."""
+    intent = status_intent(transcript)
+    if intent is None:
+        return None
+    if not 1 <= port <= 65535:
+        raise ValueError("Invalid local voice port")
+    token = read_private_control_token(data_dir)
+    base = f"http://127.0.0.1:{port}"
+    with urlopen(f"{base}/v1/health", timeout=3) as response:
+        health = json.load(response)
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    body = json.dumps({"text": ACK_TEXT, "privacy_class": "public_toy"}).encode("utf-8")
+    with urlopen(Request(f"{base}/v1/hud/current", headers=headers), timeout=3) as response:
+        hud = json.load(response)
+    reply = public_status_reply(intent=intent, health=health, hud=hud, port=port)
+    if health.get("voice_runtime") != "ready":
+        raise RuntimeError("Local Pocket Alba voice is not ready")
+    return reply, _play_public_text(base=base, token=token, text=reply, timeout=timeout)
+
+
+def _play_public_text(*, base: str, token: str, text: str, timeout: float) -> str:
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    body = json.dumps({"text": text, "privacy_class": "public_toy"}).encode("utf-8")
     with urlopen(Request(f"{base}/v1/voice/replies", data=body, headers=headers, method="POST"), timeout=5) as response:
         job = json.load(response)
     path = job.get("status_url")

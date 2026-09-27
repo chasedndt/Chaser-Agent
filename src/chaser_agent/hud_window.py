@@ -15,6 +15,7 @@ from tkinter import ttk
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from chaser_agent.local_acl import read_private_control_token
 from chaser_agent.hud_runtime import HudRegistry
 
 INK = "#070B14"
@@ -58,6 +59,7 @@ class HudWindow:
             raise ValueError("A local token file is required outside preview mode")
         self.port = port
         self.token_file = token_file
+        self.token = read_private_control_token(token_file.parent) if token_file is not None and not preview else None
         self.preview = preview
         self.root = tk.Tk()
         self.root.title("Chaser Agent HUD")
@@ -156,8 +158,7 @@ class HudWindow:
 
     def _control_in_background(self, session_id: str, command: str) -> None:
         try:
-            token = self.token_file.read_text(encoding="ascii").strip()
-            result = send_control(port=self.port, token=token, session_id=session_id, command=command)
+            result = send_control(port=self.port, token=self.token, session_id=session_id, command=command)
             notice = ("Awaiting executor acknowledgement" if result.get("status") == "pending_executor_ack"
                       else "Executor acknowledgement received" if result.get("status") == "acknowledged"
                       else "Control status unknown")
@@ -183,8 +184,7 @@ class HudWindow:
 
     def _fetch_in_background(self) -> None:
         try:
-            token = self.token_file.read_text(encoding="ascii").strip()
-            snapshot = fetch_snapshot(port=self.port, token=token)
+            snapshot = fetch_snapshot(port=self.port, token=self.token)
         except (OSError, URLError, ValueError, json.JSONDecodeError):
             snapshot = None
         if not self._closed:

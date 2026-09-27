@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from chaser_agent.voice_ack import ACK_TEXT, speak_ack
+from chaser_agent.voice_ack import ACK_TEXT, speak_ack, speak_status_reply
 
 
 def test_ack_requires_local_token_and_never_accepts_bad_port(tmp_path):
@@ -18,6 +18,7 @@ def test_ack_requires_local_token_and_never_accepts_bad_port(tmp_path):
 
 def test_ack_sends_only_fixed_public_text_and_plays_verified_route(monkeypatch, tmp_path: Path):
     (tmp_path / "control-token").write_text("a" * 64, encoding="ascii")
+    monkeypatch.setattr("chaser_agent.voice_ack.read_private_control_token", lambda _path: "a" * 64)
     voice_id = "voice-20260927T120000000000Z-abcdef123456"
     status_path = f"/v1/voice/{voice_id}"
     seen = []
@@ -44,3 +45,44 @@ def test_ack_sends_only_fixed_public_text_and_plays_verified_route(monkeypatch, 
     posted = json.loads(next(body for url, body in seen if url.endswith("/v1/voice/replies")))
     assert posted == {"text": ACK_TEXT, "privacy_class": "public_toy"}
     assert len(played) == 1 and played[0][0].startswith(b"RIFF")
+
+
+def test_spoken_status_queries_hud_read_only_and_never_posts_transcript(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr("chaser_agent.voice_ack.read_private_control_token", lambda _path: "a" * 64)
+    voice_id = "voice-20260927T120000000000Z-abcdef123456"
+    status_path = f"/v1/voice/{voice_id}"
+    seen = []
+
+    def fake_urlopen(request, timeout):
+        url = request.full_url if hasattr(request, "full_url") else request
+        body = getattr(request, "data", None)
+        seen.append((url, body))
+        if url.endswith("/v1/health"):
+            payload = {"service": "chaser-agent", "status": "ready", "bind": "127.0.0.1",
+                       "port": 8765, "mode": "review_with_local_voice", "voice_runtime": "ready"}
+        elif url.endswith("/v1/hud/current"):
+            payload = {"status": "inactive", "action": "private content"}
+        elif url.endswith("/v1/voice/replies"):
+            payload = {"status_url": status_path}
+        elif url.endswith("/audio.wav"):
+            return io.BytesIO(b"RIFF" + b"\x00" * 64)
+        else:
+            payload = {"status": "generated_pending_listening_review",
+                       "audio_url": status_path + "/audio.wav", "voice_id": voice_id}
+        return io.BytesIO(json.dumps(payload).encode("utf-8"))
+
+    played = []
+    monkeypatch.setattr("chaser_agent.voice_ack.urlopen", fake_urlopen)
+    monkeypatch.setitem(sys.modules, "winsound", types.SimpleNamespace(
+        SND_MEMORY=4, PlaySound=lambda audio, flags: played.append(audio),
+    ))
+    assert speak_status_reply(data_dir=tmp_path, transcript="Stop the computer") is None
+    assert not seen
+    reply, returned_id = speak_status_reply(data_dir=tmp_path, transcript="What's your status?")
+    assert returned_id == voice_id
+    assert reply == "The local review service is ready on port 8765. No computer-use executor is connected."
+    assert [url for url, _ in seen if "/v1/hud/controls" in url] == []
+    posted = json.loads(next(body for url, body in seen if url.endswith("/v1/voice/replies")))
+    assert posted == {"text": reply, "privacy_class": "public_toy"}
+    assert "What's your status" not in json.dumps(posted)
+    assert len(played) == 1

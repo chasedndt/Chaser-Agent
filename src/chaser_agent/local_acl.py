@@ -90,3 +90,14 @@ def assert_private_runtime_path(path: Path) -> None:
         mode = stat.S_IMODE(path.stat().st_mode)
         if mode & 0o077:
             raise InsecureRuntimePath("Runtime path is accessible to group or others")
+
+
+def read_private_control_token(data_dir: Path) -> str:
+    """Read a local control credential only after checking both storage ACLs."""
+    assert_private_runtime_path(data_dir)
+    token_path = data_dir / "control-token"
+    assert_private_runtime_path(token_path)
+    token = token_path.read_text(encoding="ascii").strip()
+    if not re.fullmatch(r"[0-9a-f]{64}", token):
+        raise InsecureRuntimePath("Local control token is invalid")
+    return token

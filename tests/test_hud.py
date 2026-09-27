@@ -3,6 +3,7 @@ import pytest
 from chaser_agent.hud import HudState, apply_status
 from chaser_agent.hud_controls import ControlState, disconnect, receive_status, request_control
 from chaser_agent.hud_runtime import HudBridge, HudRegistry, HudUnavailable
+from chaser_agent.local_acl import InsecureRuntimePath
 
 
 def test_hud_appears_on_activity_and_keeps_terminal_receipt():
@@ -138,3 +139,14 @@ def test_bridge_accepts_immediate_ack_and_rejects_missing_executor_contract():
     report(sequence=0, phase="running")
     result = bridge.request_control(session_id="s", request_id="r1", command="pause")
     assert result["phase"] == "paused" and result["pending_id"] is None
+
+
+def test_normal_hud_refuses_broad_token_before_opening_window(tmp_path, monkeypatch):
+    from chaser_agent.hud_window import HudWindow
+
+    def reject(_path):
+        raise InsecureRuntimePath("broad ACL")
+
+    monkeypatch.setattr("chaser_agent.hud_window.read_private_control_token", reject)
+    with pytest.raises(InsecureRuntimePath, match="broad ACL"):
+        HudWindow(token_file=tmp_path / "control-token")

@@ -8,6 +8,8 @@ Earlier follow-on engineering status: local Pocket Alba speech-out was implement
 
 Voice-input follow-on, 2026-09-27: an optional pinned offline STT model and explicit push-to-talk CLI now exist; the public/toy WAV round trip succeeded. The CLI can request a fixed Pocket Alba acknowledgement, but no task-aware reply, live operator microphone acceptance, interruption, or voice-to-action handoff exists. The full objective remains active.
 
+Client-security/status follow-on, 2026-09-27: server, HUD and speech clients now refuse broad token-storage ACLs. The current runtime is still not usable until operator-approved ACL repair and token rotation. Optional voice status answers a few exact read-only questions from health/HUD state; it is not general reasoning, human-auditioned voice or computer-use control. This Codex goal remains active for the full HTTP/HUD/voice outcome, not merely the first service slice.
+
 ## Goal to create in the engineering task
 
 Build and verify Chaser Agent's standalone, local-only HTTP foundation so the deterministic harness can be invoked through a bounded loopback service without ChaseOS. Start with a read-only/review-only source-card path and explicit health/status; then add only the review and run retrieval operations whose authority boundaries can be tested. Keep the service secure by default, documented, and independently runnable. Do not generate human product-quality labels or treat pending eval fixtures as golden answers.
@@ -36,4 +38,4 @@ No push, merge, deployment, domain/DNS change, model training, credential extrac
 
 ## Completion evidence
 
-Report source commit/worktree, changed interfaces, threat model, exact commands/results, live loopback request/response, security failures tested, untouched boundaries, and remaining unknowns. Keep behavior/docs/build log/history aligned. This goal remains active until the first local service is demonstrably usable and its security boundaries are tested; do not mark it complete for a design document alone.
+Report source commit/worktree, changed interfaces, threat model, exact commands/results, live loopback request/response, security failures tested, untouched boundaries, and remaining unknowns. Keep behavior/docs/build log/history aligned. This goal remains active until a secure local service is demonstrably usable, the HUD works with a real authorized computer-use executor, and voice can accept and answer real operator speech safely. Do not mark it complete for a protocol test, synthetic HUD replay, toy WAV, or design document alone.
