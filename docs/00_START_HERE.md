@@ -44,6 +44,8 @@ Isolated engineering evidence for the new local service: `../logs/build/2026-09-
 
 The follow-on [client-security and read-only voice status receipt](../logs/build/2026-09-27-client-acl-and-voice-status.md) covers the HUD/voice credential gate and exact status-question reply. It does not close the broader active HTTP/HUD/voice engineering goal.
 
+The [desktop lifecycle receipt](../logs/build/2026-09-27-desktop-launcher.md) covers the one-command local API/HUD launcher and its synthetic idle-window visual QA. The existing E: runtime still refuses startup until approved ACL repair and token rotation.
+
 The isolated-worktree [documentation history](DOCUMENTATION_HISTORY.md), [daily engineering index](../logs/daily/README.md), and [agent activity index](../logs/agent-activity/README.md) track this local pass without changing ChaseOS canonical state.
 
 ## Truth boundary

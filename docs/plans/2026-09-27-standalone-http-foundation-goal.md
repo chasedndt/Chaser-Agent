@@ -10,6 +10,8 @@ Voice-input follow-on, 2026-09-27: an optional pinned offline STT model and expl
 
 Client-security/status follow-on, 2026-09-27: server, HUD and speech clients now refuse broad token-storage ACLs. The current runtime is still not usable until operator-approved ACL repair and token rotation. Optional voice status answers a few exact read-only questions from health/HUD state; it is not general reasoning, human-auditioned voice or computer-use control. This Codex goal remains active for the full HTTP/HUD/voice outcome, not merely the first service slice.
 
+Desktop-lifecycle follow-on, 2026-09-27: a single `desktop` command now owns the local API and a visible idle HUD on the fixed loopback port; closing the HUD shuts down that owned service. A toy loopback test and synthetic window capture verify wiring/layout only. The real E: runtime remains ACL-blocked, and the complete goal still requires live secure service, authorized computer-use integration and operator-accepted voice.
+
 ## Goal to create in the engineering task
 
 Build and verify Chaser Agent's standalone, local-only HTTP foundation so the deterministic harness can be invoked through a bounded loopback service without ChaseOS. Start with a read-only/review-only source-card path and explicit health/status; then add only the review and run retrieval operations whose authority boundaries can be tested. Keep the service secure by default, documented, and independently runnable. Do not generate human product-quality labels or treat pending eval fixtures as golden answers.

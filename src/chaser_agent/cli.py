@@ -312,6 +312,32 @@ def run_hud_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_desktop_command(args: argparse.Namespace) -> int:
+    from chaser_agent.local_desktop import run_desktop
+
+    requested_data_dir = Path(args.data_dir)
+    if requested_data_dir.is_symlink():
+        print("error: desktop data directory must not be a symlink", file=sys.stderr)
+        return 2
+    data_dir = requested_data_dir.resolve()
+    if data_dir.is_relative_to(_repo_root().resolve()):
+        print("error: desktop data directory must be outside the source repository", file=sys.stderr)
+        return 2
+    if not 1 <= args.port <= 65535:
+        print("error: port must be between 1 and 65535", file=sys.stderr)
+        return 2
+    try:
+        run_desktop(
+            data_dir=data_dir, port=args.port,
+            allowed_origins=tuple(args.allowed_origin),
+            voice_library=Path(args.voice_library) if args.voice_library else None,
+        )
+    except (OSError, ValueError, RuntimeError) as exc:
+        print(f"error: local desktop startup or shutdown failed: {exc}", file=sys.stderr)
+        return 2
+    return 0
+
+
 def run_voice_mode_command(args: argparse.Namespace) -> int:
     from chaser_agent.local_stt import OfflineTranscriber, read_pcm_wav, record_once
 
@@ -505,6 +531,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional operator-approved local Pocket Alba speech library; no model download or provider call.",
     )
     serve.set_defaults(func=run_serve_command)
+
+    desktop = subparsers.add_parser(
+        "desktop", help="Run the private loopback review API and desktop HUD together in one foreground process.",
+    )
+    desktop.add_argument("--data-dir", required=True, help="Explicit private runtime directory outside the repository.")
+    desktop.add_argument("--port", type=int, default=8765, help="Fixed loopback port; fail if occupied (default 8765).")
+    desktop.add_argument("--allowed-origin", action="append", default=[],
+                         help="Optional exact http://127.0.0.1:<port> browser origin.")
+    desktop.add_argument("--voice-library", help="Optional operator-approved local Pocket Alba library.")
+    desktop.set_defaults(func=run_desktop_command)
 
     hud = subparsers.add_parser(
         "hud",
