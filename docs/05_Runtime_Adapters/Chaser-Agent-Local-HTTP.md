@@ -1,6 +1,6 @@
 # Chaser Agent local HTTP foundation
 
-Status: implemented and loopback-tested on the `codex/2026-09-27-standalone-http-foundation` worktree, 2026-09-27. This is a pre-alpha local review API with an optional offline speech-out endpoint and executor-gated HUD control contract. It is not an autonomous agent, public web service, connected computer-use controller, or two-way voice mode.
+Status: implemented and loopback-tested on the `codex/2026-09-27-standalone-http-foundation` worktree, 2026-09-27. The latest security gate refuses the existing E: runtime because its inherited Windows ACL grants broad local access; the service is not currently running from that directory. This is a pre-alpha local review API with an optional offline speech-out endpoint and executor-gated HUD control contract. It is not an autonomous agent, public web service, connected computer-use controller, or two-way voice mode.
 
 ## Start it locally
 
@@ -8,10 +8,10 @@ From this worktree, launch without installing into another agent's Python enviro
 
 ```powershell
 $env:PYTHONPATH = (Join-Path (Get-Location) 'src')
-python -m chaser_agent.cli serve --data-dir 'E:\Projects\Chaser Agent\Local Runtime\http-foundation' --port 8765
+python -m chaser_agent.cli serve --data-dir 'E:\Projects\Chaser Agent\Local Runtime\2026-09-27-http-foundation' --port 8765
 ```
 
-The process stays in the foreground. Stop it with Ctrl+C. It prints its health URL and the **path** of its generated bearer-token file, never the token value. Use a private data directory outside the source repository. The default listener is `127.0.0.1:8765`; an occupied port fails startup instead of silently changing ports. No provider key or ChaseOS process is required.
+The process stays in the foreground. Stop it with Ctrl+C. It prints its health URL and the **path** of its generated bearer-token file, never the token value. Use a private data directory outside the source repository. Startup now checks the directory, token, run directory and optional voice directory permissions before binding. On Windows, only the current user, SYSTEM and Administrators may have allow entries; on POSIX, group/other access is refused. It does **not** change permissions automatically. The existing E: runtime fails this check and requires operator-approved ACL repair and token rotation before reuse. The default listener is `127.0.0.1:8765`; an occupied port fails startup instead of silently changing ports. No provider key or ChaseOS process is required.
 
 For an optional offline Pocket Alba speech adapter on this operator's machine, add `--voice-library 'E:\Projects\Chaser Agent\Shared Speech Library'`. Other installations must explicitly provide their own compatible, approved local library; Chaser Agent does not bundle model weights, download a voice, or choose a cloud fallback. The local model prewarms in the background when configured. `/v1/health` reports `voice: configured_local` and `voice_runtime: starting|ready|busy|failed|cold`; only `ready` means the retained model process has loaded. A configured or ready state does **not** mean the take has been listened to or that two-way voice mode exists.
 
@@ -49,7 +49,7 @@ A separate [opt-in offline voice-input CLI](Chaser-Agent-Local-Voice-Input.md) c
 
 - **Bind and DNS rebinding:** socket binds only to `127.0.0.1`; every request must use the exact `Host: 127.0.0.1:<bound-port>` and come from loopback. There is no LAN/public bind option.
 - **Browser-origin/CSRF boundary:** browser requests with `Origin` are rejected unless same-origin. A future local UI may opt into one explicit `http://127.0.0.1:<port>` origin with `--allowed-origin`; wildcard/reflected origins and non-loopback sites are rejected. An allowed origin still needs the bearer token. Do not expose the token to arbitrary web pages.
-- **Auth and data:** a 256-bit random token is created in the data directory, reused across restarts, and never logged by the server. Run reads and creation require it. Token-file secrecy depends on the OS ACL of the chosen E: directory; `0o600` creation flags alone are **not** a Windows ACL guarantee. This is not hardened against another local account with read access to that directory, malware running as the same user, or a compromised allowed-origin app.
+- **Auth and data:** a 256-bit random token is created in the data directory, reused across restarts, and never logged by the server. Run reads and creation require it. The service refuses broad OS ACLs before reading the token or writing runs. `0o600` creation flags alone are **not** a Windows ACL guarantee. The previously broad E: runtime should be treated as having a potentially exposed token; the new startup gate does not retroactively protect it. No permission change or rotation is performed without explicit operator approval. This does not defend against malware running as the same user or a compromised allowed-origin app.
 - **Parsing and resource limits:** JSON only, one `Content-Length`, 256 KiB max body, 100,000-character source max, duplicate JSON keys rejected, 10-second socket timeout, and 20 authenticated POSTs/minute per process. This is not a comprehensive DoS control; Python's threaded HTTP server is not suitable for untrusted public traffic.
 - **Path/storage:** run IDs and artifact names are allowlisted; traversal and symlink artifact reads are rejected. The original source and generated run files live outside the repo. A run is built in a non-routable `.pending-...` folder and renamed into the visible run path only after the source and JSON artifacts are written. A crash may leave a pending folder for an operator to inspect; there is no automatic destructive cleanup or retention policy yet.
 - **Logging/response:** raw request logging is disabled. Responses set `no-store`, `nosniff`, and a deny-by-default CSP. Health reveals only local service state; it does not prove a provider, HUD, voice, or eval quality is ready.

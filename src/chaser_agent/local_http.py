@@ -20,6 +20,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from chaser_agent.hud_runtime import HudBridge, HudUnavailable
+from chaser_agent.local_acl import assert_private_runtime_path
 from chaser_agent.local_voice import MAX_SPEECH_CHARS, MAX_WAV_BYTES, WarmPocketAlbaVoice, VoiceBusy, VoiceGenerationFailed
 from chaser_agent.run_artifacts import build_run_log, write_artifact_set
 from chaser_agent.schemas import SourceInput
@@ -55,10 +56,13 @@ def load_or_create_token(data_dir: Path) -> tuple[str, Path]:
     """Keep the bearer token outside the repository and never print its value."""
     if data_dir.is_symlink():
         raise ValueError("Data directory must not be a symlink")
-    data_dir.mkdir(parents=True, exist_ok=True)
+    data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    assert_private_runtime_path(data_dir)
     token_path = data_dir / "control-token"
     if token_path.is_symlink():
         raise ValueError("Token file must not be a symlink")
+    if token_path.exists():
+        assert_private_runtime_path(token_path)
     if not token_path.exists():
         token = secrets.token_hex(32)
         try:
@@ -68,6 +72,7 @@ def load_or_create_token(data_dir: Path) -> tuple[str, Path]:
         else:
             with os.fdopen(descriptor, "w", encoding="ascii") as stream:
                 stream.write(token + "\n")
+    assert_private_runtime_path(token_path)
     token = token_path.read_text(encoding="ascii").strip()
     if not re.fullmatch(r"[0-9a-f]{64}", token):
         raise ValueError("Invalid local token file; refusing to start")
@@ -128,14 +133,18 @@ class LocalHTTPServer(ThreadingHTTPServer):
         if data_dir.is_symlink():
             raise ValueError("Data directory must not be a symlink")
         data_dir = data_dir.resolve()
-        data_dir.mkdir(parents=True, exist_ok=True)
+        data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        assert_private_runtime_path(data_dir)
         self.data_dir = data_dir
         self.run_root = data_dir / "runs"
-        self.run_root.mkdir(exist_ok=True)
+        self.run_root.mkdir(exist_ok=True, mode=0o700)
+        assert_private_runtime_path(self.run_root)
         self.token = token
         self.limiter = SlidingWindowLimiter()
         self.hud = HudBridge()
         self.voice = WarmPocketAlbaVoice(library_root=voice_library, data_dir=data_dir) if voice_library else None
+        if self.voice is not None:
+            assert_private_runtime_path(self.voice.voice_root)
         super().__init__((LOOPBACK_HOST, port), LocalRequestHandler)
         self.allowed_origins = {f"http://{LOOPBACK_HOST}:{self.server_port}"}
         self.allowed_origins.update(validated_origins)
@@ -370,6 +379,13 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
             self._error(413, "body_too_large", "Request exceeds the local size limit")
             return
         if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
+            if length <= 8192:
+                try:
+                    self.rfile.read(length)
+                except (TimeoutError, OSError):
+                    pass
+            else:
+                self.close_connection = True
             self._error(415, "invalid_content_type", "Use application/json")
             return
         try:
