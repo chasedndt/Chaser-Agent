@@ -219,6 +219,42 @@ def test_voice_panel_only_enables_status_speech_for_exact_draft():
     assert window.speak_button.values["state"] == "disabled"
 
 
+def test_voice_panel_ignores_stale_draft_and_cancel_after_new_take_starts():
+    from chaser_agent.hud_window import HudWindow
+
+    class FakeWidget:
+        def __init__(self):
+            self.values = {}
+
+        def configure(self, **kwargs):
+            self.values.update(kwargs)
+
+    window = object.__new__(HudWindow)
+    window._closed = False
+    window.voice_output_enabled = True
+    window._voice_draft = None
+    window._active_capture_id = None
+    window.talk_button = FakeWidget()
+    window.speak_button = FakeWidget()
+    window.clear_button = FakeWidget()
+    window.voice_state_label = FakeWidget()
+    window.voice_draft_label = FakeWidget()
+    window._on_voice_event("recording", {"capture_id": 2})
+    window._on_voice_event("draft", {
+        "capture_id": 1, "status": "draft_unverified", "text": "What's your status?",
+    })
+    window._on_voice_event("cancelled", {"capture_id": 1})
+    assert window._voice_draft is None
+    assert window.talk_button.values["text"] == "Cancel take"
+    assert window.speak_button.values["state"] == "disabled"
+    assert window.voice_state_label.values["text"].startswith("MICROPHONE ACTIVE")
+    window._on_voice_event("draft", {
+        "capture_id": 2, "status": "draft_unverified", "text": "What's your status?",
+    })
+    assert window._voice_draft == "What's your status?"
+    assert window.speak_button.values["state"] == "normal"
+
+
 def test_recording_indicator_is_painted_before_microphone_worker_starts():
     import threading
     from chaser_agent.hud_window import HudWindow
