@@ -24,6 +24,10 @@ HUD-playback follow-on, 2026-09-27: the desktop's cancel-event path now uses out
 
 HUD-reconnect follow-on, 2026-09-27: after a nonterminal disconnect, only the same in-process executor may reattach the same session. Its old callback stays invalid, pending controls remain uncertain, and a fresh higher-sequence event is required to re-enable controls. Fake-executor tests cover this same-process path, not process-crash recovery or real computer use. The full goal stays active.
 
+HTTP-integrity follow-on, 2026-09-27: new source-card runs carry read-time SHA-256 records; changed or missing new-run records fail with `409`, while older runs are labelled unverified. This corrects an overstrong "immutable" API claim: no filesystem seal or same-user adversary resistance exists. Live service, computer-use executor and conversational voice remain open; the full goal stays active.
+
+HTTP-rejection follow-on, 2026-09-27: early rejected POSTs now drain only small declared bodies before closing, avoiding an observed Windows connection abort on a 404 path. Focused network tests cover invalid route, Host, Origin and rate-limit replies. Larger or malformed bodies still close without unbounded reads.
+
 ## Goal to create in the engineering task
 
 Build and verify Chaser Agent's standalone, local-only HTTP foundation so the deterministic harness can be invoked through a bounded loopback service without ChaseOS. Start with a read-only/review-only source-card path and explicit health/status; then add only the review and run retrieval operations whose authority boundaries can be tested. Keep the service secure by default, documented, and independently runnable. Do not generate human product-quality labels or treat pending eval fixtures as golden answers.

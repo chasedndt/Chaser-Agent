@@ -1,0 +1,3 @@
+# Agent activity — 2026-09-27 HTTP run integrity
+
+Actor: Codex / Axiom-Codex. Scope: isolated E: Chaser Agent engineering worktree. Result: new local HTTP source-card runs gain read-time SHA-256 drift checks, older runs are visibly unverified, and bounded early-POST draining addresses a Windows response-abort test. See [build receipt](../build/2026-09-27-http-run-integrity.md) and [HTTP contract](../../docs/05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md). No governed-state, ACL/token, provider, executor, push or deployment action occurred. The ChaseOS profile remains `PARTIAL / CORE FOUNDATION PREVIEW / NOT LIVE`; the full Codex goal remains active.
