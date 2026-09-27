@@ -30,6 +30,8 @@ HTTP-rejection follow-on, 2026-09-27: early rejected POSTs now drain only small 
 
 Voice-turn follow-on, 2026-09-27: during a pending spoken reply the HUD now offers Talk next. That explicit click requests cancellation, waits for the reply worker to complete, then starts a new bounded push-to-talk take; Clear draft revokes the queued capture. Mocked UI-state tests prove ordering and no early microphone opening, but no real microphone/speaker latency or general conversation is verified. The full goal stays active.
 
+HUD-visual follow-on, 2026-09-27: actual Tk screenshots with fake/no-device state exposed clipping at a narrow width. The HUD now wraps status text to the canvas and reflows controls into two rows; a second capture verifies readable labels at that tested size. Talk-next waiting copy now distinguishes queued capture from reply stopping. See the [QA record](<E:/Visual QA/Chaser Agent Visual QA/Current Reviews/2026-09-27-talk-next-hud/QA.md>). Keyboard, screen-reader and real-device behavior remain unverified.
+
 ## Goal to create in the engineering task
 
 Build and verify Chaser Agent's standalone, local-only HTTP foundation so the deterministic harness can be invoked through a bounded loopback service without ChaseOS. Start with a read-only/review-only source-card path and explicit health/status; then add only the review and run retrieval operations whose authority boundaries can be tested. Keep the service secure by default, documented, and independently runnable. Do not generate human product-quality labels or treat pending eval fixtures as golden answers.

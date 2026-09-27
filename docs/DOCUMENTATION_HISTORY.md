@@ -16,3 +16,4 @@
 - 2026-09-27: documented read-time HTTP run integrity checks and explicit unverified legacy state; corrected the claim that API runs are filesystem-immutable. Private storage and human review remain required.
 - 2026-09-27: documented bounded draining of early-rejected HTTP POST bodies after a Windows client-reset failure in the full suite; malformed/large requests still close fail-closed.
 - 2026-09-27: documented the explicit Talk-next HUD sequence, with reply cancellation before a new microphone take, revocation through Clear draft and no claim of real barge-in acceptance.
+- 2026-09-27: documented actual Tk HUD synthetic before/after captures and the narrow-width wrap/reflow correction for Talk-next and computer-use controls. Accessibility and device acceptance remain open.

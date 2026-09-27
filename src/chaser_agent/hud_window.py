@@ -111,6 +111,8 @@ class HudWindow:
         self._voice_after_id: str | None = None
         self._preview_after_id: str | None = None
         self._preview_step = 0
+        self._narrow_controls: bool | None = None
+        self._voice_controls_frame: tk.Frame | None = None
         self._current_session: str | None = None
         self._control_in_flight = False
         self._preview_registry = HudRegistry() if preview else None
@@ -167,6 +169,7 @@ class HudWindow:
         separator.pack(fill="x", pady=(14, 12))
         controls = tk.Frame(wrapper, bg=PANEL)
         controls.pack(fill="x")
+        self._hud_controls_frame = controls
         for column in range(4):
             controls.grid_columnconfigure(column, weight=1, uniform="hud-control")
         style = ttk.Style(self.root)
@@ -200,6 +203,7 @@ class HudWindow:
         self.voice_draft_label.pack(fill="x", pady=(0, 7))
         row = tk.Frame(wrapper, bg=PANEL)
         row.pack(fill="x")
+        self._voice_controls_frame = row
         for column in range(3):
             row.grid_columnconfigure(column, weight=1, uniform="voice-control")
         self.talk_button = ttk.Button(row, text="Talk", state="disabled", style="Hud.TButton",
@@ -224,7 +228,40 @@ class HudWindow:
 
     def _resize_canvas_content(self, event) -> None:
         self._canvas.itemconfigure(self._canvas_window, width=event.width)
+        wrap = max(160, event.width - 40)
+        self._wrap_length = wrap
+        for label in (self.phase_label, self.action_label, self.session_label, self.notice_label):
+            label.configure(wraplength=wrap, justify="left")
+        if self.voice_model_dir is not None:
+            self.voice_state_label.configure(wraplength=wrap)
+            self.voice_draft_label.configure(wraplength=wrap)
+        self._layout_controls(event.width < 340)
         self._resize_scroll_region()
+
+    def _layout_controls(self, narrow: bool) -> None:
+        if narrow == self._narrow_controls:
+            return
+        self._narrow_controls = narrow
+        frame = self._hud_controls_frame
+        for column in range(4):
+            frame.grid_columnconfigure(column, weight=1 if not narrow or column < 2 else 0,
+                                       uniform="hud-control" if not narrow or column < 2 else "")
+        for index, command in enumerate(("pause", "resume", "stop", "take_over")):
+            row, column = (divmod(index, 2) if narrow else (0, index))
+            self.buttons[command].grid_configure(
+                row=row, column=column, padx=(0, 5) if column < (1 if narrow else 3) else 0,
+                pady=(0, 5) if narrow and row == 0 else 0,
+            )
+        voice_frame = self._voice_controls_frame
+        if voice_frame is not None:
+            for column in range(3):
+                voice_frame.grid_columnconfigure(column, weight=1 if not narrow or column < 2 else 0,
+                                                  uniform="voice-control" if not narrow or column < 2 else "")
+            for index, button in enumerate((self.talk_button, self.speak_button, self.clear_button)):
+                row, column, span = (1, 0, 2) if narrow and index == 2 else (0, index, 1)
+                button.grid_configure(row=row, column=column, columnspan=span,
+                                      padx=(0, 5) if row == 0 and column < (1 if narrow else 2) else 0,
+                                      pady=(0, 5) if narrow and row == 0 else 0)
 
     def _scroll_wheel(self, event) -> None:
         if self._scrollbar.winfo_ismapped():
@@ -311,8 +348,8 @@ class HudWindow:
         if self._speech_busy:
             self._barge_in_pending = True
             self._speech_cancel.set()
-            self.talk_button.configure(state="disabled", text="Stopping…")
-            self.speak_button.configure(state="disabled", text="Stopping…")
+            self.talk_button.configure(state="disabled", text="Talk queued")
+            self.speak_button.configure(state="disabled", text="Stopping reply")
             self.voice_state_label.configure(text="Stopping reply before opening the microphone…")
             return
         if self._voice_controller.is_busy():

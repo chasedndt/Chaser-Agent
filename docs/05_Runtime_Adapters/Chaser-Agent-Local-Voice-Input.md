@@ -20,6 +20,8 @@ While a local status reply is pending, **Speak status** becomes **Cancel reply**
 
 Each desktop take now has an in-process sequence ID. The HUD ignores late draft, cancellation or transcription events from an older take after a newer recording begins; a cancellation arriving before the final result is emitted discards that result. This is UI-state race protection, not proof of real microphone-driver cancellation latency.
 
+At narrow HUD widths, status and draft text wrap to the available canvas width and the four computer-use controls plus three voice controls reflow to two rows. A [synthetic before/after visual audit](<E:/Visual QA/Chaser Agent Visual QA/Current Reviews/2026-09-27-talk-next-hud/QA.md>) caught clipped labels and verified the correction at the tested size. When Talk next has been clicked, the waiting controls say **Talk queued** and **Stopping reply**. These captures used no microphone, speaker, model or live service; they do not prove keyboard or screen-reader usability.
+
 ## One-time setup, kept on E:
 
 Use a separate Python virtual environment and dependency cache under an E: runtime directory. This pass locally tested `faster-whisper==1.2.1` and `sounddevice==0.5.6`; they are optional and not imported by the deterministic core. The [faster-whisper implementation](https://github.com/SYSTRAN/faster-whisper) supports local-directory models and CPU int8 inference. The selected [tiny English model](https://huggingface.co/Systran/faster-whisper-tiny.en/tree/0d3d19a32d3338f10357c0889762bd8d64bbdeba) is MIT-licensed. Tiny is a functionality baseline, **not** an accuracy acceptance choice for real agent commands.
