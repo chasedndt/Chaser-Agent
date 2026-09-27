@@ -4,7 +4,9 @@ Status: operator-requested engineering branch, prepared 2026-09-27. This file is
 
 Engineering update, 2026-09-27: this Codex branch task is active. Its isolated E: Git worktree now contains a tested local-only HTTP source-review slice; see [runtime contract](../05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md) and [build evidence](../../logs/build/2026-09-27-standalone-local-http-foundation.md). The broader goal also includes HUD and voice, which remain disconnected and are not complete. The Git worktree branch is an implementation isolation detail, **not** the Codex conversation branch requested by the operator.
 
-Follow-on engineering status: local Pocket Alba speech-out is implemented, and a fake-executor-tested HUD control bridge can carry requests and acknowledgements. The normal CLI still has no computer-use executor, microphone input, speech-to-text or full conversational voice. This remains an active goal, not a completed handoff.
+Earlier follow-on engineering status: local Pocket Alba speech-out was implemented, and a fake-executor-tested HUD control bridge could carry requests and acknowledgements. At that stage, the normal CLI had no computer-use executor, microphone input, speech-to-text or full conversational voice. This remained an active goal, not a completed handoff.
+
+Voice-input follow-on, 2026-09-27: an optional pinned offline STT model and explicit push-to-talk CLI now exist; the public/toy WAV round trip succeeded. The CLI can request a fixed Pocket Alba acknowledgement, but no task-aware reply, live operator microphone acceptance, interruption, or voice-to-action handoff exists. The full objective remains active.
 
 ## Goal to create in the engineering task
 
