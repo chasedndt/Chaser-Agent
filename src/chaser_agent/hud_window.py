@@ -80,6 +80,7 @@ class HudWindow:
         self.voice_output_enabled = voice_output_enabled
         self._voice_controller = None
         self._voice_draft: str | None = None
+        self._active_capture_id: int | None = None
         self._speech_cancel = threading.Event()
         self._speech_busy = False
         self._voice_events: queue.Queue[tuple[str, dict[str, object] | None]] = queue.Queue()
@@ -256,6 +257,13 @@ class HudWindow:
     def _on_voice_event(self, event: str, payload: dict[str, object] | None) -> None:
         if self._closed:
             return
+        capture_id = payload.get("capture_id") if payload is not None else None
+        if isinstance(capture_id, int) and not isinstance(capture_id, bool):
+            if event == "recording":
+                self._active_capture_id = capture_id
+            elif capture_id != getattr(self, "_active_capture_id", None):
+                # A previous take may finish after a new recording starts.
+                return
         if event == "loading":
             self.voice_state_label.configure(text="Loading the optional offline speech model…")
         elif event == "ready":

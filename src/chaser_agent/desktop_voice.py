@@ -30,6 +30,7 @@ class DesktopVoiceController:
         self._closed = False
         self._started = False
         self._busy = False
+        self._capture_sequence = 0
         self._transcriber = None
         self._cancel = threading.Event()
         self._capture_thread: threading.Thread | None = None
@@ -69,29 +70,31 @@ class DesktopVoiceController:
             if self._closed or self._transcriber is None or self._busy:
                 return False
             self._busy = True
+            self._capture_sequence += 1
+            capture_id = self._capture_sequence
             self._cancel = threading.Event()
             cancel = self._cancel
             transcriber = self._transcriber
-        if not self._emit("recording"):
+        if not self._emit("recording", {"capture_id": capture_id}):
             with self._lock:
                 self._busy = False
             return False
         worker = threading.Thread(
-            target=self._capture, args=(cancel, transcriber),
+            target=self._capture, args=(capture_id, cancel, transcriber),
             name="chaser-explicit-microphone-take", daemon=True,
         )
         self._capture_thread = worker
         worker.start()
         return True
 
-    def _capture(self, cancel: threading.Event, transcriber) -> None:
+    def _capture(self, capture_id: int, cancel: threading.Event, transcriber) -> None:
         event = "cancelled"
         payload = None
         try:
             pcm = self._recorder(self.seconds, cancel_event=cancel)
             if cancel.is_set():
                 raise CaptureCancelled("Microphone take cancelled")
-            self._emit("transcribing")
+            self._emit("transcribing", {"capture_id": capture_id})
             result = transcriber.transcribe(pcm)
             if cancel.is_set():
                 raise CaptureCancelled("Voice draft discarded")
@@ -107,15 +110,18 @@ class DesktopVoiceController:
             event = "transcription_unavailable"
         finally:
             with self._lock:
+                if cancel.is_set():
+                    event, payload = "cancelled", None
                 self._busy = False
-            self._emit(event, payload)
+            self._emit(event, {**(payload or {}), "capture_id": capture_id})
 
     def cancel(self) -> None:
         with self._lock:
             if not self._busy:
                 return
             self._cancel.set()
-        self._emit("cancelling")
+            capture_id = self._capture_sequence
+        self._emit("cancelling", {"capture_id": capture_id})
 
     def is_busy(self) -> bool:
         with self._lock:

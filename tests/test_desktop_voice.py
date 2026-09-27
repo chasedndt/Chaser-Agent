@@ -129,3 +129,80 @@ def test_failed_recording_indicator_prevents_microphone_open(tmp_path: Path):
     assert not controller.capture()
     assert recordings == []
     controller.close()
+
+
+def test_cancel_during_transcription_discards_completed_draft(tmp_path: Path):
+    ready = threading.Event()
+    transcribing = threading.Event()
+    release_transcriber = threading.Event()
+    finished = threading.Event()
+    events = []
+
+    class FakeTranscriber:
+        def transcribe(self, _pcm):
+            transcribing.set()
+            assert release_transcriber.wait(2)
+            return {"status": "draft_unverified", "text": "Must be discarded"}
+
+    def on_event(event, payload):
+        events.append((event, payload))
+        if event == "ready":
+            ready.set()
+        if event in {"draft", "cancelled", "transcription_unavailable"}:
+            finished.set()
+
+    controller = DesktopVoiceController(
+        model_dir=tmp_path, on_event=on_event,
+        transcriber_factory=lambda _path: FakeTranscriber(),
+        recorder=lambda _seconds, *, cancel_event: b"toy pcm",
+    )
+    controller.start()
+    assert ready.wait(2)
+    assert controller.capture()
+    assert transcribing.wait(2)
+    controller.cancel()
+    release_transcriber.set()
+    assert finished.wait(2)
+    assert events[-1][0] == "cancelled"
+    assert "text" not in events[-1][1]
+    assert events[-1][1]["capture_id"] == 1
+    controller.close()
+
+
+def test_each_take_has_distinct_id_even_if_previous_final_callback_is_delayed(tmp_path: Path):
+    ready = threading.Event()
+    first_final_entered = threading.Event()
+    release_first_final = threading.Event()
+    second_final = threading.Event()
+    events = []
+
+    class FakeTranscriber:
+        def transcribe(self, _pcm):
+            return {"status": "draft_unverified", "text": "toy draft"}
+
+    def on_event(event, payload):
+        if event == "draft" and payload["capture_id"] == 1:
+            first_final_entered.set()
+            assert release_first_final.wait(2)
+        events.append((event, payload))
+        if event == "ready":
+            ready.set()
+        if event == "draft" and payload["capture_id"] == 2:
+            second_final.set()
+
+    controller = DesktopVoiceController(
+        model_dir=tmp_path, on_event=on_event,
+        transcriber_factory=lambda _path: FakeTranscriber(),
+        recorder=lambda _seconds, *, cancel_event: b"toy pcm",
+    )
+    controller.start()
+    assert ready.wait(2)
+    assert controller.capture()
+    assert first_final_entered.wait(2)
+    assert controller.capture()
+    assert second_final.wait(2)
+    release_first_final.set()
+    assert [(event, payload["capture_id"]) for event, payload in events if event == "recording"] == [
+        ("recording", 1), ("recording", 2),
+    ]
+    controller.close()

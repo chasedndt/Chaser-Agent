@@ -7,3 +7,4 @@
 - [2026-09-27 desktop launcher](2026-09-27-desktop-launcher.md)
 - [2026-09-27 desktop voice panel](2026-09-27-desktop-voice-panel.md)
 - [2026-09-27 local HTTP client limit](2026-09-27-local-http-client-limit.md)
+- [2026-09-27 desktop voice race protection](2026-09-27-desktop-voice-race-protection.md)
