@@ -265,11 +265,12 @@ def test_source_card_round_trip_stays_review_only(api):
     assert created["review_status"] == "pending_review"
     assert created["promotion_status"] == "not_promoted"
     run_id = created["run_id"]
-    assert {path.name for path in (api.run_root / run_id).iterdir()} == ARTIFACT_NAMES
+    assert {path.name for path in (api.run_root / run_id).iterdir()} == ARTIFACT_NAMES | {".integrity.json"}
 
     status, index, _ = call(api, "GET", created["run_url"], headers=auth_headers())
     assert status == 200
     assert set(index["artifacts"]) == ARTIFACT_NAMES
+    assert index["integrity_status"] == "verified"
     status, card, _ = call(api, "GET", f"/v1/runs/{run_id}/artifacts/source_card.json", headers=auth_headers())
     assert status == 200
     assert card["source_origin"] == "operator_submitted_local_http"
@@ -280,11 +281,46 @@ def test_source_card_round_trip_stays_review_only(api):
     assert original == payload["text"]
     assert headers["Content-Type"] == "text/markdown; charset=utf-8"
     assert headers["Cache-Control"] == "no-store"
+    assert headers["X-Run-Integrity"] == "verified"
     status, log, _ = call(api, "GET", f"/v1/runs/{run_id}/artifacts/run_log.json", headers=auth_headers())
     assert status == 200
     assert log["provider_calls"] == "none"
     assert log["browser_or_computer_use"] == "none"
     assert log["review_required"] is True
+    assert log["integrity_version"] == 1
+
+
+def test_changed_http_run_is_not_served_as_verified(api):
+    status, created, _ = call(api, "POST", "/v1/source-cards", payload=source_payload(), headers=auth_headers())
+    assert status == 201
+    folder = api.run_root / created["run_id"]
+    original = folder / "original_source.md"
+    original.write_text(original.read_text(encoding="utf-8") + "\nAltered later.", encoding="utf-8")
+    for path in (created["run_url"], f"{created['run_url']}/artifacts/source_card.json"):
+        status, body, _ = call(api, "GET", path, headers=auth_headers())
+        assert status == 409 and body["error"]["code"] == "run_integrity_failed"
+
+
+def test_missing_new_integrity_record_fails_closed(api):
+    status, created, _ = call(api, "POST", "/v1/source-cards", payload=source_payload(), headers=auth_headers())
+    assert status == 201
+    (api.run_root / created["run_id"] / ".integrity.json").unlink()
+    status, body, _ = call(api, "GET", created["run_url"], headers=auth_headers())
+    assert status == 409 and body["error"]["code"] == "run_integrity_failed"
+
+
+def test_pre_manifest_run_is_explicitly_unverified(api):
+    status, created, _ = call(api, "POST", "/v1/source-cards", payload=source_payload(), headers=auth_headers())
+    assert status == 201
+    folder = api.run_root / created["run_id"]
+    (folder / ".integrity.json").unlink()
+    log_path = folder / "run_log.json"
+    run_log = json.loads(log_path.read_text(encoding="utf-8"))
+    del run_log["integrity_version"]
+    log_path.write_text(json.dumps(run_log), encoding="utf-8")
+    status, body, headers = call(api, "GET", created["run_url"], headers=auth_headers())
+    assert status == 200 and body["integrity_status"] == "unverified_legacy"
+    assert headers["X-Run-Integrity"] == "unverified_legacy"
 
 
 @pytest.mark.parametrize(
@@ -300,6 +336,20 @@ def test_host_and_origin_are_not_reflected_or_trusted(api, headers, expected):
     status, _, response_headers = call(api, "GET", "/v1/health", headers=headers)
     assert status == expected
     assert "Access-Control-Allow-Origin" not in response_headers
+
+
+@pytest.mark.parametrize(
+    ("path", "headers", "expected"),
+    [
+        ("/v1/voice/../cancel", {}, 404),
+        ("/v1/source-cards", {"Host": "evil.example"}, 421),
+        ("/v1/source-cards", {"Origin": "https://evil.example"}, 403),
+    ],
+)
+def test_early_post_rejection_returns_response_with_small_body(api, path, headers, expected):
+    status, _, _ = call(api, "POST", path, payload={"toy": "body"},
+                        headers={**auth_headers(), **headers})
+    assert status == expected
 
 
 def test_exact_opt_in_origin_has_cors_but_still_requires_token(tmp_path):

@@ -12,3 +12,4 @@
 - [2026-09-27 local voice cancellation](2026-09-27-local-voice-cancellation.md)
 - [2026-09-27 cancellable HUD audio](2026-09-27-cancellable-hud-audio.md)
 - [2026-09-27 HUD owner reconnection](2026-09-27-hud-owner-reconnect.md)
+- [2026-09-27 HTTP run integrity](2026-09-27-http-run-integrity.md)

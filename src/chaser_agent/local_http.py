@@ -7,6 +7,7 @@ adapter. It deliberately has no configurable non-loopback bind address.
 from __future__ import annotations
 
 import hmac
+import hashlib
 import json
 import os
 import re
@@ -51,6 +52,59 @@ ARTIFACT_NAMES = frozenset(
 )
 PRIVACY_CLASSES = frozenset({"public_toy", "public"})
 RUN_ID = re.compile(r"^source-card-http-[0-9]{8}T[0-9]{12}Z-[0-9a-f]{12}$")
+INTEGRITY_FILE = ".integrity.json"
+INTEGRITY_VERSION = 1
+
+
+class RunIntegrityError(ValueError):
+    pass
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(65_536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _write_run_integrity(folder: Path, run_id: str) -> None:
+    hashes = {name: _file_sha256(folder / name) for name in sorted(ARTIFACT_NAMES)}
+    payload = {"version": INTEGRITY_VERSION, "run_id": run_id, "sha256": hashes}
+    (folder / INTEGRITY_FILE).write_text(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8",
+    )
+
+
+def _run_integrity_state(folder: Path, run_id: str) -> str:
+    """Detect changed HTTP artifacts; older pre-manifest runs remain labelled."""
+    manifest_path = folder / INTEGRITY_FILE
+    try:
+        if manifest_path.is_symlink():
+            raise RunIntegrityError("Run integrity record is unsafe")
+        if not manifest_path.exists():
+            run_log_path = folder / "run_log.json"
+            if run_log_path.is_symlink():
+                raise RunIntegrityError("Run log is unsafe")
+            run_log = json.loads(run_log_path.read_text(encoding="utf-8"))
+            if not isinstance(run_log, dict) or run_log.get("integrity_version") is not None:
+                raise RunIntegrityError("Run integrity record is missing")
+            return "unverified_legacy"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if (not isinstance(payload, dict) or set(payload) != {"version", "run_id", "sha256"}
+                or payload["version"] != INTEGRITY_VERSION or payload["run_id"] != run_id
+                or not isinstance(payload["sha256"], dict)
+                or set(payload["sha256"]) != ARTIFACT_NAMES):
+            raise RunIntegrityError("Run integrity record is invalid")
+        for name, expected in payload["sha256"].items():
+            artifact = folder / name
+            if (not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected)
+                    or artifact.is_symlink() or not artifact.is_file()
+                    or not hmac.compare_digest(_file_sha256(artifact), expected)):
+                raise RunIntegrityError("Run artifact integrity check failed")
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise RunIntegrityError("Run integrity could not be verified") from exc
+    return "verified"
 
 
 def load_or_create_token(data_dir: Path) -> tuple[str, Path]:
@@ -240,19 +294,38 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
     def _error(self, status: int, code: str, message: str) -> None:
         self._reply(status, {"error": {"code": code, "message": message}})
 
+    def _drain_early_post_body(self) -> None:
+        """Let a small rejected POST receive its reply on Windows, then close."""
+        lengths = self.headers.get_all("Content-Length", [])
+        if (self.headers.get("Transfer-Encoding") is None and len(lengths) == 1
+                and lengths[0].isdecimal() and int(lengths[0]) <= 8192):
+            try:
+                self.rfile.read(int(lengths[0]))
+            except (TimeoutError, OSError):
+                pass
+        self.close_connection = True
+
     def _request_allowed(self) -> bool:
         if self.client_address[0] != LOOPBACK_HOST:
+            if self.command == "POST":
+                self._drain_early_post_body()
             self._error(403, "loopback_required", "Only loopback clients are accepted")
             return False
         if self.headers.get_all("Host", []) != [f"{LOOPBACK_HOST}:{self.server.server_port}"]:
+            if self.command == "POST":
+                self._drain_early_post_body()
             self._error(421, "invalid_host", "Use the configured loopback host and port")
             return False
         origins = self.headers.get_all("Origin", [])
         if len(origins) > 1:
+            if self.command == "POST":
+                self._drain_early_post_body()
             self._error(403, "invalid_origin", "Origin is not allowed")
             return False
         origin = origins[0] if origins else None
         if origin is not None and origin not in self.server.allowed_origins:
+            if self.command == "POST":
+                self._drain_early_post_body()
             self._error(403, "invalid_origin", "Origin is not allowed")
             return False
         return True
@@ -361,8 +434,16 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
         if not run_folder.is_dir() or run_folder.is_symlink():
             self._error(404, "not_found", "Run not found")
             return
+        try:
+            integrity = _run_integrity_state(run_folder, run_id)
+        except RunIntegrityError:
+            self._error(409, "run_integrity_failed", "Saved run integrity could not be verified")
+            return
+        integrity_header = {"X-Run-Integrity": integrity}
         if len(segments) == 4:
-            self._reply(200, {"run_id": run_id, "artifacts": sorted(ARTIFACT_NAMES), "review_status": "pending_review"})
+            self._reply(200, {"run_id": run_id, "artifacts": sorted(ARTIFACT_NAMES),
+                              "review_status": "pending_review", "integrity_status": integrity},
+                        extra_headers=integrity_header)
             return
         if segments[4] != "artifacts" or segments[5] not in ARTIFACT_NAMES:
             self._error(404, "not_found", "Artifact not found")
@@ -377,32 +458,36 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
             except OSError:
                 self._error(500, "artifact_unavailable", "Artifact could not be read")
                 return
-            self._send_body(200, original, "text/markdown; charset=utf-8")
+            self._send_body(200, original, "text/markdown; charset=utf-8", extra_headers=integrity_header)
             return
         try:
             payload = json.loads(artifact.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             self._error(500, "artifact_unavailable", "Artifact could not be read")
             return
-        self._reply(200, payload)
+        self._reply(200, payload, extra_headers=integrity_header)
 
     def do_POST(self) -> None:
         if not self._request_allowed():
             return
         cancel_id = self._voice_cancel_id()
         if self.path not in {"/v1/source-cards", "/v1/voice/replies", "/v1/hud/controls"} and cancel_id is None:
+            self._drain_early_post_body()
             self._error(404, "not_found", "Route not found")
             return
         if not self._authorized():
             return
         if not self.server.limiter.allow():
+            self._drain_early_post_body()
             self._reply(429, {"error": {"code": "rate_limited", "message": "Try again later"}}, extra_headers={"Retry-After": "60"})
             return
         if self.headers.get("Transfer-Encoding") is not None:
+            self.close_connection = True
             self._error(400, "invalid_body", "Transfer-Encoding is not supported")
             return
         lengths = self.headers.get_all("Content-Length", [])
         if len(lengths) != 1 or not lengths[0].isdecimal():
+            self.close_connection = True
             self._error(411, "length_required", "One Content-Length is required")
             return
         length = int(lengths[0])
@@ -500,8 +585,10 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
                 output_paths=output_paths,
                 repo_root=Path(__file__).resolve().parents[2],
             )
+            run_log["integrity_version"] = INTEGRITY_VERSION
             write_artifact_set(stage_folder, artifacts, run_log)
             (stage_folder / "original_source.md").write_text(source_text, encoding="utf-8", newline="")
+            _write_run_integrity(stage_folder, run_id)
             stage_folder.rename(run_folder)
         except ValueError:
             self._error(400, "invalid_profile", "Workflow profile is unavailable for this source")

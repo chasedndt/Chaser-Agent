@@ -13,3 +13,5 @@
 - 2026-09-27: documented token-protected per-take local voice cancellation, durable late-audio suppression, HUD Cancel reply, fake-worker recovery and synthetic visual QA. Real playback interruption and operator listening remain unverified.
 - 2026-09-27: documented optional output-only chunked HUD playback with abort-on-cancel, bounded PCM16/IEEE-float32 WAV formats and a read-only output-device settings check. Real audio and stop latency remain unverified; CLI fixed acknowledgement is unchanged.
 - 2026-09-27: documented same-process HUD executor reconnection after uncertain disconnect, with owner identity, stale-callback rejection and fresh-event control gate. Real executor and process-crash recovery remain open.
+- 2026-09-27: documented read-time HTTP run integrity checks and explicit unverified legacy state; corrected the claim that API runs are filesystem-immutable. Private storage and human review remain required.
+- 2026-09-27: documented bounded draining of early-rejected HTTP POST bodies after a Windows client-reset failure in the full suite; malformed/large requests still close fail-closed.
