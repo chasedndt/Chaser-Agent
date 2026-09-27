@@ -285,6 +285,26 @@ def run_serve_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_doctor_command(args: argparse.Namespace) -> int:
+    from chaser_agent.local_doctor import format_local_http_report, inspect_local_http_runtime
+
+    requested_data_dir = Path(args.data_dir)
+    if requested_data_dir.is_symlink():
+        print("error: HTTP data directory must not be a symlink", file=sys.stderr)
+        return 2
+    data_dir = requested_data_dir.resolve()
+    if data_dir.is_relative_to(_repo_root().resolve()):
+        print("error: HTTP data directory must be outside the source repository", file=sys.stderr)
+        return 2
+    try:
+        report = inspect_local_http_runtime(data_dir=data_dir, port=args.port)
+    except ValueError as exc:
+        print(f"error: local HTTP preflight failed: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(report, sort_keys=True) if args.json else format_local_http_report(report))
+    return 0 if report["result"] == "preflight_clear" else 2
+
+
 def run_hud_command(args: argparse.Namespace) -> int:
     from chaser_agent.hud_window import HudWindow
 
@@ -532,6 +552,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional operator-approved local Pocket Alba speech library; no model download or provider call.",
     )
     serve.set_defaults(func=run_serve_command)
+
+    doctor = subparsers.add_parser(
+        "doctor", help="Read-only private-runtime and loopback-port preflight; never reads the token value.",
+    )
+    doctor.add_argument("--data-dir", required=True, help="Existing local runtime directory outside the repository.")
+    doctor.add_argument("--port", type=int, default=8765, help="Loopback port to probe briefly (default 8765).")
+    doctor.add_argument("--json", action="store_true", help="Print machine-readable preflight metadata.")
+    doctor.set_defaults(func=run_doctor_command)
 
     desktop = subparsers.add_parser(
         "desktop", help="Run the private loopback review API and desktop HUD together in one foreground process.",
