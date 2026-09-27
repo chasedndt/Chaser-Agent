@@ -323,7 +323,8 @@ def run_hud_command(args: argparse.Namespace) -> int:
         print("error: local bearer-token file is missing or is a symlink", file=sys.stderr)
         return 2
     try:
-        window = HudWindow(port=args.port, token_file=token_file, preview=args.preview)
+        window = HudWindow(port=args.port, token_file=token_file, preview=args.preview,
+                           show_idle=getattr(args, "show_idle", False))
     except (OSError, ValueError) as exc:
         print(f"error: HUD token storage is unavailable: {exc}", file=sys.stderr)
         return 2
@@ -579,6 +580,7 @@ def build_parser() -> argparse.ArgumentParser:
     hud.add_argument("--data-dir", help="Same local runtime directory used by the serve command.")
     hud.add_argument("--port", type=int, default=8765, help="Loopback API port (default 8765).")
     hud.add_argument("--preview", action="store_true", help="Show an explicit synthetic HUD replay without control authority.")
+    hud.add_argument("--show-idle", action="store_true", help="Keep the HUD available for an existing local service even with no executor; restore it from the taskbar.")
     hud.set_defaults(func=run_hud_command)
     voice_mode = subparsers.add_parser(
         "voice-mode", help="Explicit push-to-talk offline transcription; transcripts never dispatch actions.",

@@ -37,3 +37,10 @@ The reducer, acknowledgement contract, registry, executor-gated HTTP control pat
 ## Next gate
 
 Connect an authorized executor event adapter that binds session ID, ordered sequence, redacted action and verified result evidence. The current in-process bridge and HTTP control route are not such an executor. Test stop/take-over during a real bounded task, including disconnect and restart, before saying the HUD works in unison with computer use. Do not promote the fake-executor contract or visual replay as computer-use completion evidence.
+# Window controls and conversation boundary — 27 September 2026
+
+The native HUD now has **Minimize to taskbar** and **Always on top** controls. Restore it using its taskbar entry. Minimizing requests cancellation of microphone/reply work, clears drafts and revokes queued Talk-next capture; it does not stop an attached executor or claim that cancellation has been acknowledged. The separate Stop button retains the executor acknowledgement contract. Full hidden/tray/global-hotkey control and gateway-account pairing remain planned.
+
+For an already running local API, `python -m chaser_agent.cli hud --data-dir <private-runtime> --port 8765 --show-idle` opens a persistent status window even when no executor is connected. This is an actual local client, not a hosted webpage. Native window checks verified minimize to iconic, restore to normal and disabling topmost. Speech device acceptance remains open.
+
+See the [research-to-implementation programme](../research/2026-09-27-conversational-harness-roadmap.md) for planned conversational reasoning, human questions and other-harness adapters. Account login currently does not launch that conversation stack.

@@ -104,6 +104,7 @@ class HudWindow:
         )
         self.root.attributes("-topmost", True)
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+        self.root.bind("<Unmap>", self._on_unmap)
         self._visible = False
         self._pending_fetch = False
         self._closed = False
@@ -185,8 +186,36 @@ class HudWindow:
         self.notice_label = tk.Label(wrapper, text="Controls wait for a verified executor connection.",
                                       bg=PANEL, fg=MUTED, font=("Segoe UI", 8), anchor="w")
         self.notice_label.pack(fill="x", pady=(10, 0))
+        window_controls = tk.Frame(wrapper, bg=PANEL)
+        window_controls.pack(fill="x", pady=(10, 0))
+        ttk.Button(window_controls, text="Minimize to taskbar",
+                   command=self.root.iconify).pack(anchor="w")
+        self._pinned = tk.BooleanVar(value=True)
+        ttk.Checkbutton(window_controls, text="Always on top", variable=self._pinned,
+                        command=self._apply_pin).pack(anchor="w", pady=(4, 0))
         if self.voice_model_dir is not None:
             self._build_voice(wrapper)
+
+    def _apply_pin(self) -> None:
+        self.root.attributes("-topmost", bool(self._pinned.get()))
+
+    def _on_unmap(self, event) -> None:
+        """Minimizing affects presentation, never implies the executor stopped."""
+        if event.widget is not self.root or self._closed:
+            return
+        # Do not begin a queued microphone take while the indicator is hidden.
+        self._barge_in_pending = False
+        self._speech_cancel.set()
+        if self._voice_controller is not None:
+            self._voice_controller.cancel()
+        # A late transcript from this take must not reappear after restore.
+        self._voice_suspended = True
+        self._voice_draft = None
+        if self.voice_model_dir is not None:
+            self.voice_draft_label.configure(text="Draft cleared when HUD minimized.")
+            self.voice_state_label.configure(text="Voice stop requested · restore HUD before speaking")
+            self.speak_button.configure(state="disabled")
+            self.clear_button.configure(state="disabled")
 
     def _build_voice(self, wrapper: tk.Frame) -> None:
         tk.Frame(wrapper, height=1, bg="#2B3748").pack(fill="x", pady=(14, 12))
@@ -296,6 +325,10 @@ class HudWindow:
     def _on_voice_event(self, event: str, payload: dict[str, object] | None) -> None:
         if self._closed:
             return
+        if event == "recording":
+            self._voice_suspended = False
+        elif event == "draft" and getattr(self, "_voice_suspended", False):
+            event = "cancelled"
         capture_id = payload.get("capture_id") if payload is not None else None
         if isinstance(capture_id, int) and not isinstance(capture_id, bool):
             if event == "recording":

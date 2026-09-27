@@ -1,5 +1,7 @@
 # Chaser Agent
 
+Engineering preview: [18-layer architecture](docs/01_Product/Runtime-Architecture.md), [interactive map](https://chaseos.ai/chaser-agent/architecture/), and [conversational companion research programme](docs/research/2026-09-27-conversational-harness-roadmap.md). The local HUD can minimize to the taskbar and toggle always-on-top. General conversation and Hermes/OpenClaw/computer-use integration remain in development.
+
 **Standalone-first. Local-first. Evidence-linked. Human-governed. ChaseOS-enhanced.**
 
 Chaser Agent is a standalone-first, local-first agent harness for turning goals and sources into evidence-linked, reviewable work. Its MIT-licensed core runs independently, learns from explicit human review, preserves approved local memory, and curates a user-owned provenance map. Optional ChaseOS integration adds shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory.

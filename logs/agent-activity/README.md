@@ -17,3 +17,4 @@
 - [2026-09-27 Talk-next HUD visual QA](2026-09-27-talk-next-hud-qa.md)
 - [2026-09-27 HUD stale control replies](2026-09-27-hud-stale-control-replies.md)
 - [2026-09-27 approved runtime activation and architecture map](2026-09-27-runtime-activation.md)
+- [2026-09-27 companion shell and website publication](2026-09-27-companion-release.md)

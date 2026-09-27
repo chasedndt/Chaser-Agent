@@ -1,5 +1,7 @@
 # Local runtime architecture — 27 September 2026
 
+The [conversational companion research programme](../research/2026-09-27-conversational-harness-roadmap.md) defines the next integration: goals, human questions, bounded reasoning, harness adapters, voice and computer use. It is a research-informed plan, not a claim that those adapters are connected.
+
 [Open the offline interactive layer explorer](Runtime-Architecture.html). It needs no server, account, model or network connection. The website version is explanatory documentation, not a remotely hosted agent.
 
 ## Current implementation
