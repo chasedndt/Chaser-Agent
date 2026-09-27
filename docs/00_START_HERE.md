@@ -39,7 +39,9 @@ All seven surfaces are implemented on `codex/standalone-first-memory-realignment
 
 The standalone-first dependency rule is enforced by `tests/test_standalone_independence.py`, which parses core-package imports and fails on any ChaseOS, provider, MCP, or browser dependency.
 
-Isolated engineering evidence for the new local service: `../logs/build/2026-09-27-standalone-local-http-foundation.md`, `../logs/build/2026-09-27-hud-and-local-voice-bridge.md`, and `../logs/build/2026-09-27-warm-voice-worker.md`. These do not replace the older P0.1 acceptance state.
+Isolated engineering evidence for the new local service: `../logs/build/2026-09-27-standalone-local-http-foundation.md`, `../logs/build/2026-09-27-hud-and-local-voice-bridge.md`, `../logs/build/2026-09-27-warm-voice-worker.md`, and `../logs/build/2026-09-27-hud-control-contract.md`. These do not replace the older P0.1 acceptance state.
+
+The isolated-worktree [documentation history](DOCUMENTATION_HISTORY.md), [daily engineering index](../logs/daily/README.md), and [agent activity index](../logs/agent-activity/README.md) track this local pass without changing ChaseOS canonical state.
 
 ## Truth boundary
 
