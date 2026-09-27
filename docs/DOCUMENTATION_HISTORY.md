@@ -1,5 +1,7 @@
 # Documentation history — isolated engineering worktree
 
+- 2026-09-27: documented authenticated, content-free startup timings to investigate observed offline voice reload latency; no performance improvement claimed.
+
 - 2026-09-27: corrected stale voice ACL blockers and recorded [live combined desktop speech evidence](../logs/build/2026-09-27-live-desktop-voice.md), including cancellation, authenticated WAV integrity and the measured cold-reload latency limitation. No general conversation or human acceptance claimed.
 
 - 2026-09-27: documented executor-gated HUD control and acknowledgement contract in [local HTTP](05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md), [HUD state](01_Product/Chaser-Agent-Computer-Use-HUD.md), [as-built map](01_Product/Chaser-Agent-As-Built-Map.md), and [Start Here](00_START_HERE.md). This is fake-executor protocol proof only; no real computer-use activation or complete two-way voice.

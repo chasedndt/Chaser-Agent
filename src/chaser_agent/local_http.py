@@ -396,6 +396,13 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
             return
         if not self._authorized():
             return
+        if self.path == "/v1/voice/runtime":
+            adapter = self.server.voice
+            self._reply(200, {
+                "state": adapter.runtime_state() if adapter else "disabled",
+                "startup": adapter.startup_diagnostics() if adapter else None,
+            })
+            return
         if self.path == "/v1/hud/current":
             self._reply(200, self.server.hud.snapshot())
             return

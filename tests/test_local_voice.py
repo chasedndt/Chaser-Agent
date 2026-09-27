@@ -356,3 +356,20 @@ def test_stop_owned_process_targets_only_the_known_windows_child_tree(monkeypatc
     monkeypatch.setattr("chaser_agent.local_voice.subprocess.run", fake_taskkill)
     stop_owned_process(process)
     assert calls == [["taskkill", "/T", "/F", "/PID", "41234"]]
+
+
+def test_startup_diagnostics_are_bounded_copied_and_content_free(library, tmp_path, monkeypatch):
+    adapter = WarmPocketAlbaVoice(library_root=library, data_dir=tmp_path / "data")
+    assert adapter.startup_diagnostics() == {"milestones_seconds": {}}
+    adapter._startup_started = 10.0
+    adapter._events = queue.Queue()
+    for stage in ("starting", "libraries_loaded", "model_loaded", "ready"):
+        adapter._events.put({"event": stage, "text": "not telemetry"})
+    monkeypatch.setattr("chaser_agent.local_voice.time.monotonic", lambda: 12.0)
+    assert adapter._await_event(timeout=10)["event"] == "ready"
+    result = adapter.startup_diagnostics()
+    assert result == {"milestones_seconds": {
+        "starting": 2.0, "libraries_loaded": 2.0, "model_loaded": 2.0, "ready": 2.0,
+    }}
+    result["milestones_seconds"].clear()
+    assert len(adapter.startup_diagnostics()["milestones_seconds"]) == 4

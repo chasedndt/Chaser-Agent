@@ -63,6 +63,7 @@ def main():
         raise TimeoutError(f"{path} did not reach {expected}")
 
     wait_for("/v1/health", "voice_runtime", "ready", 260)
+    print(json.dumps({"initial_runtime": json_request("/v1/voice/runtime")}), flush=True)
     cancellation = {"tested": False}
     if args.mode == "cancel-recover":
         first = json_request("/v1/voice/replies", {
@@ -110,6 +111,7 @@ def main():
         "duration_seconds": result["duration_seconds"], "unauthenticated_http": unauthenticated,
         "microphone_opened": False, "audio_played": False,
         "human_listening_review": "pending",
+        "runtime": json_request("/v1/voice/runtime"),
     }, indent=2), flush=True)
 
 

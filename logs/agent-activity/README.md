@@ -1,5 +1,7 @@
 # Agent activity index
 
+- [2026-09-27 voice startup diagnostics](2026-09-27-voice-startup-diagnostics.md)
+
 - [2026-09-27 real offline desktop speech](2026-09-27-live-desktop-voice.md)
 
 - [2026-09-27 HUD control contract](2026-09-27-hud-control-contract.md)

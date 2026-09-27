@@ -315,6 +315,13 @@ class WarmPocketAlbaVoice(PocketAlbaVoice):
         self._reader_thread: threading.Thread | None = None
         self._ready = False
         self._prewarm_failed = False
+        self._startup_started: float | None = None
+        self._startup_timings: dict[str, float] = {}
+
+    def startup_diagnostics(self) -> dict[str, object]:
+        """Content-free timings for the latest worker; never report stale readiness."""
+        with self._state_lock:
+            return {"milestones_seconds": dict(self._startup_timings)}
 
     def prewarm(self) -> None:
         """Load the model in the background before the first voice reply."""
@@ -373,6 +380,12 @@ class WarmPocketAlbaVoice(PocketAlbaVoice):
                 raise VoiceGenerationFailed("Local speech worker timed out") from exc
             if event is None:
                 raise VoiceGenerationFailed("Local speech worker exited")
+            if event.get("event") in {"starting", "libraries_loaded", "model_loaded", "ready"}:
+                with self._state_lock:
+                    if self._startup_started is not None:
+                        self._startup_timings.setdefault(
+                            event["event"], round(time.monotonic() - self._startup_started, 3)
+                        )
             if event.get("event") in {"starting", "libraries_loaded", "model_loaded"}:
                 with self._state_lock:
                     voice_id = self._active_voice_id
@@ -389,6 +402,9 @@ class WarmPocketAlbaVoice(PocketAlbaVoice):
         if self._closed:
             raise VoiceGenerationFailed("Local speech adapter is closed")
         self._ready = False
+        with self._state_lock:
+            self._startup_started = time.monotonic()
+            self._startup_timings = {}
         offline_env = os.environ.copy()
         offline_env.update({
             "HF_HUB_OFFLINE": "1",
