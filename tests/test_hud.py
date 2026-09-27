@@ -384,6 +384,8 @@ def test_interrupt_and_talk_waits_for_reply_worker_before_capture(monkeypatch):
     assert window._barge_in_pending and window._speech_cancel.is_set()
     assert captures == []
     assert window.talk_button.values["state"] == "disabled"
+    assert window.talk_button.values["text"] == "Talk queued"
+    assert window.speak_button.values["text"] == "Stopping reply"
     assert "before opening" in window.voice_state_label.values["text"]
     window._finish_speech("Reply stop requested")
     assert captures == ["capture"]
@@ -490,3 +492,60 @@ def test_hud_dimensions_scale_and_cap_to_available_screen():
                           screen_height=1080, voice_panel=True) == (820, 904, 760)
     assert hud_dimensions(tk_scale=2.666, screen_width=800,
                           screen_height=600, voice_panel=True) == (760, 520, 700)
+
+
+def test_narrow_hud_reflows_controls_and_wraps_text():
+    from types import SimpleNamespace
+    from chaser_agent.hud_window import HudWindow
+
+    class FakeFrame:
+        def __init__(self):
+            self.columns = {}
+
+        def grid_columnconfigure(self, column, **kwargs):
+            self.columns[column] = kwargs
+
+    class FakeWidget:
+        def __init__(self):
+            self.values = {}
+
+        def configure(self, **kwargs):
+            self.values.update(kwargs)
+
+        def grid_configure(self, **kwargs):
+            self.values.update(kwargs)
+
+    class FakeCanvas:
+        def itemconfigure(self, _item, **kwargs):
+            self.width = kwargs["width"]
+
+    window = object.__new__(HudWindow)
+    window._canvas = FakeCanvas()
+    window._canvas_window = object()
+    window._resize_scroll_region = lambda: None
+    window._narrow_controls = None
+    window._hud_controls_frame = FakeFrame()
+    window._voice_controls_frame = FakeFrame()
+    window.voice_model_dir = object()
+    window.phase_label = FakeWidget()
+    window.action_label = FakeWidget()
+    window.session_label = FakeWidget()
+    window.notice_label = FakeWidget()
+    window.voice_state_label = FakeWidget()
+    window.voice_draft_label = FakeWidget()
+    window.buttons = {name: FakeWidget() for name in ("pause", "resume", "stop", "take_over")}
+    window.talk_button = FakeWidget()
+    window.speak_button = FakeWidget()
+    window.clear_button = FakeWidget()
+
+    window._resize_canvas_content(SimpleNamespace(width=280))
+    assert window.phase_label.values["wraplength"] == 240
+    assert window.voice_state_label.values["wraplength"] == 240
+    assert window.buttons["take_over"].values["row"] == 1
+    assert window.buttons["take_over"].values["column"] == 1
+    assert window.clear_button.values["row"] == 1
+    assert window.clear_button.values["columnspan"] == 2
+    window._resize_canvas_content(SimpleNamespace(width=410))
+    assert window.buttons["take_over"].values["row"] == 0
+    assert window.buttons["take_over"].values["column"] == 3
+    assert window.clear_button.values["row"] == 0
