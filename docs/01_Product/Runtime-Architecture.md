@@ -30,6 +30,8 @@ flowchart TD
 
 Solid arrows describe implemented paths; dashed arrows are incomplete integrations. The HTTP API itself does not accept judgments or promote memory. The read-only speech status path is not general conversation or voice-to-action.
 
+Live offline speech verification now covers cancellation, inaccessible cancelled audio, recovery and authenticated WAV hashes. The combined HUD/API ran locally without an executor; it was no longer running at the final recheck. Measured recovery after cancellation was 218.875 seconds versus 8.469 seconds for the next warm response: this is an unresolved conversational-latency problem. See [actual probe evidence](../../logs/build/2026-09-27-live-desktop-voice.md). Microphone and listening acceptance remain pending.
+
 ## All 18 responsibilities
 
 | Layer | Responsibility | Engineering status |
