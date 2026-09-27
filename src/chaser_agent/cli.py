@@ -267,19 +267,44 @@ def run_serve_command(args: argparse.Namespace) -> int:
             token=token,
             port=args.port,
             allowed_origins=tuple(args.allowed_origin),
+            voice_library=Path(args.voice_library) if args.voice_library else None,
         )
     except (OSError, ValueError) as exc:
         print(f"error: local HTTP startup failed: {exc}", file=sys.stderr)
         return 2
     print(f"Chaser Agent local API: http://127.0.0.1:{server.server_port}/v1/health")
     print(f"Bearer token file: {token_path}")
-    print("Review-only. No provider, tool, computer-use, voice, or memory-promotion authority.")
+    print("Review-only. No provider, tool, computer-use, or memory-promotion authority.")
+    print("Local Pocket Alba voice: configured" if server.voice else "Local Pocket Alba voice: not configured")
     try:
         server.serve_forever(poll_interval=0.25)
     except KeyboardInterrupt:
         pass
     finally:
         server.server_close()
+    return 0
+
+
+def run_hud_command(args: argparse.Namespace) -> int:
+    from chaser_agent.hud_window import HudWindow
+
+    if not args.preview and not args.data_dir:
+        print("error: --data-dir is required outside synthetic preview mode", file=sys.stderr)
+        return 2
+    if not 1 <= args.port <= 65535:
+        print("error: port must be between 1 and 65535", file=sys.stderr)
+        return 2
+    requested_data_dir = Path(args.data_dir) if args.data_dir else None
+    if requested_data_dir is not None and requested_data_dir.is_symlink():
+        print("error: HUD data directory must not be a symlink", file=sys.stderr)
+        return 2
+    token_file = requested_data_dir / "control-token" if requested_data_dir else None
+    if token_file is not None and (token_file.is_symlink() or not token_file.is_file()):
+        print("error: local bearer-token file is missing or is a symlink", file=sys.stderr)
+        return 2
+    window = HudWindow(port=args.port, token_file=token_file, preview=args.preview)
+    print("Synthetic HUD preview; no executor connected." if args.preview else "HUD waiting for a computer-use session.")
+    window.run()
     return 0
 
 
@@ -391,7 +416,20 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="Optional exact http://127.0.0.1:<port> browser origin for a future local client.",
     )
+    serve.add_argument(
+        "--voice-library",
+        help="Optional operator-approved local Pocket Alba speech library; no model download or provider call.",
+    )
     serve.set_defaults(func=run_serve_command)
+
+    hud = subparsers.add_parser(
+        "hud",
+        help="Open the local desktop HUD; stays hidden until a computer-use session is observed.",
+    )
+    hud.add_argument("--data-dir", help="Same local runtime directory used by the serve command.")
+    hud.add_argument("--port", type=int, default=8765, help="Loopback API port (default 8765).")
+    hud.add_argument("--preview", action="store_true", help="Show an explicit synthetic HUD replay without control authority.")
+    hud.set_defaults(func=run_hud_command)
     return parser
 
 
