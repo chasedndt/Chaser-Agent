@@ -13,6 +13,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 from chaser_agent.local_acl import read_private_control_token
+from chaser_agent.local_audio import play_local_wav
 from chaser_agent.voice_status import public_status_reply, status_intent
 
 ACK_TEXT = "I heard you. The draft transcript is ready for your review."
@@ -97,9 +98,7 @@ def _play_public_text(*, base: str, token: str, text: str, timeout: float,
                     raise RuntimeError("Local voice returned an invalid WAV")
                 if cancel_event is not None and cancel_event.is_set():
                     raise RuntimeError("Local speech playback cancelled")
-                import winsound
-
-                winsound.PlaySound(audio, winsound.SND_MEMORY)
+                play_local_wav(audio, cancel_event=cancel_event)
                 completed = True
                 return str(status.get("voice_id"))
             if status.get("status") in {"failed", "interrupted", "cancelled"}:

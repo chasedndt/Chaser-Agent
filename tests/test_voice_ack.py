@@ -164,3 +164,38 @@ def test_poll_failure_after_job_post_still_requests_cancel(monkeypatch):
         _play_public_text(base="http://127.0.0.1:8765", token="a" * 64,
                           text="Public toy reply", timeout=5)
     assert seen[-1] == f"http://127.0.0.1:8765{path}/cancel"
+
+
+def test_cancel_during_output_requests_exact_take_cancel(monkeypatch):
+    from chaser_agent.local_audio import PlaybackCancelled
+    from chaser_agent.voice_ack import _play_public_text
+
+    cancel = threading.Event()
+    voice_id = "voice-20260927T120000000000Z-abcdef123456"
+    path = f"/v1/voice/{voice_id}"
+    seen = []
+
+    def fake_urlopen(request, timeout):
+        url = request.full_url
+        seen.append(url)
+        if url.endswith("/v1/voice/replies"):
+            payload = {"status_url": path}
+        elif url.endswith("/audio.wav"):
+            return io.BytesIO(b"RIFF" + b"\x00" * 64)
+        elif url.endswith("/cancel"):
+            payload = {"status": "generated_pending_listening_review"}
+        else:
+            payload = {"status": "generated_pending_listening_review",
+                       "audio_url": path + "/audio.wav", "voice_id": voice_id}
+        return io.BytesIO(json.dumps(payload).encode("utf-8"))
+
+    def cancel_output(_audio, *, cancel_event):
+        cancel_event.set()
+        raise PlaybackCancelled("stop")
+
+    monkeypatch.setattr("chaser_agent.voice_ack.urlopen", fake_urlopen)
+    monkeypatch.setattr("chaser_agent.voice_ack.play_local_wav", cancel_output)
+    with pytest.raises(PlaybackCancelled):
+        _play_public_text(base="http://127.0.0.1:8765", token="a" * 64,
+                          text="Public toy reply", timeout=5, cancel_event=cancel)
+    assert seen[-1] == f"http://127.0.0.1:8765{path}/cancel"
