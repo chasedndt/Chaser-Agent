@@ -32,6 +32,7 @@ All seven surfaces are implemented on `codex/standalone-first-memory-realignment
 | Standalone memory lifecycle | `04_Memory/Chaser-Agent-Standalone-Memory-Architecture.md` |
 | Knowledge-map provenance | `04_Memory/Chaser-Agent-Knowledge-Map-Architecture.md` |
 | Optional ChaseOS integration | `05_Runtime_Adapters/Chaser-Agent-ChaseOS-Optional-Integration.md` |
+| Local HTTP engineering slice | `05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md` |
 | Contract eval design | `02_Evals/Chaser-Agent-Contract-Eval-Design.md` |
 | Exact current test values | `02_Evals/Chaser-Agent-Current-Test-Matrix.md` |
 
