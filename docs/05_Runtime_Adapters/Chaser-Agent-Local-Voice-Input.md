@@ -52,6 +52,8 @@ For the desktop panel, use the same E: virtual environment and add `--model-dir 
 
 ## Evidence and limits
 
+Authenticated `GET /v1/voice/runtime` reports current engine state and content-free elapsed startup milestones for the latest worker. These diagnostics separate import, model and preset readiness delays without exposing transcripts or raw process logs. Milestones describe the last launch and do not imply the worker is still ready; always inspect `state`. See [instrumentation evidence](../../logs/build/2026-09-27-voice-startup-diagnostics.md).
+
 The [real combined desktop probe](../../logs/build/2026-09-27-live-desktop-voice.md) verified local Pocket Alba cancellation, blocked cancelled audio, a recovery take and a warm take through authenticated HTTP. No microphone or speaker was opened. Recovery took 218.875 seconds and a subsequent warm response took 8.469 seconds, so this does not yet meet a fluid conversation experience. Reproduce with `scripts/probe_local_voice.py --data-dir <private-runtime> --confirm-toy-jobs`; add `--mode warm-only` for a non-cancelling take. These probes create retained public/toy voice artifacts, not human acceptance labels.
 
 The existing approved Alba toy sample was converted to PCM 16 kHz under the E: local runtime; `voice-mode --sample-wav` transcribed its sentence about Chaser Agent and operator attention correctly on this machine. The sample contained no private operator speech. The local model receipt records the pinned revision and model hashes. Focused tests cover receipt tampering, PCM/WAV limits, explicit microphone opening, no-speech handling, draft-only output, and the fixed-text acknowledgement request. See the [build log](../../logs/build/2026-09-27-offline-voice-input.md).

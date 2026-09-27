@@ -99,6 +99,29 @@ def auth_headers():
     return {"Authorization": f"Bearer {TOKEN}"}
 
 
+def test_voice_runtime_diagnostics_require_authorization(api):
+    status, _, _ = call(api, "GET", "/v1/voice/runtime")
+    assert status == 401
+    status, body, _ = call(api, "GET", "/v1/voice/runtime", headers=auth_headers())
+    assert status == 200 and body == {"state": "disabled", "startup": None}
+
+    class DiagnosticVoice:
+        def runtime_state(self):
+            return "starting"
+
+        def startup_diagnostics(self):
+            return {"milestones_seconds": {"libraries_loaded": 4.0}}
+
+        def close(self):
+            pass
+
+    api.voice = DiagnosticVoice()
+    status, body, _ = call(api, "GET", "/v1/voice/runtime", headers=auth_headers())
+    assert status == 200
+    assert body == {"state": "starting", "startup": {
+        "milestones_seconds": {"libraries_loaded": 4.0}}}
+
+
 def test_health_exposes_fixed_loopback_port_and_no_execution_claim(api):
     status, body, headers = call(api, "GET", "/v1/health")
     assert status == 200
