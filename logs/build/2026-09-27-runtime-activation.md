@@ -25,6 +25,7 @@ Runtime: `E:\Projects\Chaser Agent\Local Runtime\2026-09-27-http-foundation`. Th
 - Isolated ChaseInTech source: `E:\Projects\ChaseInTech\2026-09-27-chaser-runtime-map`. Added current engineering boundary and architecture link. Project publication audit passed: 14 projects, 28 published logs, 2 drafts. JavaScript syntax and all three repo diff whitespace checks passed.
 - **NOT PUBLISHED:** Wrangler 4.95.0 could not list deployments because this session lacks configured `CLOUDFLARE_API_TOKEN`. No credential hunting, login, secret change, production deployment or DNS mutation occurred. Site source is prepared, not live. The architecture link must be released on ChaseOS.ai before the ChaseInTech link is published.
 - Additional local website checks: ChaseOS Web `tsc -b` passed. ChaseInTech `npm run build` passed all project/media/build/link/search stages (138 HTML pages in the link audit, zero noncanonical internal links). These do not replace publication readback.
+- ChaseOS Web full `npm run build` subsequently passed too, including production Clerk configuration/client gates, prerendering, CSP and route bundle budgets. Both website changes are locally build-verified, still unpublished.
 
 ## Untouched boundaries / remaining unknowns
 
