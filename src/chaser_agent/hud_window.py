@@ -315,17 +315,28 @@ class HudWindow:
             self.voice_state_label.configure(text="Voice input unavailable · microphone off", fg=MUTED)
 
     def _voice_clear(self) -> None:
+        if self._speech_busy:
+            self._speech_cancel.set()
+            self.voice_state_label.configure(text="Stopping the local reply…")
         self._voice_draft = None
         self.voice_draft_label.configure(text="No draft. The microphone is off.")
         self.speak_button.configure(state="disabled")
         self.clear_button.configure(state="disabled")
 
     def _voice_speak(self) -> None:
-        if (self._closed or not self.voice_output_enabled or self._speech_busy
-                or not self._voice_draft or status_intent(self._voice_draft) is None):
+        if self._closed or not self.voice_output_enabled:
             return
+        if self._speech_busy:
+            self._speech_cancel.set()
+            self.speak_button.configure(state="disabled", text="Stopping…")
+            self.voice_state_label.configure(text="Stopping the local reply…")
+            return
+        if not self._voice_draft or status_intent(self._voice_draft) is None:
+            return
+        self._speech_cancel = threading.Event()
         self._speech_busy = True
-        self.speak_button.configure(state="disabled")
+        self.speak_button.configure(state="normal", text="Cancel reply")
+        self.talk_button.configure(state="disabled")
         self.voice_state_label.configure(text="Preparing a read-only local status reply…")
         draft = self._voice_draft
         threading.Thread(target=self._speak_in_background, args=(draft,),
@@ -341,13 +352,18 @@ class HudWindow:
             )
             message = f"Spoken: {spoken[0]}" if spoken is not None else "No supported status question."
         except (OSError, ValueError, RuntimeError, TimeoutError):
-            message = "Status speech unavailable · check the local voice service"
+            message = ("Reply stop requested · playback may have already started"
+                       if self._speech_cancel.is_set()
+                       else "Status speech unavailable · check the local voice service")
         if not self._closed:
             self._voice_events.put(("speech_complete", {"message": message}))
 
     def _finish_speech(self, message: str) -> None:
         self._speech_busy = False
         self.voice_state_label.configure(text=message, fg=MUTED)
+        self.speak_button.configure(text="Speak status", state="disabled")
+        if self._voice_controller is not None and not self._voice_controller.is_busy():
+            self.talk_button.configure(state="normal", text="Talk")
         if self._voice_draft and status_intent(self._voice_draft):
             self.speak_button.configure(state="normal")
 

@@ -10,3 +10,4 @@
 - 2026-09-27: documented a 16-client concurrency ceiling and minimal `503` overflow response for the loopback HTTP listener, with recovery after a handler exits. This is local transport hardening, not public-service readiness.
 - 2026-09-27: documented per-take desktop voice IDs and late-event rejection so a previous transcript cannot replace the active recording state. Real device cancellation and spoken-response acceptance remain unverified.
 - 2026-09-27: documented the read-only local HTTP `doctor` preflight and actual broad-ACL result for the E: runtime; it does not change permissions or prove live startup.
+- 2026-09-27: documented token-protected per-take local voice cancellation, durable late-audio suppression, HUD Cancel reply, fake-worker recovery and synthetic visual QA. Real playback interruption and operator listening remain unverified.

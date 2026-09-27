@@ -224,6 +224,39 @@ def test_configured_voice_endpoint_returns_only_authenticated_audio(api, tmp_pat
     assert headers["Content-Type"] == "audio/wav"
 
 
+def test_voice_cancel_is_authenticated_exact_and_does_not_expose_audio(api):
+    voice_id = "voice-20260927T120000000000Z-abcdef123456"
+
+    class FakeVoice:
+        def cancel(self, candidate):
+            return {"voice_id": candidate, "voice": "pocket-alba", "status": "cancelling"} if candidate == voice_id else None
+
+        def status(self, _candidate):
+            return {"voice_id": voice_id, "status": "cancelled"}
+
+        def audio_path(self, _candidate):
+            return None
+
+        def close(self):
+            pass
+
+        def runtime_state(self):
+            return "busy"
+
+    api.voice = FakeVoice()
+    path = f"/v1/voice/{voice_id}/cancel"
+    status, _, _ = call(api, "POST", path, payload={})
+    assert status == 401
+    status, body, _ = call(api, "POST", path, payload={"extra": 1}, headers=auth_headers())
+    assert status == 400 and body["error"]["code"] == "invalid_input"
+    status, body, _ = call(api, "POST", path, payload={}, headers=auth_headers())
+    assert status == 202 and body["status"] == "cancelling"
+    status, _, _ = call(api, "GET", f"/v1/voice/{voice_id}/audio.wav", headers=auth_headers())
+    assert status == 404
+    status, _, _ = call(api, "POST", "/v1/voice/../cancel", payload={}, headers=auth_headers())
+    assert status == 404
+
+
 def test_source_card_round_trip_stays_review_only(api):
     payload = source_payload()
     payload["text"] += "\r\nA second line says café."
@@ -285,6 +318,11 @@ def test_exact_opt_in_origin_has_cors_but_still_requires_token(tmp_path):
         assert response_headers["Access-Control-Allow-Origin"] == headers["Origin"]
         status, _, _ = call(server, "POST", "/v1/source-cards", payload=source_payload(), headers=headers)
         assert status == 401
+        status, _, response_headers = call(
+            server, "OPTIONS", "/v1/voice/voice-20260927T120000000000Z-abcdef123456/cancel",
+            headers=headers,
+        )
+        assert status == 204 and response_headers["Access-Control-Allow-Origin"] == headers["Origin"]
     finally:
         server.shutdown()
         server.server_close()

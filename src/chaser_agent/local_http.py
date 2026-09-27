@@ -21,7 +21,7 @@ from urllib.parse import urlsplit
 
 from chaser_agent.hud_runtime import HudBridge, HudUnavailable
 from chaser_agent.local_acl import assert_private_runtime_path
-from chaser_agent.local_voice import MAX_SPEECH_CHARS, MAX_WAV_BYTES, WarmPocketAlbaVoice, VoiceBusy, VoiceGenerationFailed
+from chaser_agent.local_voice import MAX_SPEECH_CHARS, MAX_WAV_BYTES, VOICE_ID, WarmPocketAlbaVoice, VoiceBusy, VoiceGenerationFailed
 from chaser_agent.run_artifacts import build_run_log, write_artifact_set
 from chaser_agent.schemas import SourceInput
 from chaser_agent.source_card import (
@@ -280,10 +280,18 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
         )
         return False
 
+    def _voice_cancel_id(self) -> str | None:
+        segments = self.path.split("/")
+        if (len(segments) == 5 and segments[:3] == ["", "v1", "voice"]
+                and segments[4] == "cancel" and VOICE_ID.fullmatch(segments[3])):
+            return segments[3]
+        return None
+
     def do_OPTIONS(self) -> None:
         if not self._request_allowed():
             return
-        if self.path not in {"/v1/source-cards", "/v1/voice/replies", "/v1/hud/controls"} or self.headers.get("Origin") not in self.server.allowed_origins:
+        if (self.path not in {"/v1/source-cards", "/v1/voice/replies", "/v1/hud/controls"}
+                and self._voice_cancel_id() is None) or self.headers.get("Origin") not in self.server.allowed_origins:
             self._error(404, "not_found", "Route not found")
             return
         self.send_response(204)
@@ -381,7 +389,8 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         if not self._request_allowed():
             return
-        if self.path not in {"/v1/source-cards", "/v1/voice/replies", "/v1/hud/controls"}:
+        cancel_id = self._voice_cancel_id()
+        if self.path not in {"/v1/source-cards", "/v1/voice/replies", "/v1/hud/controls"} and cancel_id is None:
             self._error(404, "not_found", "Route not found")
             return
         if not self._authorized():
@@ -444,6 +453,9 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
             return
         if self.path == "/v1/voice/replies":
             self._post_voice_reply(request)
+            return
+        if cancel_id is not None:
+            self._post_voice_cancel(request, cancel_id)
             return
         if set(request) - {"title", "text", "privacy_class", "profile"}:
             self._error(400, "invalid_input", "Unsupported source-card fields")
@@ -534,6 +546,24 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
             self._error(500, "voice_generation_failed", "No verified local voice take was produced")
             return
         self._reply(202, result, extra_headers={"Retry-After": "2"})
+
+    def _post_voice_cancel(self, request: dict[str, object], voice_id: str) -> None:
+        if request:
+            self._error(400, "invalid_input", "Voice cancellation takes an empty JSON object")
+            return
+        adapter = self.server.voice
+        if adapter is None:
+            self._error(503, "voice_not_configured", "No local voice library was configured at startup")
+            return
+        try:
+            result = adapter.cancel(voice_id)
+        except (VoiceGenerationFailed, OSError):
+            self._error(500, "voice_cancel_failed", "Local voice cancellation could not be recorded")
+            return
+        if result is None:
+            self._error(404, "not_found", "Voice take not found")
+            return
+        self._reply(202 if result["status"] == "cancelling" else 200, result)
 
     def _post_hud_control(self, request: dict[str, object]) -> None:
         if set(request) != {"session_id", "command"}:

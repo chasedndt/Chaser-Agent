@@ -18,6 +18,8 @@ Voice-state follow-on, 2026-09-27: per-take IDs now prevent an old queued draft 
 
 HTTP-security follow-on, 2026-09-27: a read-only `doctor` command now reports ACL and port preflight without reading token contents or changing state. It confirmed three broad-ACL blockers in the actual E: runtime and a momentarily available `127.0.0.1:8765`. No service startup occurred; the full goal remains active.
 
+Speech-interruption follow-on, 2026-09-27: an exact authenticated voice-cancel route, persistent cancelled marker and HUD Cancel reply control now exist. Fake warm-worker tests prove a later take can recover, and synthetic layouts show the control at normal/high scale. Actual Pocket Alba stop latency and already-started Windows playback interruption remain unverified; no general conversational provider or computer-use executor is attached. The full goal remains active.
+
 ## Goal to create in the engineering task
 
 Build and verify Chaser Agent's standalone, local-only HTTP foundation so the deterministic harness can be invoked through a bounded loopback service without ChaseOS. Start with a read-only/review-only source-card path and explicit health/status; then add only the review and run retrieval operations whose authority boundaries can be tested. Keep the service secure by default, documented, and independently runnable. Do not generate human product-quality labels or treat pending eval fixtures as golden answers.

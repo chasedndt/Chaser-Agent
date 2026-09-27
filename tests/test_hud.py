@@ -255,6 +255,53 @@ def test_voice_panel_ignores_stale_draft_and_cancel_after_new_take_starts():
     assert window.speak_button.values["state"] == "normal"
 
 
+def test_voice_panel_cancel_reply_requires_separate_click_and_blocks_talk(monkeypatch):
+    import threading
+    from chaser_agent.hud_window import HudWindow
+
+    class FakeWidget:
+        def __init__(self):
+            self.values = {}
+
+        def configure(self, **kwargs):
+            self.values.update(kwargs)
+
+    class FakeThread:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        def start(self):
+            pass
+
+    class FakeController:
+        def is_busy(self):
+            return False
+
+    monkeypatch.setattr("chaser_agent.hud_window.threading.Thread", FakeThread)
+    window = object.__new__(HudWindow)
+    window._closed = False
+    window.voice_output_enabled = True
+    window._voice_draft = "What's your status?"
+    window._speech_busy = False
+    window._speech_cancel = threading.Event()
+    window._voice_controller = FakeController()
+    window.talk_button = FakeWidget()
+    window.speak_button = FakeWidget()
+    window.voice_state_label = FakeWidget()
+    window._voice_speak()
+    assert window._speech_busy
+    assert not window._speech_cancel.is_set()
+    assert window.speak_button.values["text"] == "Cancel reply"
+    assert window.talk_button.values["state"] == "disabled"
+    window._voice_speak()
+    assert window._speech_cancel.is_set()
+    assert window.speak_button.values["text"] == "Stopping…"
+    window._finish_speech("Reply stop requested")
+    assert not window._speech_busy
+    assert window.speak_button.values["text"] == "Speak status"
+    assert window.talk_button.values["state"] == "normal"
+
+
 def test_recording_indicator_is_painted_before_microphone_worker_starts():
     import threading
     from chaser_agent.hud_window import HudWindow

@@ -87,6 +87,8 @@ Run `python -m chaser_agent.cli doctor --data-dir <local-runtime-directory>` for
 
 An optional `desktop --model-dir <pinned-local-STT-model>` adds a push-to-talk panel: Talk starts one bounded take, Cancel discards it, and the transcript is shown as an unverified in-memory draft. With an explicitly configured local Pocket Alba library, the operator may separately click Speak status for a few exact read-only questions. No microphone opens on launch, and neither a draft nor a button click grants tool authority. The panel has synthetic visual QA and local-model-load proof, not operator microphone or audible-response acceptance.
 
+Pending local speech can now be cancelled from the HUD or its token-protected HTTP route. Cancellation is recorded so late audio is not exposed after restart; a fake-worker recovery test passes. Actual Pocket Alba interruption speed and already-started Windows playback remain unverified.
+
 Verified P0.1 implementation:
 
 - domain-neutral deterministic Source Card Harness with explicit workflow profiles;
