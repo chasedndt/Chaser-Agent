@@ -10,10 +10,12 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import queue
 import re
 import secrets
 import subprocess
 import threading
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -30,6 +32,30 @@ class VoiceGenerationFailed(RuntimeError):
     pass
 
 
+def stop_owned_process(process: subprocess.Popen[str]) -> None:
+    """Stop this adapter's exact child tree, including Windows venv launchers."""
+    if process.poll() is not None:
+        return
+    if os.name == "nt" and isinstance(getattr(process, "pid", None), int):
+        try:
+            subprocess.run(
+                ["taskkill", "/T", "/F", "/PID", str(process.pid)],
+                capture_output=True, text=True, timeout=10, check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    if process.poll() is None:
+        try:
+            process.terminate()
+        except OSError:
+            pass
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=5)
+
+
 class PocketAlbaVoice:
     def __init__(self, *, library_root: Path, data_dir: Path):
         if library_root.is_symlink():
@@ -40,12 +66,25 @@ class PocketAlbaVoice:
         approved = manifest.get("chaser_agent_production_voice", {})
         if approved.get("voice_id") != "pocket-alba" or "operator-approved" not in approved.get("status", ""):
             raise ValueError("The configured library does not identify the approved Pocket Alba voice")
+        voices = manifest.get("voices", [])
+        if not isinstance(voices, list):
+            raise ValueError("The local voice manifest is invalid")
+        voice_record = next(
+            (voice for voice in voices if isinstance(voice, dict) and voice.get("id") == "pocket-alba"), None
+        )
+        if not isinstance(voice_record, dict) or not isinstance(voice_record.get("production_root"), str):
+            raise ValueError("The approved local voice production root is missing")
+        self.production_root = Path(voice_record["production_root"]).resolve(strict=True)
+        if not self.production_root.is_dir():
+            raise ValueError("The approved local voice production root is not a directory")
         runtime = manifest.get("runtime_paths", {})
         for key in ("pocket_python", "pocket_config", "pocket_voices"):
             if not isinstance(runtime.get(key), str) or not Path(runtime[key]).exists():
                 raise ValueError(f"The local voice runtime is missing {key}")
         if not (Path(runtime["pocket_voices"]) / "alba.safetensors").is_file():
             raise ValueError("The local Pocket Alba preset is missing")
+        self.config = Path(runtime["pocket_config"])
+        self.preset = Path(runtime["pocket_voices"]) / "alba.safetensors"
         self.launcher = self.library_root / "Speech.ps1"
         self.script = self.library_root / "scripts" / "speech.py"
         self.python = Path(runtime["pocket_python"])
@@ -58,6 +97,7 @@ class PocketAlbaVoice:
         self._jobs: dict[str, dict[str, object]] = {}
         self._process: subprocess.Popen[str] | None = None
         self._worker_thread: threading.Thread | None = None
+        self._active_voice_id: str | None = None
         self._closed = False
 
     def enqueue(self, text: str) -> dict[str, object]:
@@ -91,16 +131,21 @@ class PocketAlbaVoice:
     def _run_job(self, voice_id: str) -> None:
         with self._state_lock:
             self._jobs[voice_id] = {**self._jobs[voice_id], "status": "generating"}
+            self._active_voice_id = voice_id
         try:
             result = self._generate(voice_id)
         except Exception:
             result = {"voice_id": voice_id, "voice": "pocket-alba", "status": "failed"}
         finally:
-            with self._state_lock:
-                self._process = None
+            self._after_job()
             self._generation_lock.release()
         with self._state_lock:
             self._jobs[voice_id] = result
+            self._active_voice_id = None
+
+    def _after_job(self) -> None:
+        with self._state_lock:
+            self._process = None
 
     def _generate(self, voice_id: str) -> dict[str, object]:
         folder = self.voice_root / voice_id
@@ -121,8 +166,7 @@ class PocketAlbaVoice:
                 self._process = process
             process.communicate(timeout=300)
         except subprocess.TimeoutExpired as exc:
-            process.kill()
-            process.communicate()
+            stop_owned_process(process)
             raise VoiceGenerationFailed("Local speech timed out") from exc
         except OSError as exc:
             raise VoiceGenerationFailed("Local speech could not start") from exc
@@ -189,11 +233,158 @@ class PocketAlbaVoice:
         with self._state_lock:
             process = self._process
         if process is not None and process.poll() is None:
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait(timeout=5)
+            stop_owned_process(process)
         if self._worker_thread is not None:
             self._worker_thread.join(timeout=5)
+
+
+class WarmPocketAlbaVoice(PocketAlbaVoice):
+    """Keep the approved model loaded across replies in one private process."""
+
+    def __init__(self, *, library_root: Path, data_dir: Path):
+        super().__init__(library_root=library_root, data_dir=data_dir)
+        self.worker_script = Path(__file__).with_name("pocket_worker.py")
+        if not self.worker_script.is_file():
+            raise ValueError("The local warm speech worker is missing")
+        self._events: queue.Queue[dict[str, object] | None] | None = None
+        self._reader_thread: threading.Thread | None = None
+        self._ready = False
+        self._prewarm_failed = False
+
+    def prewarm(self) -> None:
+        """Load the model in the background before the first voice reply."""
+        if not self._generation_lock.acquire(blocking=False):
+            return
+        self._prewarm_failed = False
+        worker = threading.Thread(target=self._prewarm_worker, daemon=True)
+        self._worker_thread = worker
+        worker.start()
+
+    def _prewarm_worker(self) -> None:
+        try:
+            self._start_worker()
+        except Exception:
+            self._prewarm_failed = True
+            self._reset_worker()
+        finally:
+            self._generation_lock.release()
+
+    def runtime_state(self) -> str:
+        if self._closed:
+            return "closed"
+        with self._state_lock:
+            process = self._process
+        if self._ready and process is not None and process.poll() is None:
+            return "busy" if self._generation_lock.locked() else "ready"
+        if self._generation_lock.locked():
+            return "starting"
+        return "failed" if self._prewarm_failed else "cold"
+
+    def _after_job(self) -> None:
+        # The model process remains alive and ready for the next bounded job.
+        return
+
+    @staticmethod
+    def _read_events(process: subprocess.Popen[str], events: queue.Queue[dict[str, object] | None]) -> None:
+        assert process.stdout is not None
+        for line in process.stdout:
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(event, dict) and event.get("event") in {
+                "starting", "libraries_loaded", "model_loaded", "ready", "done", "error"
+            }:
+                events.put(event)
+        events.put(None)
+
+    def _await_event(self, *, timeout: int) -> dict[str, object]:
+        assert self._events is not None
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                event = self._events.get(timeout=max(0.0, deadline - time.monotonic()))
+            except queue.Empty as exc:
+                raise VoiceGenerationFailed("Local speech worker timed out") from exc
+            if event is None:
+                raise VoiceGenerationFailed("Local speech worker exited")
+            if event.get("event") in {"starting", "libraries_loaded", "model_loaded"}:
+                with self._state_lock:
+                    voice_id = self._active_voice_id
+                    if voice_id is not None and voice_id in self._jobs:
+                        self._jobs[voice_id] = {**self._jobs[voice_id], "stage": event["event"]}
+                continue
+            return event
+
+    def _start_worker(self) -> subprocess.Popen[str]:
+        with self._state_lock:
+            process = self._process
+        if process is not None and process.poll() is None and self._ready:
+            return process
+        if self._closed:
+            raise VoiceGenerationFailed("Local speech adapter is closed")
+        self._ready = False
+        offline_env = os.environ.copy()
+        offline_env.update({
+            "HF_HUB_OFFLINE": "1",
+            "HF_HUB_DISABLE_IMPLICIT_TOKEN": "1",
+            "HF_HUB_DISABLE_TELEMETRY": "1",
+            "HF_HOME": str(self.production_root / "cache" / "huggingface"),
+            "TORCH_HOME": str(self.production_root / "cache" / "torch"),
+            "OMP_NUM_THREADS": "2",
+        })
+        command = [
+            str(self.python), "-u", str(self.worker_script),
+            "--config", str(self.config), "--preset", str(self.preset),
+            "--library-root", str(self.library_root), "--output-root", str(self.voice_root),
+        ]
+        try:
+            process = subprocess.Popen(
+                command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL, text=True, encoding="utf-8", bufsize=1, env=offline_env,
+            )
+        except OSError as exc:
+            raise VoiceGenerationFailed("Local speech worker could not start") from exc
+        with self._state_lock:
+            self._process = process
+        self._events = queue.Queue()
+        self._reader_thread = threading.Thread(
+            target=self._read_events, args=(process, self._events), daemon=True
+        )
+        self._reader_thread.start()
+        event = self._await_event(timeout=240)
+        if event.get("event") != "ready":
+            raise VoiceGenerationFailed("Local speech worker did not become ready")
+        self._ready = True
+        return process
+
+    def _generate(self, voice_id: str) -> dict[str, object]:
+        try:
+            process = self._start_worker()
+            if process.stdin is None:
+                raise VoiceGenerationFailed("Local speech input pipe is unavailable")
+            process.stdin.write(json.dumps({"voice_id": voice_id}) + "\n")
+            process.stdin.flush()
+            event = self._await_event(timeout=120)
+            if event.get("event") != "done" or event.get("voice_id") != voice_id:
+                raise VoiceGenerationFailed("Local speech worker did not complete the requested take")
+            verified = self._verified_take(voice_id)
+            if verified is None:
+                raise VoiceGenerationFailed("Local speech receipt did not verify")
+            return verified
+        except (VoiceGenerationFailed, OSError):
+            self._reset_worker()
+            raise
+
+    def _reset_worker(self) -> None:
+        self._ready = False
+        with self._state_lock:
+            process = self._process
+            self._process = None
+        if process is not None and process.poll() is None:
+            stop_owned_process(process)
+
+    def close(self) -> None:
+        super().close()
+        if self._reader_thread is not None:
+            self._reader_thread.join(timeout=5)

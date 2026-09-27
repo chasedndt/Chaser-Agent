@@ -6,7 +6,7 @@ This page maps executable repository truth to the 17-layer architecture. The ful
 
 2026-09-27 engineering addendum: the isolated `codex/2026-09-27-standalone-http-foundation` worktree has a local-only, bearer-protected review API (`local_http.py`; [contract and threat model](../05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md)). It creates pending source-card runs from public/toy text and retrieves their exact source and artifacts. It has no LLM provider, autonomous tool, or public network authority. This addendum does not change the older P0.1 branch's status or claim that HTTP is merged.
 
-Further engineering in the same isolated worktree adds optional local Pocket Alba speech-out jobs and a display-only computer-use HUD read model plus synthetic desktop preview. This does **not** supply a connected executor, interactive HUD controls, microphone input, or conversational-latency voice mode.
+Further engineering in the same isolated worktree adds optional local Pocket Alba speech-out jobs with a prewarmed worker, and a display-only computer-use HUD read model plus synthetic desktop preview. A second warm reply was measured end-to-end at 4.52 seconds on this machine, but this does **not** supply a connected executor, interactive HUD controls, microphone input, human listening acceptance, or a complete two-way conversational voice mode.
 
 ## Working capabilities
 

@@ -136,9 +136,13 @@ def test_configured_voice_endpoint_returns_only_authenticated_audio(api, tmp_pat
         def close(self):
             pass
 
+        def runtime_state(self):
+            return "ready"
+
     api.voice = FakeVoice()
     status, health, _ = call(api, "GET", "/v1/health")
     assert status == 200 and health["voice"] == "configured_local"
+    assert health["voice_runtime"] == "ready"
     status, reply, _ = call(
         api, "POST", "/v1/voice/replies",
         payload={"text": "A public toy response.", "privacy_class": "public_toy"}, headers=auth_headers(),
