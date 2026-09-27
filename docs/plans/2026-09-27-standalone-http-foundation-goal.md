@@ -18,7 +18,9 @@ Voice-state follow-on, 2026-09-27: per-take IDs now prevent an old queued draft 
 
 HTTP-security follow-on, 2026-09-27: a read-only `doctor` command now reports ACL and port preflight without reading token contents or changing state. It confirmed three broad-ACL blockers in the actual E: runtime and a momentarily available `127.0.0.1:8765`. No service startup occurred; the full goal remains active.
 
-Speech-interruption follow-on, 2026-09-27: an exact authenticated voice-cancel route, persistent cancelled marker and HUD Cancel reply control now exist. Fake warm-worker tests prove a later take can recover, and synthetic layouts show the control at normal/high scale. Actual Pocket Alba stop latency and already-started Windows playback interruption remain unverified; no general conversational provider or computer-use executor is attached. The full goal remains active.
+Speech-interruption follow-on, 2026-09-27: an exact authenticated voice-cancel route, persistent cancelled marker and HUD Cancel reply control now exist. Fake warm-worker tests prove a later take can recover, and synthetic layouts show the control at normal/high scale. Actual Pocket Alba stop latency and already-started playback interruption remain unverified on a real device; no general conversational provider or computer-use executor is attached. The full goal remains active.
+
+HUD-playback follow-on, 2026-09-27: the desktop's cancel-event path now uses output-only PCM16 or IEEE-float32 chunks and aborts pending buffers; the fixed CLI acknowledgement keeps legacy blocking playback. The installed optional audio environment accepted 24 kHz mono/int16 and float32 settings without opening a speaker. Actual audible quality, device stop latency, provider-backed conversation and real executor/HUD integration remain unverified; the full goal stays active.
 
 ## Goal to create in the engineering task
 

@@ -10,3 +10,4 @@
 - [2026-09-27 desktop voice race protection](2026-09-27-desktop-voice-race-protection.md)
 - [2026-09-27 local HTTP doctor](2026-09-27-local-http-doctor.md)
 - [2026-09-27 local voice cancellation](2026-09-27-local-voice-cancellation.md)
+- [2026-09-27 cancellable HUD audio](2026-09-27-cancellable-hud-audio.md)
