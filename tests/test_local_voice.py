@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import queue
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -99,6 +100,74 @@ def test_voice_busy_and_failed_generation_are_not_successes(library, tmp_path, m
     assert adapter.status(queued["voice_id"])["status"] == "failed"
 
 
+def test_cancel_active_take_blocks_late_audio_even_after_restart(library, tmp_path, monkeypatch):
+    adapter = PocketAlbaVoice(library_root=library, data_dir=tmp_path / "data")
+    started = threading.Event()
+    release = threading.Event()
+    stopped = threading.Event()
+    wav_body = b"RIFF" + b"c" * 64
+
+    class FakeProcess:
+        def poll(self):
+            return None
+
+    process = FakeProcess()
+
+    def fake_generate(voice_id):
+        with adapter._state_lock:
+            adapter._process = process
+        started.set()
+        assert release.wait(3)
+        folder = adapter.voice_root / voice_id
+        (folder / "response.wav").write_bytes(wav_body)
+        (folder / "response.json").write_text(json.dumps({
+            "voice_id": "pocket-alba", "sha256": hashlib.sha256(wav_body).hexdigest(),
+            "duration_seconds": 1.0,
+        }), encoding="utf-8")
+        return adapter._verified_take(voice_id)
+
+    monkeypatch.setattr(adapter, "_generate", fake_generate)
+    monkeypatch.setattr("chaser_agent.local_voice.stop_owned_process", lambda candidate: stopped.set() if candidate is process else None)
+    queued = adapter.enqueue("Public toy take to cancel")
+    assert started.wait(3)
+    cancelling = adapter.cancel(queued["voice_id"])
+    assert cancelling["status"] == "cancelling"
+    assert stopped.wait(3)
+    assert adapter.status(queued["voice_id"])["status"] == "cancelling"
+    release.set()
+    adapter._worker_thread.join(timeout=5)
+    assert adapter.status(queued["voice_id"])["status"] == "cancelled"
+    assert adapter.audio_path(queued["voice_id"]) is None
+    assert adapter.cancel(queued["voice_id"])["status"] == "cancelled"
+    assert adapter.cancel("../control-token") is None
+    restarted = PocketAlbaVoice(library_root=library, data_dir=tmp_path / "data")
+    assert restarted.status(queued["voice_id"])["status"] == "cancelled"
+    assert restarted.audio_path(queued["voice_id"]) is None
+
+
+def test_cancel_before_worker_starts_skips_generation(library, tmp_path, monkeypatch):
+    adapter = PocketAlbaVoice(library_root=library, data_dir=tmp_path / "data")
+    entered = threading.Event()
+    release = threading.Event()
+    generated = []
+    original_run = adapter._run_job
+
+    def delayed_run(voice_id):
+        entered.set()
+        assert release.wait(3)
+        original_run(voice_id)
+
+    monkeypatch.setattr(adapter, "_run_job", delayed_run)
+    monkeypatch.setattr(adapter, "_generate", lambda voice_id: generated.append(voice_id))
+    queued = adapter.enqueue("Public toy take")
+    assert entered.wait(3)
+    assert adapter.cancel(queued["voice_id"])["status"] == "cancelling"
+    release.set()
+    adapter._worker_thread.join(timeout=5)
+    assert generated == []
+    assert adapter.status(queued["voice_id"])["status"] == "cancelled"
+
+
 def test_voice_refuses_unapproved_identity(library, tmp_path):
     manifest_path = library / "voice-library.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -189,6 +258,74 @@ def test_warm_worker_reuses_one_local_model_process_for_two_takes(library, tmp_p
     adapter.close()
     assert processes[0].terminated
     assert adapter.runtime_state() == "closed"
+
+
+def test_warm_worker_cancel_releases_busy_slot_and_later_take_recovers(library, tmp_path, monkeypatch):
+    processes = []
+    first_generating = threading.Event()
+    wav_body = b"RIFF" + b"r" * 64
+
+    class FakeWorker:
+        def __init__(self, command, **_kwargs):
+            self.index = len(processes)
+            self.requests = queue.Queue()
+            self.stopped = threading.Event()
+            self.root = Path(command[command.index("--output-root") + 1])
+            self.stdin = self
+            self.stdout = self.lines()
+            processes.append(self)
+
+        def lines(self):
+            yield '{"event":"ready"}\n'
+            while not self.stopped.is_set():
+                voice_id = self.requests.get(timeout=5)
+                if voice_id is None:
+                    break
+                if self.index == 0:
+                    first_generating.set()
+                    assert self.stopped.wait(3)
+                    break
+                wav = self.root / voice_id / "response.wav"
+                wav.write_bytes(wav_body)
+                wav.with_suffix(".json").write_text(json.dumps({
+                    "voice_id": "pocket-alba", "sha256": hashlib.sha256(wav_body).hexdigest(),
+                    "duration_seconds": 1.0,
+                }), encoding="utf-8")
+                yield json.dumps({"event": "done", "voice_id": voice_id}) + "\n"
+
+        def write(self, line):
+            self.requests.put(json.loads(line)["voice_id"])
+
+        def flush(self):
+            pass
+
+        def poll(self):
+            return 0 if self.stopped.is_set() else None
+
+        def terminate(self):
+            self.stopped.set()
+            self.requests.put(None)
+
+        def wait(self, timeout):
+            return 0
+
+    monkeypatch.setattr("chaser_agent.local_voice.subprocess.Popen", FakeWorker)
+    monkeypatch.setattr("chaser_agent.local_voice.stop_owned_process", lambda process: process.terminate())
+    adapter = WarmPocketAlbaVoice(library_root=library, data_dir=tmp_path / "data")
+    adapter.prewarm()
+    adapter._worker_thread.join(timeout=5)
+    assert adapter.runtime_state() == "ready"
+    first = adapter.enqueue("First public toy response")
+    assert first_generating.wait(3)
+    assert adapter.cancel(first["voice_id"])["status"] == "cancelling"
+    adapter._worker_thread.join(timeout=5)
+    assert adapter.status(first["voice_id"])["status"] == "cancelled"
+    assert adapter.audio_path(first["voice_id"]) is None
+    second = adapter.enqueue("Second public toy response")
+    adapter._worker_thread.join(timeout=5)
+    assert adapter.status(second["voice_id"])["status"] == "generated_pending_listening_review"
+    assert len(processes) == 2
+    adapter.close()
 
 
 def test_stop_owned_process_targets_only_the_known_windows_child_tree(monkeypatch):

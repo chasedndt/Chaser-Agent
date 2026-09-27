@@ -22,6 +22,7 @@ from pathlib import Path
 VOICE_ID = re.compile(r"^voice-[0-9]{8}T[0-9]{12}Z-[0-9a-f]{12}$")
 MAX_SPEECH_CHARS = 500
 MAX_WAV_BYTES = 20_000_000
+TERMINAL_VOICE_STATUSES = frozenset({"generated_pending_listening_review", "failed", "interrupted", "cancelled"})
 
 
 class VoiceBusy(RuntimeError):
@@ -98,7 +99,55 @@ class PocketAlbaVoice:
         self._process: subprocess.Popen[str] | None = None
         self._worker_thread: threading.Thread | None = None
         self._active_voice_id: str | None = None
+        self._cancelled: set[str] = set()
         self._closed = False
+
+    @staticmethod
+    def _cancelled_result(voice_id: str) -> dict[str, object]:
+        return {"voice_id": voice_id, "voice": "pocket-alba", "status": "cancelled"}
+
+    def _is_cancelled(self, voice_id: str) -> bool:
+        with self._state_lock:
+            return voice_id in self._cancelled
+
+    @staticmethod
+    def _stop_cancelled_process(process: subprocess.Popen[str]) -> None:
+        try:
+            stop_owned_process(process)
+        except Exception:
+            # The take remains cancelled and inaccessible even if the exact
+            # owned child is slow or refuses to stop before its timeout.
+            pass
+
+    def cancel(self, voice_id: str) -> dict[str, object] | None:
+        """Cancel one known take; never kill a process not owned by this adapter."""
+        if not VOICE_ID.fullmatch(voice_id):
+            return None
+        with self._state_lock:
+            current = self._jobs.get(voice_id)
+            if current is None:
+                return None
+            if current["status"] in TERMINAL_VOICE_STATUSES or current["status"] == "cancelling":
+                return dict(current)
+            marker = self.voice_root / voice_id / "cancelled.json"
+            if marker.is_symlink():
+                raise VoiceGenerationFailed("Local cancellation marker is unsafe")
+            try:
+                descriptor = os.open(marker, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                    json.dump(self._cancelled_result(voice_id), stream)
+            except FileExistsError:
+                if not marker.is_file() or marker.is_symlink():
+                    raise VoiceGenerationFailed("Local cancellation marker is unsafe")
+            except OSError as exc:
+                raise VoiceGenerationFailed("Local cancellation marker could not be written") from exc
+            self._cancelled.add(voice_id)
+            self._jobs[voice_id] = {"voice_id": voice_id, "voice": "pocket-alba", "status": "cancelling"}
+            process = self._process if self._active_voice_id == voice_id else None
+            result = dict(self._jobs[voice_id])
+        if process is not None and process.poll() is None:
+            threading.Thread(target=self._stop_cancelled_process, args=(process,), daemon=True).start()
+        return result
 
     def enqueue(self, text: str) -> dict[str, object]:
         if not isinstance(text, str) or not 1 <= len(text.strip()) <= MAX_SPEECH_CHARS:
@@ -130,18 +179,24 @@ class PocketAlbaVoice:
 
     def _run_job(self, voice_id: str) -> None:
         with self._state_lock:
-            self._jobs[voice_id] = {**self._jobs[voice_id], "status": "generating"}
-            self._active_voice_id = voice_id
+            cancelled_before_start = voice_id in self._cancelled
+            if not cancelled_before_start:
+                self._jobs[voice_id] = {**self._jobs[voice_id], "status": "generating"}
+                self._active_voice_id = voice_id
         try:
-            result = self._generate(voice_id)
+            result = self._cancelled_result(voice_id) if cancelled_before_start else self._generate(voice_id)
         except Exception:
             result = {"voice_id": voice_id, "voice": "pocket-alba", "status": "failed"}
         finally:
             self._after_job()
+            with self._state_lock:
+                if voice_id in self._cancelled:
+                    result = self._cancelled_result(voice_id)
+                    self._cancelled.discard(voice_id)
+                self._jobs[voice_id] = result
+                if self._active_voice_id == voice_id:
+                    self._active_voice_id = None
             self._generation_lock.release()
-        with self._state_lock:
-            self._jobs[voice_id] = result
-            self._active_voice_id = None
 
     def _after_job(self) -> None:
         with self._state_lock:
@@ -160,10 +215,15 @@ class PocketAlbaVoice:
             "HF_HUB_DISABLE_TELEMETRY": "1",
         })
         try:
+            if self._is_cancelled(voice_id):
+                raise VoiceGenerationFailed("Local speech take cancelled")
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                        text=True, env=offline_env)
             with self._state_lock:
                 self._process = process
+            if self._is_cancelled(voice_id):
+                stop_owned_process(process)
+                raise VoiceGenerationFailed("Local speech take cancelled")
             process.communicate(timeout=300)
         except subprocess.TimeoutExpired as exc:
             stop_owned_process(process)
@@ -218,6 +278,11 @@ class PocketAlbaVoice:
         folder = self.voice_root / voice_id
         if folder.is_symlink() or not (folder / "script.txt").is_file():
             return None
+        marker = folder / "cancelled.json"
+        if marker.is_symlink():
+            return {"voice_id": voice_id, "voice": "pocket-alba", "status": "interrupted"}
+        if marker.is_file():
+            return self._cancelled_result(voice_id)
         return self._verified_take(voice_id) or {"voice_id": voice_id, "voice": "pocket-alba", "status": "interrupted"}
 
     def audio_path(self, voice_id: str) -> Path | None:
@@ -361,6 +426,8 @@ class WarmPocketAlbaVoice(PocketAlbaVoice):
     def _generate(self, voice_id: str) -> dict[str, object]:
         try:
             process = self._start_worker()
+            if self._is_cancelled(voice_id):
+                raise VoiceGenerationFailed("Local speech take cancelled")
             if process.stdin is None:
                 raise VoiceGenerationFailed("Local speech input pipe is unavailable")
             process.stdin.write(json.dumps({"voice_id": voice_id}) + "\n")
