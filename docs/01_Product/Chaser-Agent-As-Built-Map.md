@@ -1,5 +1,11 @@
 # Chaser Agent As-Built Map
 
+## Current engineering snapshot — 27 September 2026
+
+The private local runtime is now ACL-repaired, token-rotated and live-loopback tested on port 8765. The [current 18-layer map](Runtime-Architecture.md) and [offline interactive explorer](Runtime-Architecture.html) supersede the older status table below for this engineering worktree. The native HUD and local voice interfaces are built; real computer-use execution, general reasoning and operator voice acceptance remain incomplete.
+
+The following P0.1 account and sequential addenda are historical evidence. Earlier broad-ACL blockers were resolved by the approved [runtime activation](../../logs/build/2026-09-27-runtime-activation.md); they are not current launch blockers.
+
 **Status:** P0.1 IMPLEMENTED AND LOCALLY VERIFIED on `codex/standalone-first-memory-realignment`; not merged, released, or operator-accepted.
 
 This page maps executable repository truth to the 17-layer architecture. The full suite passed 55 tests on 2026-08-11, and all 21 golden plus 6 contract JSONL rows validated. Those results prove deterministic contracts and wiring, not product-quality intelligence.

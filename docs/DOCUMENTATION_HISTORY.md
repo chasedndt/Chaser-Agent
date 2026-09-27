@@ -18,3 +18,6 @@
 - 2026-09-27: documented the explicit Talk-next HUD sequence, with reply cancellation before a new microphone take, revocation through Clear draft and no claim of real barge-in acceptance.
 - 2026-09-27: documented actual Tk HUD synthetic before/after captures and the narrow-width wrap/reflow correction for Talk-next and computer-use controls. Accessibility and device acceptance remain open.
 - 2026-09-27: documented desktop HUD control-response revision gating so stale HTTP replies cannot overwrite newer executor or connection-loss state.
+# 2026-09-27 — approved runtime activation
+
+Current Mermaid and offline 18-layer explorer added; old ACL-blocked prose marked historical or corrected. See [activation evidence](../logs/build/2026-09-27-runtime-activation.md). Public site changes are source-only until deployment credentials are available.
