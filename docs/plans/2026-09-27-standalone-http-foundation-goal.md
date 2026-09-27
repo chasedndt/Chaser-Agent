@@ -28,6 +28,8 @@ HTTP-integrity follow-on, 2026-09-27: new source-card runs carry read-time SHA-2
 
 HTTP-rejection follow-on, 2026-09-27: early rejected POSTs now drain only small declared bodies before closing, avoiding an observed Windows connection abort on a 404 path. Focused network tests cover invalid route, Host, Origin and rate-limit replies. Larger or malformed bodies still close without unbounded reads.
 
+Voice-turn follow-on, 2026-09-27: during a pending spoken reply the HUD now offers Talk next. That explicit click requests cancellation, waits for the reply worker to complete, then starts a new bounded push-to-talk take; Clear draft revokes the queued capture. Mocked UI-state tests prove ordering and no early microphone opening, but no real microphone/speaker latency or general conversation is verified. The full goal stays active.
+
 ## Goal to create in the engineering task
 
 Build and verify Chaser Agent's standalone, local-only HTTP foundation so the deterministic harness can be invoked through a bounded loopback service without ChaseOS. Start with a read-only/review-only source-card path and explicit health/status; then add only the review and run retrieval operations whose authority boundaries can be tested. Keep the service secure by default, documented, and independently runnable. Do not generate human product-quality labels or treat pending eval fixtures as golden answers.

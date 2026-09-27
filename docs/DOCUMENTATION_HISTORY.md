@@ -15,3 +15,4 @@
 - 2026-09-27: documented same-process HUD executor reconnection after uncertain disconnect, with owner identity, stale-callback rejection and fresh-event control gate. Real executor and process-crash recovery remain open.
 - 2026-09-27: documented read-time HTTP run integrity checks and explicit unverified legacy state; corrected the claim that API runs are filesystem-immutable. Private storage and human review remain required.
 - 2026-09-27: documented bounded draining of early-rejected HTTP POST bodies after a Windows client-reset failure in the full suite; malformed/large requests still close fail-closed.
+- 2026-09-27: documented the explicit Talk-next HUD sequence, with reply cancellation before a new microphone take, revocation through Clear draft and no claim of real barge-in acceptance.
