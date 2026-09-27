@@ -28,6 +28,8 @@ For HUD replies, an optional output-only stream now writes roughly 50 ms PCM16 o
 
 The HUD bridge also permits the identical in-process executor to reconnect an uncertain, nonterminal session without discarding pending control state. A different executor object cannot claim it, old report callbacks stay invalid, and controls remain disabled until a fresh higher-sequence event arrives. This is fake-executor lifecycle proof only; no real computer-use adapter or process-crash recovery is present.
 
+The desktop HUD now guards its own control notice against late HTTP responses: a response for an older display revision or different session cannot overwrite a newer executor snapshot or connection-loss warning. The button path still awaits authoritative executor status; fake UI tests cover the race, not real computer-use acceptance.
+
 New local HTTP source-card runs now carry a SHA-256 integrity record checked before authenticated readback; changed artifacts return a conflict, while older pre-record runs are explicitly labelled unverified. This is tamper detection under the private-storage premise, not filesystem immutability or protection against a same-user actor who can rewrite data and digests.
 
 Synthetic layout QA then exposed fixed-size clipping at simulated 200%-style Tk scaling; scale-aware sizing and a scrollable small-screen container corrected the inspected captures. These are rendered local checks, not live high-DPI or accessibility acceptance.

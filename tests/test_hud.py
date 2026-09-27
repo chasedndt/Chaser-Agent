@@ -549,3 +549,46 @@ def test_narrow_hud_reflows_controls_and_wraps_text():
     assert window.buttons["take_over"].values["row"] == 0
     assert window.buttons["take_over"].values["column"] == 3
     assert window.clear_button.values["row"] == 0
+
+
+def test_late_hud_control_reply_cannot_override_newer_or_foreign_state(monkeypatch):
+    from chaser_agent.hud_window import HudWindow
+
+    started = []
+
+    class FakeThread:
+        def __init__(self, *, target, args, **_kwargs):
+            started.append((target, args))
+
+        def start(self):
+            pass
+
+    class FakeWidget:
+        def __init__(self):
+            self.values = {}
+
+        def configure(self, **kwargs):
+            self.values.update(kwargs)
+
+    monkeypatch.setattr("chaser_agent.hud_window.threading.Thread", FakeThread)
+    window = object.__new__(HudWindow)
+    window.preview = False
+    window._closed = False
+    window._control_in_flight = False
+    window._current_session = "session-a"
+    window._display_revision = 7
+    window.notice_label = FakeWidget()
+    window.buttons = {"stop": FakeWidget(), "take_over": FakeWidget()}
+    window._request_control("stop")
+    assert started[0][1] == ("session-a", "stop", 7)
+    assert window.notice_label.values["text"].startswith("Sending control request")
+
+    window._current_session = "session-b"
+    window._display_revision = 8
+    window._finish_control("Old executor acknowledged", "session-a", 7)
+    assert window.notice_label.values["text"].startswith("Sending control request")
+    window._current_session = "session-a"
+    window._finish_control("Old same-session response", "session-a", 7)
+    assert window.notice_label.values["text"].startswith("Sending control request")
+    window._finish_control("Current response", "session-a", 8)
+    assert window.notice_label.values["text"] == "Current response"

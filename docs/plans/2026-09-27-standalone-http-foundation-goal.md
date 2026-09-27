@@ -32,6 +32,8 @@ Voice-turn follow-on, 2026-09-27: during a pending spoken reply the HUD now offe
 
 HUD-visual follow-on, 2026-09-27: actual Tk screenshots with fake/no-device state exposed clipping at a narrow width. The HUD now wraps status text to the canvas and reflows controls into two rows; a second capture verifies readable labels at that tested size. Talk-next waiting copy now distinguishes queued capture from reply stopping. See the [QA record](<E:/Visual QA/Chaser Agent Visual QA/Current Reviews/2026-09-27-talk-next-hud/QA.md>). Keyboard, screen-reader and real-device behavior remain unverified.
 
+HUD-control-race follow-on, 2026-09-27: outbound button requests carry the displayed session and view revision. A delayed HTTP response cannot overwrite a newer executor snapshot, connection-loss warning or another session's notice. Mocked UI tests cover the stale-response case; a real authorized computer-use executor is still absent.
+
 ## Goal to create in the engineering task
 
 Build and verify Chaser Agent's standalone, local-only HTTP foundation so the deterministic harness can be invoked through a bounded loopback service without ChaseOS. Start with a read-only/review-only source-card path and explicit health/status; then add only the review and run retrieval operations whose authority boundaries can be tested. Keep the service secure by default, documented, and independently runnable. Do not generate human product-quality labels or treat pending eval fixtures as golden answers.

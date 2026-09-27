@@ -115,6 +115,7 @@ class HudWindow:
         self._voice_controls_frame: tk.Frame | None = None
         self._current_session: str | None = None
         self._control_in_flight = False
+        self._display_revision = 0
         self._preview_registry = HudRegistry() if preview else None
         self._build()
         if self.voice_model_dir is not None:
@@ -419,6 +420,7 @@ class HudWindow:
             self._voice_talk()
 
     def _render(self, state: dict[str, object]) -> None:
+        self._display_revision = getattr(self, "_display_revision", 0) + 1
         phase = state.get("phase")
         if state.get("status") == "inactive" and not self.preview:
             self._current_session = None
@@ -457,12 +459,14 @@ class HudWindow:
         if self.preview or self._closed or self._control_in_flight or not self._current_session:
             return
         self._control_in_flight = True
+        self.notice_label.configure(text="Sending control request · waiting for executor evidence")
         for button in self.buttons.values():
             button.configure(state="disabled")
         session_id = self._current_session
-        threading.Thread(target=self._control_in_background, args=(session_id, command), daemon=True).start()
+        revision = self._display_revision
+        threading.Thread(target=self._control_in_background, args=(session_id, command, revision), daemon=True).start()
 
-    def _control_in_background(self, session_id: str, command: str) -> None:
+    def _control_in_background(self, session_id: str, command: str, revision: int) -> None:
         try:
             result = send_control(port=self.port, token=self.token, session_id=session_id, command=command)
             notice = ("Awaiting executor acknowledgement" if result.get("status") == "pending_executor_ack"
@@ -472,13 +476,14 @@ class HudWindow:
             notice = "Control request failed · execution status unknown"
         if not self._closed:
             try:
-                self.root.after(0, lambda: self._finish_control(notice))
+                self.root.after(0, lambda: self._finish_control(notice, session_id, revision))
             except (RuntimeError, tk.TclError):
                 pass
 
-    def _finish_control(self, notice: str) -> None:
+    def _finish_control(self, notice: str, session_id: str, revision: int) -> None:
         self._control_in_flight = False
-        self.notice_label.configure(text=notice)
+        if self._current_session == session_id and self._display_revision == revision:
+            self.notice_label.configure(text=notice)
 
     def _poll(self) -> None:
         if self._closed:
@@ -502,6 +507,7 @@ class HudWindow:
     def _finish_fetch(self, snapshot: dict[str, object] | None) -> None:
         self._pending_fetch = False
         if snapshot is None:
+            self._display_revision = getattr(self, "_display_revision", 0) + 1
             self._current_session = None
             for button in self.buttons.values():
                 button.configure(state="disabled")

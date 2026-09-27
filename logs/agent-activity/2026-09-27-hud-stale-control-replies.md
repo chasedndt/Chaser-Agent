@@ -1,0 +1,3 @@
+# Agent activity — 2026-09-27 HUD stale control replies
+
+Actor: Codex / Axiom-Codex. Scope: isolated E: Chaser Agent engineering worktree. Result: desktop HUD control replies are tied to the displayed session/revision and cannot overwrite newer executor or connection-loss state. See [build receipt](../build/2026-09-27-hud-stale-control-replies.md) and [HTTP/HUD contract](../../docs/05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md). No real executor, service startup, ACL/token change, provider, canonical ChaseOS write, push or deployment occurred. The ChaseOS runtime remains `PARTIAL / CORE FOUNDATION PREVIEW / NOT LIVE` and the Codex goal stays active.
