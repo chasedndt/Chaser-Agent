@@ -19,6 +19,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from chaser_agent.hud_runtime import HudRegistry
+from chaser_agent.local_voice import MAX_SPEECH_CHARS, MAX_WAV_BYTES, PocketAlbaVoice, VoiceBusy, VoiceGenerationFailed
 from chaser_agent.run_artifacts import build_run_log, write_artifact_set
 from chaser_agent.schemas import SourceInput
 from chaser_agent.source_card import (
@@ -116,6 +118,7 @@ class LocalHTTPServer(ThreadingHTTPServer):
         token: str,
         port: int = DEFAULT_PORT,
         allowed_origins: tuple[str, ...] = (),
+        voice_library: Path | None = None,
     ):
         if not re.fullmatch(r"[0-9a-f]{64}", token):
             raise ValueError("A 256-bit hexadecimal bearer token is required")
@@ -131,9 +134,18 @@ class LocalHTTPServer(ThreadingHTTPServer):
         self.run_root.mkdir(exist_ok=True)
         self.token = token
         self.limiter = SlidingWindowLimiter()
+        self.hud = HudRegistry()
+        self.voice = PocketAlbaVoice(library_root=voice_library, data_dir=data_dir) if voice_library else None
         super().__init__((LOOPBACK_HOST, port), LocalRequestHandler)
         self.allowed_origins = {f"http://{LOOPBACK_HOST}:{self.server_port}"}
         self.allowed_origins.update(validated_origins)
+
+    def server_close(self) -> None:
+        try:
+            if self.voice is not None:
+                self.voice.close()
+        finally:
+            super().server_close()
 
 
 class LocalRequestHandler(BaseHTTPRequestHandler):
@@ -171,7 +183,12 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
         for name, value in (extra_headers or {}).items():
             self.send_header(name, value)
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except OSError:
+            # A client may disconnect while a bounded local operation finishes.
+            # Do not print a traceback containing runtime paths or request state.
+            self.close_connection = True
 
     def _reply(self, status: int, payload: dict[str, object], *, extra_headers: dict[str, str] | None = None) -> None:
         body = (json.dumps(payload, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")
@@ -212,7 +229,7 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self) -> None:
         if not self._request_allowed():
             return
-        if self.path != "/v1/source-cards" or self.headers.get("Origin") not in self.server.allowed_origins:
+        if self.path not in {"/v1/source-cards", "/v1/voice/replies"} or self.headers.get("Origin") not in self.server.allowed_origins:
             self._error(404, "not_found", "Route not found")
             return
         self.send_response(204)
@@ -235,15 +252,41 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
                     "status": "ready",
                     "bind": LOOPBACK_HOST,
                     "port": self.server.server_port,
-                    "mode": "deterministic_review_only",
+                    "mode": "review_with_local_voice" if self.server.voice else "deterministic_review_only",
                     "hud": "not_connected",
-                    "voice": "not_connected",
+                    "voice": "configured_local" if self.server.voice else "not_connected",
                 },
             )
             return
         if not self._authorized():
             return
+        if self.path == "/v1/hud/current":
+            self._reply(200, self.server.hud.snapshot())
+            return
         segments = self.path.split("/")
+        if len(segments) == 4 and segments[:3] == ["", "v1", "voice"]:
+            adapter = self.server.voice
+            status = adapter.status(segments[3]) if adapter else None
+            if status is None:
+                self._error(404, "not_found", "Voice take not found")
+                return
+            self._reply(200, status)
+            return
+        if len(segments) == 5 and segments[:3] == ["", "v1", "voice"] and segments[4] == "audio.wav":
+            adapter = self.server.voice
+            audio_path = adapter.audio_path(segments[3]) if adapter else None
+            if audio_path is None:
+                self._error(404, "not_found", "Voice take not found")
+                return
+            try:
+                if audio_path.stat().st_size > MAX_WAV_BYTES:
+                    raise OSError("WAV too large")
+                audio_body = audio_path.read_bytes()
+            except OSError:
+                self._error(500, "audio_unavailable", "Voice take could not be read")
+                return
+            self._send_body(200, audio_body, "audio/wav")
+            return
         if len(segments) not in {4, 6} or segments[:3] != ["", "v1", "runs"]:
             self._error(404, "not_found", "Route not found")
             return
@@ -283,7 +326,7 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         if not self._request_allowed():
             return
-        if self.path != "/v1/source-cards":
+        if self.path not in {"/v1/source-cards", "/v1/voice/replies"}:
             self._error(404, "not_found", "Route not found")
             return
         if not self._authorized():
@@ -331,7 +374,13 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
         except (UnicodeError, json.JSONDecodeError, ValueError, TimeoutError, OSError):
             self._error(400, "invalid_json", "A complete UTF-8 JSON object is required")
             return
-        if not isinstance(request, dict) or set(request) - {"title", "text", "privacy_class", "profile"}:
+        if not isinstance(request, dict):
+            self._error(400, "invalid_input", "A JSON object is required")
+            return
+        if self.path == "/v1/voice/replies":
+            self._post_voice_reply(request)
+            return
+        if set(request) - {"title", "text", "privacy_class", "profile"}:
             self._error(400, "invalid_input", "Unsupported source-card fields")
             return
         title = request.get("title")
@@ -394,6 +443,33 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
             },
         )
 
+    def _post_voice_reply(self, request: dict[str, object]) -> None:
+        if set(request) != {"text", "privacy_class"}:
+            self._error(400, "invalid_input", "Voice replies require text and privacy_class only")
+            return
+        speech_text = request["text"]
+        privacy_class = request["privacy_class"]
+        if (
+            not isinstance(speech_text, str)
+            or not 1 <= len(speech_text.strip()) <= MAX_SPEECH_CHARS
+            or not isinstance(privacy_class, str)
+            or privacy_class not in PRIVACY_CLASSES
+        ):
+            self._error(400, "invalid_input", "Use 1–500 characters of public/toy text")
+            return
+        if self.server.voice is None:
+            self._error(503, "voice_not_configured", "No local voice library was configured at startup")
+            return
+        try:
+            result = self.server.voice.enqueue(speech_text)
+        except VoiceBusy:
+            self._error(409, "voice_busy", "A local voice take is already generating")
+            return
+        except (VoiceGenerationFailed, OSError, ValueError):
+            self._error(500, "voice_generation_failed", "No verified local voice take was produced")
+            return
+        self._reply(202, result, extra_headers={"Retry-After": "2"})
+
 
 def create_server(
     *,
@@ -401,5 +477,12 @@ def create_server(
     token: str,
     port: int = DEFAULT_PORT,
     allowed_origins: tuple[str, ...] = (),
+    voice_library: Path | None = None,
 ) -> LocalHTTPServer:
-    return LocalHTTPServer(data_dir=data_dir, token=token, port=port, allowed_origins=allowed_origins)
+    return LocalHTTPServer(
+        data_dir=data_dir,
+        token=token,
+        port=port,
+        allowed_origins=allowed_origins,
+        voice_library=voice_library,
+    )

@@ -33,10 +33,13 @@ All seven surfaces are implemented on `codex/standalone-first-memory-realignment
 | Knowledge-map provenance | `04_Memory/Chaser-Agent-Knowledge-Map-Architecture.md` |
 | Optional ChaseOS integration | `05_Runtime_Adapters/Chaser-Agent-ChaseOS-Optional-Integration.md` |
 | Local HTTP engineering slice | `05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md` |
+| Computer-use HUD engineering state | `01_Product/Chaser-Agent-Computer-Use-HUD.md` |
 | Contract eval design | `02_Evals/Chaser-Agent-Contract-Eval-Design.md` |
 | Exact current test values | `02_Evals/Chaser-Agent-Current-Test-Matrix.md` |
 
 The standalone-first dependency rule is enforced by `tests/test_standalone_independence.py`, which parses core-package imports and fails on any ChaseOS, provider, MCP, or browser dependency.
+
+Isolated engineering evidence for the new local service: `../logs/build/2026-09-27-standalone-local-http-foundation.md` and `../logs/build/2026-09-27-hud-and-local-voice-bridge.md`. These do not replace the older P0.1 acceptance state.
 
 ## Truth boundary
 

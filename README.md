@@ -77,7 +77,7 @@ See:
 
 Chaser Agent is a **P0.1 / pre-alpha standalone deterministic harness**. The canonical visual asset release and browser-local one-time run are public consumer surfaces; provider routing, browser authority, autonomous execution and managed hosting remain future engineering lanes.
 
-An isolated engineering worktree now also has a [local HTTP foundation](docs/05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md): a token-protected `127.0.0.1:8765` source-review API that retains the original submitted public text with each pending run. This is local engineering evidence, not a merged release or a live agent. HUD and voice are not connected to that listener.
+An isolated engineering worktree now also has a [local HTTP foundation](docs/05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md): a token-protected `127.0.0.1:8765` source-review API that retains the original submitted public text with each pending run. An optional Pocket Alba library can generate offline speech-out jobs behind the same local token. This is local engineering evidence, not a merged release or a live agent. The computer-use HUD and conversational voice mode are not connected.
 
 Verified P0.1 implementation:
 

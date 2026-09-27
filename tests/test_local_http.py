@@ -43,9 +43,10 @@ def call(api, method: str, path: str, *, payload=None, raw: bytes | None = None,
     connection.request(method, path, body=body, headers=request_headers)
     response = connection.getresponse()
     response_body = response.read()
+    content_type = response.getheader("Content-Type", "")
     result = (
-        json.loads(response_body)
-        if response_body and response.getheader("Content-Type", "").startswith("application/json")
+        json.loads(response_body) if response_body and content_type.startswith("application/json")
+        else response_body if content_type.startswith("audio/")
         else response_body.decode("utf-8") if response_body else None
     )
     status = response.status
@@ -77,11 +78,80 @@ def test_health_exposes_fixed_loopback_port_and_no_execution_claim(api):
     assert headers["Cache-Control"] == "no-store"
 
 
+def test_hud_read_model_is_authenticated_and_inactive_without_executor(api):
+    status, _, _ = call(api, "GET", "/v1/hud/current")
+    assert status == 401
+    status, hud, _ = call(api, "GET", "/v1/hud/current", headers=auth_headers())
+    assert status == 200
+    assert hud["status"] == "inactive"
+    assert hud["controls_enabled"] is False
+    assert hud["authority"] == "display_only_no_executor"
+
+
 def test_unauthorized_request_cannot_create_a_run(api):
     status, body, _ = call(api, "POST", "/v1/source-cards", payload=source_payload())
     assert status == 401
     assert body["error"]["code"] == "unauthorized"
     assert list(api.run_root.iterdir()) == []
+
+
+def test_voice_is_disabled_by_default_and_never_accepts_private_text(api):
+    payload = {"text": "Hello", "privacy_class": "public_toy"}
+    status, body, _ = call(api, "POST", "/v1/voice/replies", payload=payload)
+    assert status == 401
+    status, body, _ = call(api, "POST", "/v1/voice/replies", payload=payload, headers=auth_headers())
+    assert status == 503
+    assert body["error"]["code"] == "voice_not_configured"
+    for privacy_class in ("internal_safe", "private", []):
+        payload["privacy_class"] = privacy_class
+        status, _, _ = call(api, "POST", "/v1/voice/replies", payload=payload, headers=auth_headers())
+        assert status == 400
+
+
+def test_configured_voice_endpoint_returns_only_authenticated_audio(api, tmp_path):
+    voice_id = "voice-20260927T120000000000Z-abcdef123456"
+    wav = tmp_path / "response.wav"
+    wav.write_bytes(b"RIFF" + b"x" * 64)
+
+    class FakeVoice:
+        def enqueue(self, text):
+            assert text == "A public toy response."
+            return {
+                "voice_id": voice_id,
+                "voice": "pocket-alba",
+                "status": "queued",
+                "status_url": f"/v1/voice/{voice_id}",
+            }
+
+        def status(self, candidate):
+            return {
+                "voice_id": voice_id,
+                "status": "generated_pending_listening_review",
+                "audio_url": f"/v1/voice/{voice_id}/audio.wav",
+            } if candidate == voice_id else None
+
+        def audio_path(self, candidate):
+            return wav if candidate == voice_id else None
+
+        def close(self):
+            pass
+
+    api.voice = FakeVoice()
+    status, health, _ = call(api, "GET", "/v1/health")
+    assert status == 200 and health["voice"] == "configured_local"
+    status, reply, _ = call(
+        api, "POST", "/v1/voice/replies",
+        payload={"text": "A public toy response.", "privacy_class": "public_toy"}, headers=auth_headers(),
+    )
+    assert status == 202
+    assert reply["status"] == "queued"
+    status, state, _ = call(api, "GET", reply["status_url"], headers=auth_headers())
+    assert status == 200 and state["status"] == "generated_pending_listening_review"
+    status, _, _ = call(api, "GET", state["audio_url"])
+    assert status == 401
+    status, audio, headers = call(api, "GET", state["audio_url"], headers=auth_headers())
+    assert status == 200 and audio == wav.read_bytes()
+    assert headers["Content-Type"] == "audio/wav"
 
 
 def test_source_card_round_trip_stays_review_only(api):

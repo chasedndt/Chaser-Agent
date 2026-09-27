@@ -1,0 +1,127 @@
+"""Offline Pocket Alba adapter contracts; no real model is loaded here."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from chaser_agent.local_voice import PocketAlbaVoice, VoiceBusy
+
+
+@pytest.fixture
+def library(tmp_path: Path, monkeypatch):
+    root = tmp_path / "library"
+    root.mkdir()
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    python = runtime / "python.exe"
+    config = runtime / "english-public-local.yaml"
+    preset = runtime / "alba.safetensors"
+    for path in (python, config, preset):
+        path.write_text("test placeholder", encoding="utf-8")
+    (root / "Speech.ps1").write_text("test placeholder", encoding="utf-8")
+    (root / "scripts").mkdir()
+    (root / "scripts" / "speech.py").write_text("test placeholder", encoding="utf-8")
+    (root / "voice-library.json").write_text(
+        json.dumps({
+            "chaser_agent_production_voice": {
+                "voice_id": "pocket-alba", "status": "operator-approved canonical production voice"
+            },
+            "runtime_paths": {
+                "pocket_python": str(python), "pocket_config": str(config), "pocket_voices": str(runtime)
+            },
+        }), encoding="utf-8",
+    )
+    return root
+
+
+def test_local_voice_uses_fixed_preset_offline_and_retains_receipt(library, tmp_path, monkeypatch):
+    wav_body = b"RIFF" + b"a" * 64
+
+    def fake_popen(command, **kwargs):
+        assert command[command.index("--voice") + 1] == "pocket-alba"
+        assert kwargs["env"]["HF_HUB_OFFLINE"] == "1"
+        assert not kwargs.get("shell", False)
+        text = Path(command[command.index("--text-file") + 1])
+        assert text.read_text(encoding="utf-8") == "Hello from a public toy run."
+        wav = Path(command[command.index("--output") + 1])
+
+        class FakeProcess:
+            returncode = 0
+
+            def communicate(self, timeout=None):
+                wav.write_bytes(wav_body)
+                wav.with_suffix(".json").write_text(
+                    json.dumps({"voice_id": "pocket-alba", "sha256": hashlib.sha256(wav_body).hexdigest(), "duration_seconds": 1.0}),
+                    encoding="utf-8",
+                )
+                return "", ""
+
+            def poll(self):
+                return self.returncode
+
+        return FakeProcess()
+
+    monkeypatch.setattr("chaser_agent.local_voice.subprocess.Popen", fake_popen)
+    adapter = PocketAlbaVoice(library_root=library, data_dir=tmp_path / "data")
+    queued = adapter.enqueue("Hello from a public toy run.")
+    assert queued["status"] == "queued"
+    adapter._worker_thread.join(timeout=5)
+    result = adapter.status(queued["voice_id"])
+    assert result["status"] == "generated_pending_listening_review"
+    assert result["sha256"] == hashlib.sha256(wav_body).hexdigest()
+    assert adapter.audio_path(result["voice_id"]).read_bytes() == wav_body
+    assert adapter.audio_path("../control-token") is None
+    restarted = PocketAlbaVoice(library_root=library, data_dir=tmp_path / "data")
+    assert restarted.status(result["voice_id"])["status"] == "generated_pending_listening_review"
+
+
+def test_voice_busy_and_failed_generation_are_not_successes(library, tmp_path, monkeypatch):
+    adapter = PocketAlbaVoice(library_root=library, data_dir=tmp_path / "data")
+    adapter._generation_lock.acquire()
+    try:
+        with pytest.raises(VoiceBusy):
+            adapter.enqueue("Hello")
+    finally:
+        adapter._generation_lock.release()
+    monkeypatch.setattr(
+        "chaser_agent.local_voice.subprocess.Popen",
+        lambda *args, **kwargs: SimpleNamespace(returncode=1, communicate=lambda timeout: ("", "")),
+    )
+    queued = adapter.enqueue("Hello")
+    adapter._worker_thread.join(timeout=5)
+    assert adapter.status(queued["voice_id"])["status"] == "failed"
+
+
+def test_voice_refuses_unapproved_identity(library, tmp_path):
+    manifest_path = library / "voice-library.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["chaser_agent_production_voice"]["voice_id"] = "other"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="Pocket Alba"):
+        PocketAlbaVoice(library_root=library, data_dir=tmp_path / "data")
+
+
+def test_voice_close_terminates_only_its_active_process(library, tmp_path):
+    adapter = PocketAlbaVoice(library_root=library, data_dir=tmp_path / "data")
+
+    class ActiveProcess:
+        terminated = False
+
+        def poll(self):
+            return None
+
+        def terminate(self):
+            self.terminated = True
+
+        def wait(self, timeout):
+            return 1
+
+    process = ActiveProcess()
+    adapter._process = process
+    adapter.close()
+    assert process.terminated
