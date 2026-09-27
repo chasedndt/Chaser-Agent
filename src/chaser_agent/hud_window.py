@@ -1,8 +1,8 @@
-"""Small Windows desktop HUD shell driven by authenticated, read-only state.
+"""Small Windows desktop HUD shell driven by authenticated local state.
 
-The window never sends control commands. It appears for an observed session,
-keeps terminal states visible, and withdraws when no session exists. Preview
-mode is explicitly synthetic and grants no computer-use authority.
+Controls are only enabled for an attached executor session. A click requests
+control; the displayed phase changes only on an executor acknowledgement.
+Preview mode is synthetic and never sends a command.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from chaser_agent.hud_runtime import HudRegistry
@@ -41,6 +41,17 @@ def fetch_snapshot(*, port: int, token: str) -> dict[str, object]:
         return json.load(response)
 
 
+def send_control(*, port: int, token: str, session_id: str, command: str) -> dict[str, object]:
+    body = json.dumps({"session_id": session_id, "command": command}).encode("utf-8")
+    request = Request(
+        f"http://127.0.0.1:{port}/v1/hud/controls", data=body,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urlopen(request, timeout=5) as response:
+        return json.load(response)
+
+
 class HudWindow:
     def __init__(self, *, port: int = 8765, token_file: Path | None = None, preview: bool = False):
         if not preview and token_file is None:
@@ -59,6 +70,8 @@ class HudWindow:
         self._pending_fetch = False
         self._closed = False
         self._preview_step = 0
+        self._current_session: str | None = None
+        self._control_in_flight = False
         self._preview_registry = HudRegistry() if preview else None
         self._build()
         if preview:
@@ -94,9 +107,13 @@ class HudWindow:
             controls.grid_columnconfigure(column, weight=1, uniform="hud-control")
         style = ttk.Style(self.root)
         style.configure("Hud.TButton", font=("Segoe UI", 9), padding=(9, 6))
-        for column, label in enumerate(("Pause", "Resume", "Stop", "Take over")):
-            button = ttk.Button(controls, text=label, style="Hud.TButton", state="disabled")
+        self.buttons = {}
+        for column, (command, label) in enumerate((("pause", "Pause"), ("resume", "Resume"),
+                                                  ("stop", "Stop"), ("take_over", "Take over"))):
+            button = ttk.Button(controls, text=label, style="Hud.TButton", state="disabled",
+                                command=lambda selected=command: self._request_control(selected))
             button.grid(row=0, column=column, sticky="ew", padx=(0, 5) if column < 3 else (0, 0))
+            self.buttons[command] = button
         self.notice_label = tk.Label(wrapper, text="Controls wait for a verified executor connection.",
                                       bg=PANEL, fg=MUTED, font=("Segoe UI", 8), anchor="w")
         self.notice_label.pack(fill="x", pady=(10, 0))
@@ -104,10 +121,17 @@ class HudWindow:
     def _render(self, state: dict[str, object]) -> None:
         phase = state.get("phase")
         if state.get("status") == "inactive" and not self.preview:
+            self._current_session = None
+            for button in self.buttons.values():
+                button.configure(state="disabled")
             if self._visible:
                 self.root.withdraw()
                 self._visible = False
             return
+        self._current_session = str(state.get("session_id")) if state.get("session_id") else None
+        available = set(state.get("available_controls") or []) if not self.preview and not self._control_in_flight else set()
+        for command, button in self.buttons.items():
+            button.configure(state="normal" if command in available else "disabled")
         if not self._visible:
             self.root.deiconify()
             self._visible = True
@@ -120,6 +144,34 @@ class HudWindow:
         self.session_label.configure(text=f"Session {state.get('session_id') or '—'}  ·  Event {state.get('sequence', '—')}")
         notice = "Execution status unknown · no controls available" if disconnected else state.get("notice")
         self.notice_label.configure(text=str(notice or "Display only · controls require an executor"))
+
+    def _request_control(self, command: str) -> None:
+        if self.preview or self._closed or self._control_in_flight or not self._current_session:
+            return
+        self._control_in_flight = True
+        for button in self.buttons.values():
+            button.configure(state="disabled")
+        session_id = self._current_session
+        threading.Thread(target=self._control_in_background, args=(session_id, command), daemon=True).start()
+
+    def _control_in_background(self, session_id: str, command: str) -> None:
+        try:
+            token = self.token_file.read_text(encoding="ascii").strip()
+            result = send_control(port=self.port, token=token, session_id=session_id, command=command)
+            notice = ("Awaiting executor acknowledgement" if result.get("status") == "pending_executor_ack"
+                      else "Executor acknowledgement received" if result.get("status") == "acknowledged"
+                      else "Control status unknown")
+        except (OSError, URLError, HTTPError, ValueError, json.JSONDecodeError):
+            notice = "Control request failed · execution status unknown"
+        if not self._closed:
+            try:
+                self.root.after(0, lambda: self._finish_control(notice))
+            except (RuntimeError, tk.TclError):
+                pass
+
+    def _finish_control(self, notice: str) -> None:
+        self._control_in_flight = False
+        self.notice_label.configure(text=notice)
 
     def _poll(self) -> None:
         if self._closed:
@@ -144,6 +196,9 @@ class HudWindow:
     def _finish_fetch(self, snapshot: dict[str, object] | None) -> None:
         self._pending_fetch = False
         if snapshot is None:
+            self._current_session = None
+            for button in self.buttons.values():
+                button.configure(state="disabled")
             if self._visible:
                 self.phase_label.configure(text="Connection lost", fg=PHASE_COLORS["failed"])
                 self.notice_label.configure(text="Execution status unknown · no controls available")

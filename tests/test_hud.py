@@ -2,7 +2,7 @@ import pytest
 
 from chaser_agent.hud import HudState, apply_status
 from chaser_agent.hud_controls import ControlState, disconnect, receive_status, request_control
-from chaser_agent.hud_runtime import HudRegistry
+from chaser_agent.hud_runtime import HudBridge, HudRegistry, HudUnavailable
 
 
 def test_hud_appears_on_activity_and_keeps_terminal_receipt():
@@ -77,3 +77,64 @@ def test_terminal_receipt_remains_confirmed_after_transport_disconnect():
     registry.disconnect()
     assert registry.snapshot()["phase"] == "stopped"
     assert registry.snapshot()["connected"] is True
+
+
+class RecordingExecutor:
+    def __init__(self):
+        self.requests = []
+
+    def request_control(self, command, request_id):
+        self.requests.append((command, request_id))
+
+
+def test_bridge_requires_attached_executor_and_matching_ack():
+    bridge = HudBridge()
+    with pytest.raises(HudUnavailable):
+        bridge.request_control(session_id="s", request_id="r0", command="stop")
+    executor = RecordingExecutor()
+    report = bridge.attach("s", executor)
+    report(sequence=0, phase="running", action="Reviewing toy page")
+    assert bridge.snapshot()["available_controls"] == ["pause", "stop", "take_over"]
+    with pytest.raises(HudUnavailable):
+        bridge.request_control(session_id="foreign", request_id="r1", command="pause")
+    pending = bridge.request_control(session_id="s", request_id="r1", command="pause")
+    assert executor.requests == [("pause", "r1")]
+    assert pending["phase"] == "running" and pending["pending_id"] == "r1"
+    report(sequence=1, phase="paused", request_id="other")
+    assert bridge.snapshot()["phase"] == "running"
+    report(sequence=1, phase="paused", request_id="r1")
+    assert bridge.snapshot()["phase"] == "paused"
+    bridge.detach()
+    assert bridge.snapshot()["controls_enabled"] is False
+    with pytest.raises(HudUnavailable):
+        report(sequence=2, phase="running")
+
+
+def test_bridge_dispatch_failure_preserves_unknown_execution_state():
+    class FailingExecutor:
+        def request_control(self, command, request_id):
+            raise RuntimeError("transport failed")
+
+    bridge = HudBridge()
+    report = bridge.attach("s", FailingExecutor())
+    report(sequence=0, phase="running")
+    with pytest.raises(HudUnavailable):
+        bridge.request_control(session_id="s", request_id="r1", command="stop")
+    state = bridge.snapshot()
+    assert state["phase"] == "running" and state["connected"] is False
+    assert state["pending_id"] == "r1" and state["controls_enabled"] is False
+
+
+def test_bridge_accepts_immediate_ack_and_rejects_missing_executor_contract():
+    bridge = HudBridge()
+    with pytest.raises(ValueError):
+        bridge.attach("s", object())
+
+    class ImmediateExecutor:
+        def request_control(self, command, request_id):
+            report(sequence=1, phase="paused", request_id=request_id)
+
+    report = bridge.attach("s", ImmediateExecutor())
+    report(sequence=0, phase="running")
+    result = bridge.request_control(session_id="s", request_id="r1", command="pause")
+    assert result["phase"] == "paused" and result["pending_id"] is None

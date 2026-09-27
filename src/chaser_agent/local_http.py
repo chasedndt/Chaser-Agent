@@ -19,7 +19,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from chaser_agent.hud_runtime import HudRegistry
+from chaser_agent.hud_runtime import HudBridge, HudUnavailable
 from chaser_agent.local_voice import MAX_SPEECH_CHARS, MAX_WAV_BYTES, WarmPocketAlbaVoice, VoiceBusy, VoiceGenerationFailed
 from chaser_agent.run_artifacts import build_run_log, write_artifact_set
 from chaser_agent.schemas import SourceInput
@@ -134,7 +134,7 @@ class LocalHTTPServer(ThreadingHTTPServer):
         self.run_root.mkdir(exist_ok=True)
         self.token = token
         self.limiter = SlidingWindowLimiter()
-        self.hud = HudRegistry()
+        self.hud = HudBridge()
         self.voice = WarmPocketAlbaVoice(library_root=voice_library, data_dir=data_dir) if voice_library else None
         super().__init__((LOOPBACK_HOST, port), LocalRequestHandler)
         self.allowed_origins = {f"http://{LOOPBACK_HOST}:{self.server_port}"}
@@ -144,6 +144,7 @@ class LocalHTTPServer(ThreadingHTTPServer):
 
     def server_close(self) -> None:
         try:
+            self.hud.detach()
             if self.voice is not None:
                 self.voice.close()
         finally:
@@ -221,6 +222,17 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
         provided = authorizations[0] if len(authorizations) == 1 else ""
         if hmac.compare_digest(provided, f"Bearer {self.server.token}"):
             return True
+        if self.command == "POST":
+            # On Windows, replying while a small body is still in flight can
+            # abort the connection before the caller receives the 401. Drain
+            # only a bounded declared body; never parse unauthenticated input.
+            lengths = self.headers.get_all("Content-Length", [])
+            if len(lengths) == 1 and lengths[0].isdecimal() and int(lengths[0]) <= MAX_BODY_BYTES:
+                try:
+                    self.rfile.read(int(lengths[0]))
+                except (TimeoutError, OSError):
+                    pass
+            self.close_connection = True
         self._reply(
             401,
             {"error": {"code": "unauthorized", "message": "Local bearer token required"}},
@@ -231,7 +243,7 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self) -> None:
         if not self._request_allowed():
             return
-        if self.path not in {"/v1/source-cards", "/v1/voice/replies"} or self.headers.get("Origin") not in self.server.allowed_origins:
+        if self.path not in {"/v1/source-cards", "/v1/voice/replies", "/v1/hud/controls"} or self.headers.get("Origin") not in self.server.allowed_origins:
             self._error(404, "not_found", "Route not found")
             return
         self.send_response(204)
@@ -255,7 +267,7 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
                     "bind": LOOPBACK_HOST,
                     "port": self.server.server_port,
                     "mode": "review_with_local_voice" if self.server.voice else "deterministic_review_only",
-                    "hud": "not_connected",
+                    "hud": "executor_attached" if self.server.hud.snapshot()["controls_enabled"] else "not_connected",
                     "voice": "configured_local" if self.server.voice else "not_connected",
                     "voice_runtime": self.server.voice.runtime_state() if self.server.voice else "disabled",
                 },
@@ -329,7 +341,7 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         if not self._request_allowed():
             return
-        if self.path not in {"/v1/source-cards", "/v1/voice/replies"}:
+        if self.path not in {"/v1/source-cards", "/v1/voice/replies", "/v1/hud/controls"}:
             self._error(404, "not_found", "Route not found")
             return
         if not self._authorized():
@@ -379,6 +391,9 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
             return
         if not isinstance(request, dict):
             self._error(400, "invalid_input", "A JSON object is required")
+            return
+        if self.path == "/v1/hud/controls":
+            self._post_hud_control(request)
             return
         if self.path == "/v1/voice/replies":
             self._post_voice_reply(request)
@@ -472,6 +487,24 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
             self._error(500, "voice_generation_failed", "No verified local voice take was produced")
             return
         self._reply(202, result, extra_headers={"Retry-After": "2"})
+
+    def _post_hud_control(self, request: dict[str, object]) -> None:
+        if set(request) != {"session_id", "command"}:
+            self._error(400, "invalid_input", "Session ID and command are required")
+            return
+        session_id = request["session_id"]
+        command = request["command"]
+        if not isinstance(session_id, str) or not 1 <= len(session_id) <= 96 or not isinstance(command, str) or command not in {"pause", "resume", "stop", "take_over"}:
+            self._error(400, "invalid_input", "Session ID or command is invalid")
+            return
+        request_id = f"hud-{secrets.token_hex(12)}"
+        try:
+            state = self.server.hud.request_control(session_id=session_id, request_id=request_id, command=command)
+        except (HudUnavailable, ValueError):
+            self._error(409, "hud_control_unavailable", "No matching active executor or control is unavailable")
+            return
+        status = "pending_executor_ack" if state.get("pending_id") == request_id else "acknowledged"
+        self._reply(202, {"request_id": request_id, "status": status, "hud": state})
 
 
 def create_server(

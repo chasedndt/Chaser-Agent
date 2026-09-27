@@ -88,6 +88,40 @@ def test_hud_read_model_is_authenticated_and_inactive_without_executor(api):
     assert hud["authority"] == "display_only_no_executor"
 
 
+def test_hud_controls_are_auth_and_executor_gated(api):
+    payload = {"session_id": "toy-session", "command": "pause"}
+    status, _, _ = call(api, "POST", "/v1/hud/controls", payload=payload)
+    assert status == 401
+    status, body, _ = call(api, "POST", "/v1/hud/controls", payload=payload, headers=auth_headers())
+    assert status == 409 and body["error"]["code"] == "hud_control_unavailable"
+    status, _, _ = call(api, "POST", "/v1/hud/controls", payload={**payload, "extra": 1}, headers=auth_headers())
+    assert status == 400
+
+    class FakeExecutor:
+        def __init__(self):
+            self.calls = []
+
+        def request_control(self, command, request_id):
+            self.calls.append((command, request_id))
+
+    executor = FakeExecutor()
+    report = api.hud.attach("toy-session", executor)
+    report(sequence=0, phase="running", action="Inspecting a toy page")
+    status, state, _ = call(api, "GET", "/v1/hud/current", headers=auth_headers())
+    assert status == 200 and state["controls_enabled"] is True
+    status, submitted, _ = call(api, "POST", "/v1/hud/controls", payload=payload, headers=auth_headers())
+    assert status == 202 and submitted["status"] == "pending_executor_ack"
+    assert executor.calls == [("pause", submitted["request_id"])]
+    assert submitted["hud"]["phase"] == "running"
+    report(sequence=1, phase="paused", request_id=submitted["request_id"])
+    status, state, _ = call(api, "GET", "/v1/hud/current", headers=auth_headers())
+    assert status == 200 and state["phase"] == "paused"
+    assert state["available_controls"] == ["resume", "stop", "take_over"]
+    api.hud.detach()
+    status, body, _ = call(api, "POST", "/v1/hud/controls", payload={"session_id": "toy-session", "command": "resume"}, headers=auth_headers())
+    assert status == 409
+
+
 def test_unauthorized_request_cannot_create_a_run(api):
     status, body, _ = call(api, "POST", "/v1/source-cards", payload=source_payload())
     assert status == 401
