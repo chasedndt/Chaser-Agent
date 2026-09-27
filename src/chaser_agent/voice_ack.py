@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import time
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -32,7 +33,8 @@ def speak_ack(*, data_dir: Path, port: int = 8765, timeout: float = 45.0) -> str
 
 
 def speak_status_reply(*, data_dir: Path, transcript: str,
-                       port: int = 8765, timeout: float = 45.0) -> tuple[str, str] | None:
+                       port: int = 8765, timeout: float = 45.0,
+                       cancel_event: threading.Event | None = None) -> tuple[str, str] | None:
     """Answer only an exact read-only status question, never a command."""
     intent = status_intent(transcript)
     if intent is None:
@@ -49,10 +51,15 @@ def speak_status_reply(*, data_dir: Path, transcript: str,
     reply = public_status_reply(intent=intent, health=health, hud=hud, port=port)
     if health.get("voice_runtime") != "ready":
         raise RuntimeError("Local Pocket Alba voice is not ready")
-    return reply, _play_public_text(base=base, token=token, text=reply, timeout=timeout)
+    return reply, _play_public_text(
+        base=base, token=token, text=reply, timeout=timeout, cancel_event=cancel_event,
+    )
 
 
-def _play_public_text(*, base: str, token: str, text: str, timeout: float) -> str:
+def _play_public_text(*, base: str, token: str, text: str, timeout: float,
+                      cancel_event: threading.Event | None = None) -> str:
+    if cancel_event is not None and cancel_event.is_set():
+        raise RuntimeError("Local speech playback cancelled")
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     body = json.dumps({"text": text, "privacy_class": "public_toy"}).encode("utf-8")
     with urlopen(Request(f"{base}/v1/voice/replies", data=body, headers=headers, method="POST"), timeout=5) as response:
@@ -62,6 +69,8 @@ def _play_public_text(*, base: str, token: str, text: str, timeout: float) -> st
         raise RuntimeError("Local voice returned an invalid status path")
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
+        if cancel_event is not None and cancel_event.is_set():
+            raise RuntimeError("Local speech playback cancelled")
         with urlopen(Request(base + path, headers=headers), timeout=5) as response:
             status = json.load(response)
         if status.get("status") == "generated_pending_listening_review":
@@ -72,6 +81,8 @@ def _play_public_text(*, base: str, token: str, text: str, timeout: float) -> st
                 audio = response.read(MAX_AUDIO_BYTES + 1)
             if len(audio) > MAX_AUDIO_BYTES or not audio.startswith(b"RIFF"):
                 raise RuntimeError("Local voice returned an invalid WAV")
+            if cancel_event is not None and cancel_event.is_set():
+                raise RuntimeError("Local speech playback cancelled")
             import winsound
 
             winsound.PlaySound(audio, winsound.SND_MEMORY)

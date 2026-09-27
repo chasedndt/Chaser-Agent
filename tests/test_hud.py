@@ -187,3 +187,88 @@ def test_desktop_idle_hud_stays_visible_with_port_and_disabled_controls():
     assert window.phase_label.values["text"] == "Local service ready"
     assert window.session_label.values["text"] == "Local API 127.0.0.1:8765"
     assert all(button.values["state"] == "disabled" for button in window.buttons.values())
+
+
+def test_voice_panel_only_enables_status_speech_for_exact_draft():
+    from chaser_agent.hud_window import HudWindow
+
+    class FakeWidget:
+        def __init__(self):
+            self.values = {}
+
+        def configure(self, **kwargs):
+            self.values.update(kwargs)
+
+    window = object.__new__(HudWindow)
+    window._closed = False
+    window.voice_output_enabled = True
+    window._voice_draft = None
+    window.talk_button = FakeWidget()
+    window.speak_button = FakeWidget()
+    window.clear_button = FakeWidget()
+    window.voice_state_label = FakeWidget()
+    window.voice_draft_label = FakeWidget()
+    window._on_voice_event("draft", {"text": "Stop the computer", "status": "draft_unverified"})
+    assert window.speak_button.values["state"] == "disabled"
+    assert window.clear_button.values["state"] == "normal"
+    window._on_voice_event("draft", {"text": "What's your status?", "status": "draft_unverified"})
+    assert window.speak_button.values["state"] == "normal"
+    assert "unverified" in window.voice_draft_label.values["text"]
+    window._on_voice_event("recording", None)
+    assert window.talk_button.values["text"] == "Cancel take"
+    assert window.speak_button.values["state"] == "disabled"
+
+
+def test_recording_indicator_is_painted_before_microphone_worker_starts():
+    import threading
+    from chaser_agent.hud_window import HudWindow
+
+    events = []
+
+    class FakeRoot:
+        def update_idletasks(self):
+            events.append("paint")
+
+    window = object.__new__(HudWindow)
+    window._closed = False
+    window._ui_thread_id = threading.get_ident()
+    window.root = FakeRoot()
+    window._on_voice_event = lambda event, _payload: events.append(event)
+    window._queue_voice_event("recording", None)
+    assert events == ["recording", "paint"]
+
+
+def test_background_model_ready_event_waits_for_ui_thread():
+    import queue
+    import threading
+    from chaser_agent.hud_window import HudWindow
+
+    events = []
+
+    class FakeRoot:
+        def after(self, _delay, _callback):
+            events.append("scheduled")
+
+    window = object.__new__(HudWindow)
+    window._closed = False
+    window._ui_thread_id = threading.get_ident()
+    window._voice_events = queue.Queue()
+    window.root = FakeRoot()
+    window._on_voice_event = lambda event, _payload: events.append(event)
+    worker = threading.Thread(target=window._queue_voice_event, args=("ready", None))
+    worker.start()
+    worker.join(timeout=2)
+    assert events == []
+    window._drain_voice_events()
+    assert events == ["ready", "scheduled"]
+
+
+def test_hud_dimensions_scale_and_cap_to_available_screen():
+    from chaser_agent.hud_window import hud_dimensions
+
+    assert hud_dimensions(tk_scale=1.333, screen_width=1920,
+                          screen_height=1080, voice_panel=True) == (410, 452, 350)
+    assert hud_dimensions(tk_scale=2.666, screen_width=1920,
+                          screen_height=1080, voice_panel=True) == (820, 904, 760)
+    assert hud_dimensions(tk_scale=2.666, screen_width=800,
+                          screen_height=600, voice_panel=True) == (760, 520, 700)

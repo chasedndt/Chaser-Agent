@@ -46,6 +46,8 @@ The follow-on [client-security and read-only voice status receipt](../logs/build
 
 The [desktop lifecycle receipt](../logs/build/2026-09-27-desktop-launcher.md) covers the one-command local API/HUD launcher and its synthetic idle-window visual QA. The existing E: runtime still refuses startup until approved ACL repair and token rotation.
 
+The [desktop push-to-talk receipt](../logs/build/2026-09-27-desktop-voice-panel.md) covers optional model loading, explicit/cancellable microphone controls, draft-only transcription and synthetic voice-panel QA. It is not live microphone or conversational-agent acceptance.
+
 The isolated-worktree [documentation history](DOCUMENTATION_HISTORY.md), [daily engineering index](../logs/daily/README.md), and [agent activity index](../logs/agent-activity/README.md) track this local pass without changing ChaseOS canonical state.
 
 ## Truth boundary

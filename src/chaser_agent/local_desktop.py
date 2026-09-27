@@ -39,7 +39,8 @@ def _wait_for_server(port: int, worker: threading.Thread, timeout: float = 3.0) 
 
 def run_desktop(*, data_dir: Path, port: int = 8765,
                 allowed_origins: tuple[str, ...] = (),
-                voice_library: Path | None = None) -> int:
+                voice_library: Path | None = None,
+                voice_model_dir: Path | None = None) -> int:
     """Start one private local API and HUD; close both when the window exits."""
     token, token_path = load_or_create_token(data_dir)
     server = create_server(
@@ -47,7 +48,10 @@ def run_desktop(*, data_dir: Path, port: int = 8765,
         allowed_origins=allowed_origins, voice_library=voice_library,
     )
     try:
-        window = HudWindow(port=server.server_port, token_file=token_path, show_idle=True)
+        window = HudWindow(
+            port=server.server_port, token_file=token_path, show_idle=True,
+            voice_model_dir=voice_model_dir, voice_output_enabled=voice_library is not None,
+        )
     except BaseException:
         server.server_close()
         raise
@@ -62,6 +66,8 @@ def run_desktop(*, data_dir: Path, port: int = 8765,
         print(f"Chaser Agent local API: http://127.0.0.1:{server.server_port}/v1/health")
         print(f"Bearer token file: {token_path}")
         print("Desktop HUD is waiting for an authorized computer-use session; none is attached by this launcher.")
+        if voice_model_dir is not None:
+            print("Optional push-to-talk panel configured; microphone remains off until Talk is pressed.")
         print("Close the HUD window or press Ctrl+C here to stop this local API.")
         try:
             window.run()

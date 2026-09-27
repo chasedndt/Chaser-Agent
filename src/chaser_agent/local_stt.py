@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
 import wave
 from pathlib import Path
 
@@ -106,10 +107,17 @@ class OfflineTranscriber:
         }
 
 
-def record_once(seconds: float, *, device: int | None = None) -> bytes:
-    """Open the microphone only during one explicit, bounded CLI capture."""
+class CaptureCancelled(RuntimeError):
+    """An explicit operator cancellation discarded an unfinished take."""
+
+
+def record_once(seconds: float, *, device: int | None = None,
+                cancel_event: threading.Event | None = None) -> bytes:
+    """Open the microphone only during one explicit, bounded capture."""
     if not MIN_SECONDS <= seconds <= MAX_SECONDS:
         raise ValueError("Capture must be 0.5–12 seconds")
+    if cancel_event is not None and cancel_event.is_set():
+        raise CaptureCancelled("Microphone take cancelled before opening")
     import sounddevice as sd
 
     total_frames = int(seconds * SAMPLE_RATE)
@@ -117,8 +125,12 @@ def record_once(seconds: float, *, device: int | None = None) -> bytes:
     with sd.RawInputStream(samplerate=SAMPLE_RATE, channels=1, dtype="int16", device=device) as stream:
         remaining = total_frames
         while remaining:
+            if cancel_event is not None and cancel_event.is_set():
+                raise CaptureCancelled("Microphone take cancelled")
             frames = min(1600, remaining)
             chunk, overflowed = stream.read(frames)
+            if cancel_event is not None and cancel_event.is_set():
+                raise CaptureCancelled("Microphone take cancelled")
             if overflowed:
                 raise RuntimeError("Microphone overflowed; the capture was discarded")
             chunks.append(bytes(chunk))
