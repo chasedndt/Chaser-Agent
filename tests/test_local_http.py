@@ -17,8 +17,36 @@ from chaser_agent.local_http import (
     load_or_create_token,
     validate_allowed_origin,
 )
+from chaser_agent.local_acl import InsecureRuntimePath
 
 TOKEN = "a" * 64
+
+
+@pytest.fixture(autouse=True)
+def isolated_http_contract_fixtures(monkeypatch):
+    # Pytest temp directories inherit workstation ACLs. ACL policy is tested
+    # separately; endpoint tests use an injected private-storage premise.
+    monkeypatch.setattr("chaser_agent.local_http.assert_private_runtime_path", lambda _path: None)
+
+
+def test_insecure_data_directory_refuses_token_creation(tmp_path: Path, monkeypatch):
+    def reject(_path: Path):
+        raise InsecureRuntimePath("broad ACL")
+
+    monkeypatch.setattr("chaser_agent.local_http.assert_private_runtime_path", reject)
+    with pytest.raises(InsecureRuntimePath, match="broad ACL"):
+        load_or_create_token(tmp_path)
+    assert not (tmp_path / "control-token").exists()
+
+
+def test_insecure_run_directory_refuses_server_start(tmp_path: Path, monkeypatch):
+    def check(path: Path):
+        if path.name == "runs":
+            raise InsecureRuntimePath("broad ACL")
+
+    monkeypatch.setattr("chaser_agent.local_http.assert_private_runtime_path", check)
+    with pytest.raises(InsecureRuntimePath, match="broad ACL"):
+        create_server(data_dir=tmp_path, token=TOKEN, port=0)
 
 
 @pytest.fixture
