@@ -246,6 +246,43 @@ def run_review_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_serve_command(args: argparse.Namespace) -> int:
+    from chaser_agent.local_http import create_server, load_or_create_token
+
+    requested_data_dir = Path(args.data_dir)
+    if requested_data_dir.is_symlink():
+        print("error: HTTP data directory must not be a symlink", file=sys.stderr)
+        return 2
+    data_dir = requested_data_dir.resolve()
+    if data_dir.is_relative_to(_repo_root().resolve()):
+        print("error: HTTP data directory must be outside the source repository", file=sys.stderr)
+        return 2
+    if not 1 <= args.port <= 65535:
+        print("error: port must be between 1 and 65535", file=sys.stderr)
+        return 2
+    try:
+        token, token_path = load_or_create_token(data_dir)
+        server = create_server(
+            data_dir=data_dir,
+            token=token,
+            port=args.port,
+            allowed_origins=tuple(args.allowed_origin),
+        )
+    except (OSError, ValueError) as exc:
+        print(f"error: local HTTP startup failed: {exc}", file=sys.stderr)
+        return 2
+    print(f"Chaser Agent local API: http://127.0.0.1:{server.server_port}/v1/health")
+    print(f"Bearer token file: {token_path}")
+    print("Review-only. No provider, tool, computer-use, voice, or memory-promotion authority.")
+    try:
+        server.serve_forever(poll_interval=0.25)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="chaser-agent", description="Chaser Agent local deterministic harness CLI")
     subparsers = parser.add_subparsers(dest="command")
@@ -341,6 +378,20 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--accept-memory", action="append", default=[])
     review.add_argument("--reject-memory", action="append", default=[])
     review.set_defaults(func=run_review_command)
+
+    serve = subparsers.add_parser(
+        "serve",
+        help="Run the deterministic review-only HTTP API on 127.0.0.1 (default port 8765).",
+    )
+    serve.add_argument("--data-dir", required=True, help="Explicit local runtime directory outside the repository.")
+    serve.add_argument("--port", type=int, default=8765, help="Fixed loopback port; fail if occupied (default 8765).")
+    serve.add_argument(
+        "--allowed-origin",
+        action="append",
+        default=[],
+        help="Optional exact http://127.0.0.1:<port> browser origin for a future local client.",
+    )
+    serve.set_defaults(func=run_serve_command)
     return parser
 
 

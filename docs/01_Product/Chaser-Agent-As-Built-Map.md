@@ -4,6 +4,8 @@
 
 This page maps executable repository truth to the 17-layer architecture. The full suite passed 55 tests on 2026-08-11, and all 21 golden plus 6 contract JSONL rows validated. Those results prove deterministic contracts and wiring, not product-quality intelligence.
 
+2026-09-27 engineering addendum: the isolated `codex/2026-09-27-standalone-http-foundation` worktree has a local-only, bearer-protected review API (`local_http.py`; [contract and threat model](../05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md)). It creates pending source-card runs from public/toy text and retrieves their exact source and artifacts. It has no provider, HUD, voice, autonomous tool, or public network authority. This addendum does not change the older P0.1 branch's status or claim that HTTP is merged.
+
 ## Working capabilities
 
 | Capability | Code | Interface | Verified boundary |
