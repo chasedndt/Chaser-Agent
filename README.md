@@ -6,6 +6,16 @@ Chaser Agent is a standalone-first, local-first agent harness for turning goals 
 
 ![Chaser Agent canonical identity](brand/chaser-agent/releases/v1.0.0/public-identity/chaser-agent_github-readme-hero_1600x900.webp)
 
+## Inside Chaser: explore the engineering
+
+[![Inside Chaser engineering guide: mascot, navigation and architecture entry](docs/media/chaser-engineering-guide-2026-09-28.png)](https://chaseos.ai/chaser-agent/architecture/)
+
+[Explore all 18 layers](https://chaseos.ai/chaser-agent/architecture/) · [Local gateway instructions](https://chaseos.ai/chaser-agent/architecture/#run-local) · [Engineering preview branch](https://github.com/chasedndt/Chaser-Agent/tree/codex/2026-09-27-standalone-http-foundation)
+
+The guide explains each responsibility, what has been implemented, and what still needs proof. Search the layers, take the guided tour, or inspect the local command sequence. The mascot is illustrative—not a recording of autonomous work. The public website does not start an agent or access your files.
+
+**Release boundary:** the local HTTP API and native HUD belong to the separate engineering preview branch, not this `main` release. That branch provides `doctor`, `serve` and `desktop`, with a default loopback address of `127.0.0.1:8765`. Stop `serve` with Ctrl+C in its original terminal, or close the combined desktop HUD. Dedicated `gateway` and `stop` aliases do not exist yet. General reasoning and real computer-use execution remain unconnected. See the [guide update record](docs/01_Product/2026-09-28-Engineering-Guide-Publication.md).
+
 ## See the review boundary
 
 ![Chaser Agent review-first runtime workspace development preview](docs/media/chaser-agent-campaign-r3-readme.gif)

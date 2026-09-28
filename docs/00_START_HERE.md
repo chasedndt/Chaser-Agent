@@ -1,5 +1,7 @@
 # Docs Start Here — Chaser Agent
 
+New visual entry: [Inside Chaser engineering guide](https://chaseos.ai/chaser-agent/architecture/) and its [documentation-only release record](01_Product/2026-09-28-Engineering-Guide-Publication.md). The separate engineering branch is not merged by this update.
+
 ## Product order
 
 1. `01_Product/Chaser-Agent-Product-Narrative-and-Utility.md`
