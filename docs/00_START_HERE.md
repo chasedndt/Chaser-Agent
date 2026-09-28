@@ -1,5 +1,7 @@
 # Docs Start Here — Chaser Agent
 
+For a visual introduction, open the [engineering guide](https://chaseos.ai/chaser-agent/architecture/). Its [experience record](01_Product/2026-09-28-Engineering-Experience.md) tracks UI, media and publication evidence; it does not replace runtime or human evaluation acceptance.
+
 ## Product order
 
 1. `01_Product/Chaser-Agent-Product-Narrative-and-Utility.md`
