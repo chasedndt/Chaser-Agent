@@ -1,5 +1,7 @@
 # Documentation history — isolated engineering worktree
 
+- 2026-09-28: added the [engineering experience record](01_Product/2026-09-28-Engineering-Experience.md), clarified real local commands and retained the distinction between website documentation and the private runtime. Public documentation is updated separately from unfinished backend work.
+
 - 2026-09-28: recorded [real offline startup phase measurements](../logs/build/2026-09-28-voice-startup-measurement.md): 57.594s to ready, no audio or microphone use. Variability versus earlier recovery is explicitly not a proven optimization.
 
 - 2026-09-27: documented authenticated, content-free startup timings to investigate observed offline voice reload latency; no performance improvement claimed.

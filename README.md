@@ -2,6 +2,12 @@
 
 Engineering preview: [18-layer architecture](docs/01_Product/Runtime-Architecture.md), [interactive map](https://chaseos.ai/chaser-agent/architecture/), and [conversational companion research programme](docs/research/2026-09-27-conversational-harness-roadmap.md). The local HUD can minimize to the taskbar and toggle always-on-top. General conversation and Hermes/OpenClaw/computer-use integration remain in development.
 
+### Inside Chaser: the engineering guide
+
+[Explore all 18 responsibilities](https://chaseos.ai/chaser-agent/architecture/) or [read the local gateway instructions](https://chaseos.ai/chaser-agent/architecture/#run-local). The website is explanatory documentation; it does not start your agent, read your files or connect to localhost. The refreshed guide is published and browser-verified; its release evidence and remaining limits are tracked in the [experience record](docs/01_Product/2026-09-28-Engineering-Experience.md).
+
+The engineering checkout provides `doctor` (read-only preflight), `serve` (local API), `desktop` (API plus native HUD), `hud` and `voice-mode`. There are no `gateway` or `stop` aliases yet. Stop `serve` with Ctrl+C in its original terminal; close the combined desktop HUD to stop its owned server. The default bind is `127.0.0.1:8765`, not a public or LAN endpoint. A successful launch does not connect a reasoning provider or computer-use executor.
+
 **Standalone-first. Local-first. Evidence-linked. Human-governed. ChaseOS-enhanced.**
 
 Chaser Agent is a standalone-first, local-first agent harness for turning goals and sources into evidence-linked, reviewable work. Its MIT-licensed core runs independently, learns from explicit human review, preserves approved local memory, and curates a user-owned provenance map. Optional ChaseOS integration adds shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory.
@@ -83,7 +89,7 @@ An isolated engineering worktree now also has a [local HTTP foundation](docs/05_
 
 New HTTP review runs include a read-time SHA-256 integrity record; changed artifacts are refused, and older runs without that record are labelled unverified. This detects file drift but does not make the local files immutable or replace human review.
 
-A `desktop` CLI now owns the loopback API and a visible idle HUD in one foreground process, shows its fixed port, and stops its owned server when the window closes. Lifecycle tests and a synthetic idle-window capture exist; the current broad-ACL runtime still prevents a real launch. This does not start the microphone or enable computer use.
+A `desktop` CLI now owns the loopback API and a visible idle HUD in one foreground process, shows its fixed port, and stops its owned server when the window closes. The initial broad-ACL blocker was repaired with operator approval on 27 September; later live desktop evidence is recorded in the runtime logs. That historical launch does not prove a listener is running now. This does not automatically start the microphone or enable computer use.
 
 The local HTTP listener now caps simultaneous client handlers at 16 and returns `503` when full, in addition to its authenticated POST rate limit. This bounds one local connection-exhaustion path; it does not make the service safe for public or LAN exposure.
 
