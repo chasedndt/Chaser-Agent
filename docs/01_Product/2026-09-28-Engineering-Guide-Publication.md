@@ -8,4 +8,4 @@ Before publication, the guide passed 48 Chromium assertions, including all layer
 
 One Higgsfield animation was generated at an estimated USD 0.784. It changed the mascot's visor identity and was therefore retained privately in Creative Atlas, not selected for the public guide. The guide uses existing native 3D assets.
 
-Publication status is recorded in the companion website release records; this source commit alone is not deployment proof. Private evaluation runs, credentials, canonical vault data, runtime permissions and provider configuration are untouched.
+Published and live-verified: ChaseOS Web code `0da32a7`, deployment `c79fd0c6.chaseos-web.pages.dev`; ChaseInTech code `44f34b3`, deployment `45ebe594.chaseintech.pages.dev`. Both canonical routes returned HTTP 200. The architecture's 48 assertions and both product handoffs at desktop/phone sizes passed again on the live sites. README/source publication was `b3de3fe`. Private evaluation runs, credentials, canonical vault data, runtime permissions and provider configuration are untouched.
