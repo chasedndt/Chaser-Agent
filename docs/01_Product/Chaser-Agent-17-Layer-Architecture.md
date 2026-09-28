@@ -1,5 +1,7 @@
 # Chaser Agent 17-Layer Architecture
 
+Current implementation: [18-layer runtime map with Mermaid](Runtime-Architecture.md) and [interactive explorer](Runtime-Architecture.html). The count is Layer 0 plus Layers 1–17. The older per-layer targets below are design history, not current implementation status.
+
 ## Standalone-first interpretation
 
 The layers are a governed dependency map, not a checklist or implementation claim. The Chaser Agent core must run without ChaseOS. Standalone deployments use local human governance and user-owned durable state; ChaseOS-integrated deployments may add shared governance, canonical state, policy, routing, approvals, and orchestration through optional adapters.
@@ -40,6 +42,8 @@ Current Layer 0 artifact: `docs/01_Product/Chaser-Agent-Layer-0-Behaviour-Contra
 **Authority risk:** overclaiming status, confusing notes with implementation, using generated text as truth, or bypassing deployment governance.
 
 ## 2. Studio / Interface Layer
+
+Interface means the surface through which an operator uses the harness: the native desktop HUD, CLI and local HTTP clients. **Agent Review Studio** is the independent evaluation workbench. **ChaseOS Studio** is an optional host interface, not a required dependency. These are distinct surfaces; no hosted website runs the operator's local agent.
 
 **Purpose:** Define the studio / interface layer concern while staying subordinate to Layer 0.
 

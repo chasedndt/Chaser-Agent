@@ -1,0 +1,3 @@
+# Agent activity — 2026-09-27 Talk-next voice turn
+
+Actor: Codex / Axiom-Codex. Scope: isolated E: Chaser Agent engineering worktree. Result: explicit HUD Talk-next cancellation-to-capture sequencing with fake-controller tests. See [build receipt](../build/2026-09-27-talk-next-voice.md) and [voice-input guide](../../docs/05_Runtime_Adapters/Chaser-Agent-Local-Voice-Input.md). No microphone, speaker, provider, computer-use executor, ChaseOS canonical write, ACL/token change, push or deployment occurred. The ChaseOS profile remains `PARTIAL / CORE FOUNDATION PREVIEW / NOT LIVE`; the full Codex goal stays active.

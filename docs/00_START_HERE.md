@@ -32,10 +32,23 @@ All seven surfaces are implemented on `codex/standalone-first-memory-realignment
 | Standalone memory lifecycle | `04_Memory/Chaser-Agent-Standalone-Memory-Architecture.md` |
 | Knowledge-map provenance | `04_Memory/Chaser-Agent-Knowledge-Map-Architecture.md` |
 | Optional ChaseOS integration | `05_Runtime_Adapters/Chaser-Agent-ChaseOS-Optional-Integration.md` |
+| Local HTTP engineering slice | `05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md` |
+| Opt-in offline voice input | `05_Runtime_Adapters/Chaser-Agent-Local-Voice-Input.md` |
+| Computer-use HUD engineering state | `01_Product/Chaser-Agent-Computer-Use-HUD.md` |
 | Contract eval design | `02_Evals/Chaser-Agent-Contract-Eval-Design.md` |
 | Exact current test values | `02_Evals/Chaser-Agent-Current-Test-Matrix.md` |
 
 The standalone-first dependency rule is enforced by `tests/test_standalone_independence.py`, which parses core-package imports and fails on any ChaseOS, provider, MCP, or browser dependency.
+
+Isolated engineering evidence for the new local service: `../logs/build/2026-09-27-standalone-local-http-foundation.md`, `../logs/build/2026-09-27-hud-and-local-voice-bridge.md`, `../logs/build/2026-09-27-warm-voice-worker.md`, `../logs/build/2026-09-27-hud-control-contract.md`, `../logs/build/2026-09-27-offline-voice-input.md`, and `../logs/build/2026-09-27-local-http-acl-gate.md`. The existing runtime is now refused because of broad Windows ACLs; no service-live claim follows from these tests. These records do not replace the older P0.1 acceptance state.
+
+The follow-on [client-security and read-only voice status receipt](../logs/build/2026-09-27-client-acl-and-voice-status.md) covers the HUD/voice credential gate and exact status-question reply. It does not close the broader active HTTP/HUD/voice engineering goal.
+
+The [desktop lifecycle receipt](../logs/build/2026-09-27-desktop-launcher.md) covers the one-command local API/HUD launcher and its synthetic idle-window visual QA. The existing E: runtime still refuses startup until approved ACL repair and token rotation.
+
+The [desktop push-to-talk receipt](../logs/build/2026-09-27-desktop-voice-panel.md) covers optional model loading, explicit/cancellable microphone controls, draft-only transcription and synthetic voice-panel QA. It is not live microphone or conversational-agent acceptance.
+
+The isolated-worktree [documentation history](DOCUMENTATION_HISTORY.md), [daily engineering index](../logs/daily/README.md), and [agent activity index](../logs/agent-activity/README.md) track this local pass without changing ChaseOS canonical state.
 
 ## Truth boundary
 

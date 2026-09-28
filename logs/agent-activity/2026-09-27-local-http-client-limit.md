@@ -1,0 +1,3 @@
+# Agent activity — 2026-09-27 local HTTP client limit
+
+Actor: Codex / Axiom-Codex. Scope: isolated E: Chaser Agent engineering worktree only. Result: a bounded simultaneous-handler ceiling for the loopback HTTP service, minimal `503` overflow response, and network-level tests proving capacity returns after a handler exits. No provider, executor, microphone, credential, ACL, ChaseOS canonical write, push or deployment. See [build receipt](../build/2026-09-27-local-http-client-limit.md) and [runtime contract](../../docs/05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md). The ChaseOS profile remains `PARTIAL / CORE FOUNDATION PREVIEW / NOT LIVE`; the full Codex goal remains active.

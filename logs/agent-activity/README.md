@@ -1,0 +1,26 @@
+# Agent activity index
+
+- [2026-09-28 real voice startup measurement](2026-09-28-voice-startup-measurement.md)
+
+- [2026-09-27 voice startup diagnostics](2026-09-27-voice-startup-diagnostics.md)
+
+- [2026-09-27 real offline desktop speech](2026-09-27-live-desktop-voice.md)
+
+- [2026-09-27 HUD control contract](2026-09-27-hud-control-contract.md)
+- [2026-09-27 offline voice input](2026-09-27-offline-voice-input.md)
+- [2026-09-27 local HTTP ACL gate](2026-09-27-local-http-acl-gate.md)
+- [2026-09-27 client ACL and voice status](2026-09-27-client-acl-and-voice-status.md)
+- [2026-09-27 desktop launcher](2026-09-27-desktop-launcher.md)
+- [2026-09-27 desktop voice panel](2026-09-27-desktop-voice-panel.md)
+- [2026-09-27 local HTTP client limit](2026-09-27-local-http-client-limit.md)
+- [2026-09-27 desktop voice race protection](2026-09-27-desktop-voice-race-protection.md)
+- [2026-09-27 local HTTP doctor](2026-09-27-local-http-doctor.md)
+- [2026-09-27 local voice cancellation](2026-09-27-local-voice-cancellation.md)
+- [2026-09-27 cancellable HUD audio](2026-09-27-cancellable-hud-audio.md)
+- [2026-09-27 HUD owner reconnection](2026-09-27-hud-owner-reconnect.md)
+- [2026-09-27 HTTP run integrity](2026-09-27-http-run-integrity.md)
+- [2026-09-27 Talk-next voice turn](2026-09-27-talk-next-voice.md)
+- [2026-09-27 Talk-next HUD visual QA](2026-09-27-talk-next-hud-qa.md)
+- [2026-09-27 HUD stale control replies](2026-09-27-hud-stale-control-replies.md)
+- [2026-09-27 approved runtime activation and architecture map](2026-09-27-runtime-activation.md)
+- [2026-09-27 companion shell and website publication](2026-09-27-companion-release.md)

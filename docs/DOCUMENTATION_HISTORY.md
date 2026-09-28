@@ -1,0 +1,30 @@
+# Documentation history — isolated engineering worktree
+
+- 2026-09-28: recorded [real offline startup phase measurements](../logs/build/2026-09-28-voice-startup-measurement.md): 57.594s to ready, no audio or microphone use. Variability versus earlier recovery is explicitly not a proven optimization.
+
+- 2026-09-27: documented authenticated, content-free startup timings to investigate observed offline voice reload latency; no performance improvement claimed.
+
+- 2026-09-27: corrected stale voice ACL blockers and recorded [live combined desktop speech evidence](../logs/build/2026-09-27-live-desktop-voice.md), including cancellation, authenticated WAV integrity and the measured cold-reload latency limitation. No general conversation or human acceptance claimed.
+
+- 2026-09-27: documented executor-gated HUD control and acknowledgement contract in [local HTTP](05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md), [HUD state](01_Product/Chaser-Agent-Computer-Use-HUD.md), [as-built map](01_Product/Chaser-Agent-As-Built-Map.md), and [Start Here](00_START_HERE.md). This is fake-executor protocol proof only; no real computer-use activation or complete two-way voice.
+- 2026-09-27: documented the [opt-in offline voice-input lane](05_Runtime_Adapters/Chaser-Agent-Local-Voice-Input.md), pinned optional model attribution, toy-audio result and missing operator/microphone gates. The HTTP voice route remains speech-out only; no context-aware agent reply exists.
+- 2026-09-27: documented the fail-closed local HTTP ACL gate, the existing E: runtime's broad inherited Windows permissions, the correct local runtime path and the approval needed before ACL repair and token rotation. The service is not currently live from that directory.
+- 2026-09-27: extended private-token checks to the normal HUD and voice client; documented the optional exact read-only spoken status questions, mocked proof and remaining live microphone/executor/provider gates. The full engineering goal remains active.
+- 2026-09-27: documented the one-process `desktop` API/HUD launcher, visible idle port state, owned shutdown, toy loopback test and synthetic visual QA. The real runtime remains ACL-blocked; this is not computer-use or voice acceptance.
+- 2026-09-27: documented optional desktop push-to-talk, cancellation, unverified draft display, exact read-only status speech, pinned E: model-load proof and synthetic voice-panel QA. Live microphone, audible answer, reasoning provider and executor acceptance remain open.
+- 2026-09-27: recorded the synthetic 200%-style clipping found in the first voice-panel capture and the scale-aware/scrollable HUD correction. Real high-DPI and accessibility acceptance remain unverified.
+- 2026-09-27: documented a 16-client concurrency ceiling and minimal `503` overflow response for the loopback HTTP listener, with recovery after a handler exits. This is local transport hardening, not public-service readiness.
+- 2026-09-27: documented per-take desktop voice IDs and late-event rejection so a previous transcript cannot replace the active recording state. Real device cancellation and spoken-response acceptance remain unverified.
+- 2026-09-27: documented the read-only local HTTP `doctor` preflight and actual broad-ACL result for the E: runtime; it does not change permissions or prove live startup.
+- 2026-09-27: documented token-protected per-take local voice cancellation, durable late-audio suppression, HUD Cancel reply, fake-worker recovery and synthetic visual QA. Real playback interruption and operator listening remain unverified.
+- 2026-09-27: documented optional output-only chunked HUD playback with abort-on-cancel, bounded PCM16/IEEE-float32 WAV formats and a read-only output-device settings check. Real audio and stop latency remain unverified; CLI fixed acknowledgement is unchanged.
+- 2026-09-27: documented same-process HUD executor reconnection after uncertain disconnect, with owner identity, stale-callback rejection and fresh-event control gate. Real executor and process-crash recovery remain open.
+- 2026-09-27: documented read-time HTTP run integrity checks and explicit unverified legacy state; corrected the claim that API runs are filesystem-immutable. Private storage and human review remain required.
+- 2026-09-27: documented bounded draining of early-rejected HTTP POST bodies after a Windows client-reset failure in the full suite; malformed/large requests still close fail-closed.
+- 2026-09-27: documented the explicit Talk-next HUD sequence, with reply cancellation before a new microphone take, revocation through Clear draft and no claim of real barge-in acceptance.
+- 2026-09-27: documented actual Tk HUD synthetic before/after captures and the narrow-width wrap/reflow correction for Talk-next and computer-use controls. Accessibility and device acceptance remain open.
+- 2026-09-27: documented desktop HUD control-response revision gating so stale HTTP replies cannot overwrite newer executor or connection-loss state.
+# 2026-09-27 — approved runtime activation
+
+Current Mermaid and offline 18-layer explorer added; old ACL-blocked prose marked historical or corrected. See [activation evidence](../logs/build/2026-09-27-runtime-activation.md). Public site changes are source-only until deployment credentials are available.
+- 2026-09-27: added research-to-experiment companion roadmap, native HUD window controls and confirmed website publication; see [release receipt](../logs/build/2026-09-27-companion-release.md).

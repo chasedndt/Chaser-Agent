@@ -246,6 +246,200 @@ def run_review_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_serve_command(args: argparse.Namespace) -> int:
+    from chaser_agent.local_http import create_server, load_or_create_token
+
+    requested_data_dir = Path(args.data_dir)
+    if requested_data_dir.is_symlink():
+        print("error: HTTP data directory must not be a symlink", file=sys.stderr)
+        return 2
+    data_dir = requested_data_dir.resolve()
+    if data_dir.is_relative_to(_repo_root().resolve()):
+        print("error: HTTP data directory must be outside the source repository", file=sys.stderr)
+        return 2
+    if not 1 <= args.port <= 65535:
+        print("error: port must be between 1 and 65535", file=sys.stderr)
+        return 2
+    try:
+        token, token_path = load_or_create_token(data_dir)
+        server = create_server(
+            data_dir=data_dir,
+            token=token,
+            port=args.port,
+            allowed_origins=tuple(args.allowed_origin),
+            voice_library=Path(args.voice_library) if args.voice_library else None,
+        )
+    except (OSError, ValueError) as exc:
+        print(f"error: local HTTP startup failed: {exc}", file=sys.stderr)
+        return 2
+    print(f"Chaser Agent local API: http://127.0.0.1:{server.server_port}/v1/health")
+    print(f"Bearer token file: {token_path}")
+    print("Review-only. No provider, tool, computer-use, or memory-promotion authority.")
+    print("Local Pocket Alba voice: configured" if server.voice else "Local Pocket Alba voice: not configured")
+    try:
+        server.serve_forever(poll_interval=0.25)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+    return 0
+
+
+def run_doctor_command(args: argparse.Namespace) -> int:
+    from chaser_agent.local_doctor import format_local_http_report, inspect_local_http_runtime
+
+    requested_data_dir = Path(args.data_dir)
+    if requested_data_dir.is_symlink():
+        print("error: HTTP data directory must not be a symlink", file=sys.stderr)
+        return 2
+    data_dir = requested_data_dir.resolve()
+    if data_dir.is_relative_to(_repo_root().resolve()):
+        print("error: HTTP data directory must be outside the source repository", file=sys.stderr)
+        return 2
+    try:
+        report = inspect_local_http_runtime(data_dir=data_dir, port=args.port)
+    except ValueError as exc:
+        print(f"error: local HTTP preflight failed: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(report, sort_keys=True) if args.json else format_local_http_report(report))
+    return 0 if report["result"] == "preflight_clear" else 2
+
+
+def run_hud_command(args: argparse.Namespace) -> int:
+    from chaser_agent.hud_window import HudWindow
+
+    if not args.preview and not args.data_dir:
+        print("error: --data-dir is required outside synthetic preview mode", file=sys.stderr)
+        return 2
+    if not 1 <= args.port <= 65535:
+        print("error: port must be between 1 and 65535", file=sys.stderr)
+        return 2
+    requested_data_dir = Path(args.data_dir) if args.data_dir else None
+    if requested_data_dir is not None and requested_data_dir.is_symlink():
+        print("error: HUD data directory must not be a symlink", file=sys.stderr)
+        return 2
+    token_file = requested_data_dir / "control-token" if requested_data_dir else None
+    if token_file is not None and (token_file.is_symlink() or not token_file.is_file()):
+        print("error: local bearer-token file is missing or is a symlink", file=sys.stderr)
+        return 2
+    try:
+        window = HudWindow(port=args.port, token_file=token_file, preview=args.preview,
+                           show_idle=getattr(args, "show_idle", False))
+    except (OSError, ValueError) as exc:
+        print(f"error: HUD token storage is unavailable: {exc}", file=sys.stderr)
+        return 2
+    print("Synthetic HUD preview; no executor connected." if args.preview else "HUD waiting for a computer-use session.")
+    window.run()
+    return 0
+
+
+def run_desktop_command(args: argparse.Namespace) -> int:
+    from chaser_agent.local_desktop import run_desktop
+
+    requested_data_dir = Path(args.data_dir)
+    if requested_data_dir.is_symlink():
+        print("error: desktop data directory must not be a symlink", file=sys.stderr)
+        return 2
+    data_dir = requested_data_dir.resolve()
+    if data_dir.is_relative_to(_repo_root().resolve()):
+        print("error: desktop data directory must be outside the source repository", file=sys.stderr)
+        return 2
+    if not 1 <= args.port <= 65535:
+        print("error: port must be between 1 and 65535", file=sys.stderr)
+        return 2
+    try:
+        run_desktop(
+            data_dir=data_dir, port=args.port,
+            allowed_origins=tuple(args.allowed_origin),
+            voice_library=Path(args.voice_library) if args.voice_library else None,
+            voice_model_dir=Path(args.model_dir) if args.model_dir else None,
+        )
+    except (OSError, ValueError, RuntimeError) as exc:
+        print(f"error: local desktop startup or shutdown failed: {exc}", file=sys.stderr)
+        return 2
+    return 0
+
+
+def run_voice_mode_command(args: argparse.Namespace) -> int:
+    from chaser_agent.local_stt import OfflineTranscriber, read_pcm_wav, record_once
+
+    if not args.sample_wav and not 0.5 <= args.seconds <= 12:
+        print("error: microphone capture must be 0.5–12 seconds", file=sys.stderr)
+        return 2
+    speak_status = getattr(args, "speak_status", False)
+    if (args.speak_ack or speak_status) and not args.data_dir:
+        print("error: --speak-ack/--speak-status requires --data-dir for the running local voice service", file=sys.stderr)
+        return 2
+
+    def optional_speech(result: dict[str, object]) -> None:
+        if result["status"] != "draft_unverified" or not (args.speak_ack or speak_status):
+            return
+        from chaser_agent.voice_ack import speak_ack, speak_status_reply
+
+        try:
+            if speak_status:
+                spoken = speak_status_reply(
+                    data_dir=Path(args.data_dir), transcript=str(result["text"]), port=args.port,
+                )
+                if spoken is not None:
+                    reply, voice_id = spoken
+                    print(f"Read-only local status reply played ({voice_id}): {reply}")
+                    return
+                print("No supported read-only status question; no status reply was generated.")
+            if not args.speak_ack:
+                return
+            voice_id = speak_ack(data_dir=Path(args.data_dir), port=args.port)
+            print(f"Fixed local acknowledgement played ({voice_id}); it was not an agent answer.")
+        except (OSError, ValueError, RuntimeError, TimeoutError) as exc:
+            print(f"Voice acknowledgement unavailable: {exc}", file=sys.stderr)
+
+    try:
+        transcriber = OfflineTranscriber(Path(args.model_dir))
+    except (OSError, ValueError, ImportError, RuntimeError) as exc:
+        print(f"error: offline speech input unavailable: {exc}", file=sys.stderr)
+        return 2
+    print("Offline voice input ready. Transcripts are drafts; no agent action or provider call occurs.")
+    if args.sample_wav:
+        try:
+            result = transcriber.transcribe(read_pcm_wav(Path(args.sample_wav)))
+        except (OSError, ValueError, RuntimeError) as exc:
+            print(f"error: test WAV could not be transcribed: {exc}", file=sys.stderr)
+            return 2
+        print(json.dumps(result, ensure_ascii=False))
+        optional_speech(result)
+        return 0
+    while True:
+        try:
+            choice = input("Press Enter to record one take, or q then Enter to quit: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\nVoice input closed; microphone inactive.")
+            return 0
+        if choice == "q":
+            print("Voice input closed; microphone inactive.")
+            return 0
+        if choice:
+            print("Unknown choice; microphone inactive.")
+            continue
+        print(f"MICROPHONE ACTIVE for up to {args.seconds:g} seconds. Ctrl+C cancels this take.", flush=True)
+        try:
+            pcm = record_once(args.seconds, device=args.device)
+        except KeyboardInterrupt:
+            print("\nMICROPHONE OFF. Take discarded.")
+            continue
+        except Exception as exc:
+            print(f"MICROPHONE OFF. Capture discarded ({type(exc).__name__}).", file=sys.stderr)
+            continue
+        print("MICROPHONE OFF. Transcribing locally...", flush=True)
+        try:
+            result = transcriber.transcribe(pcm)
+        except Exception as exc:
+            print(f"error: transcription failed ({type(exc).__name__})", file=sys.stderr)
+            continue
+        print(json.dumps(result, ensure_ascii=False))
+        print("Review the draft. No tool, computer-use or memory action was dispatched.")
+        optional_speech(result)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="chaser-agent", description="Chaser Agent local deterministic harness CLI")
     subparsers = parser.add_subparsers(dest="command")
@@ -341,6 +535,65 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--accept-memory", action="append", default=[])
     review.add_argument("--reject-memory", action="append", default=[])
     review.set_defaults(func=run_review_command)
+
+    serve = subparsers.add_parser(
+        "serve",
+        help="Run the deterministic review-only HTTP API on 127.0.0.1 (default port 8765).",
+    )
+    serve.add_argument("--data-dir", required=True, help="Explicit local runtime directory outside the repository.")
+    serve.add_argument("--port", type=int, default=8765, help="Fixed loopback port; fail if occupied (default 8765).")
+    serve.add_argument(
+        "--allowed-origin",
+        action="append",
+        default=[],
+        help="Optional exact http://127.0.0.1:<port> browser origin for a future local client.",
+    )
+    serve.add_argument(
+        "--voice-library",
+        help="Optional operator-approved local Pocket Alba speech library; no model download or provider call.",
+    )
+    serve.set_defaults(func=run_serve_command)
+
+    doctor = subparsers.add_parser(
+        "doctor", help="Read-only private-runtime and loopback-port preflight; never reads the token value.",
+    )
+    doctor.add_argument("--data-dir", required=True, help="Existing local runtime directory outside the repository.")
+    doctor.add_argument("--port", type=int, default=8765, help="Loopback port to probe briefly (default 8765).")
+    doctor.add_argument("--json", action="store_true", help="Print machine-readable preflight metadata.")
+    doctor.set_defaults(func=run_doctor_command)
+
+    desktop = subparsers.add_parser(
+        "desktop", help="Run the private loopback review API and desktop HUD together in one foreground process.",
+    )
+    desktop.add_argument("--data-dir", required=True, help="Explicit private runtime directory outside the repository.")
+    desktop.add_argument("--port", type=int, default=8765, help="Fixed loopback port; fail if occupied (default 8765).")
+    desktop.add_argument("--allowed-origin", action="append", default=[],
+                         help="Optional exact http://127.0.0.1:<port> browser origin.")
+    desktop.add_argument("--voice-library", help="Optional operator-approved local Pocket Alba library.")
+    desktop.add_argument("--model-dir", help="Optional pinned offline STT model for explicit HUD push-to-talk; no download.")
+    desktop.set_defaults(func=run_desktop_command)
+
+    hud = subparsers.add_parser(
+        "hud",
+        help="Open the local desktop HUD; stays hidden until a computer-use session is observed.",
+    )
+    hud.add_argument("--data-dir", help="Same local runtime directory used by the serve command.")
+    hud.add_argument("--port", type=int, default=8765, help="Loopback API port (default 8765).")
+    hud.add_argument("--preview", action="store_true", help="Show an explicit synthetic HUD replay without control authority.")
+    hud.add_argument("--show-idle", action="store_true", help="Keep the HUD available for an existing local service even with no executor; restore it from the taskbar.")
+    hud.set_defaults(func=run_hud_command)
+    voice_mode = subparsers.add_parser(
+        "voice-mode", help="Explicit push-to-talk offline transcription; transcripts never dispatch actions.",
+    )
+    voice_mode.add_argument("--model-dir", required=True, help="Pinned local model directory with stt-model.json receipt.")
+    voice_mode.add_argument("--seconds", type=float, default=5.0, help="Microphone capture length, 0.5–12 seconds (default 5).")
+    voice_mode.add_argument("--device", type=int, help="Optional PortAudio input-device number; default system device.")
+    voice_mode.add_argument("--sample-wav", help="Transcribe a local PCM test WAV without opening the microphone.")
+    voice_mode.add_argument("--speak-ack", action="store_true", help="Play a fixed Pocket Alba acknowledgement; never send transcript text.")
+    voice_mode.add_argument("--speak-status", action="store_true", help="Answer exact read-only service status questions; never execute transcript commands.")
+    voice_mode.add_argument("--data-dir", help="Data directory of a separately running local voice-enabled HTTP service.")
+    voice_mode.add_argument("--port", type=int, default=8765, help="Port of the local voice-enabled HTTP service (default 8765).")
+    voice_mode.set_defaults(func=run_voice_mode_command)
     return parser
 
 

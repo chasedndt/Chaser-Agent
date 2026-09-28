@@ -1,5 +1,7 @@
 # Chaser Agent
 
+Engineering preview: [18-layer architecture](docs/01_Product/Runtime-Architecture.md), [interactive map](https://chaseos.ai/chaser-agent/architecture/), and [conversational companion research programme](docs/research/2026-09-27-conversational-harness-roadmap.md). The local HUD can minimize to the taskbar and toggle always-on-top. General conversation and Hermes/OpenClaw/computer-use integration remain in development.
+
 **Standalone-first. Local-first. Evidence-linked. Human-governed. ChaseOS-enhanced.**
 
 Chaser Agent is a standalone-first, local-first agent harness for turning goals and sources into evidence-linked, reviewable work. Its MIT-licensed core runs independently, learns from explicit human review, preserves approved local memory, and curates a user-owned provenance map. Optional ChaseOS integration adds shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory.
@@ -76,6 +78,24 @@ See:
 ## Current maturity
 
 Chaser Agent is a **P0.1 / pre-alpha standalone deterministic harness**. The canonical visual asset release and browser-local one-time run are public consumer surfaces; provider routing, browser authority, autonomous execution and managed hosting remain future engineering lanes.
+
+An isolated engineering worktree now also has a [local HTTP foundation](docs/05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md): a token-protected `127.0.0.1:8765` source-review API that retains the original submitted public text with each pending run. After operator-approved ACL repair and token rotation on 2026-09-27, the private local service passed a live create/read and authorization smoke test. See the [18-layer interactive architecture map](docs/01_Product/Runtime-Architecture.html) and [Mermaid architecture](docs/01_Product/Runtime-Architecture.md). This is a local engineering snapshot, not a released version. An optional Pocket Alba library prewarms locally and generates offline speech-out jobs behind the same token. A separate [opt-in offline voice-input command](docs/05_Runtime_Adapters/Chaser-Agent-Local-Voice-Input.md) transcribes bounded microphone takes as unverified drafts, can play a fixed acknowledgement, and now has a narrowly allowlisted read-only service-status reply. It does not generally reason over the request or dispatch actions. The desktop HUD has a tested, executor-gated control-and-acknowledgement path, but no real computer-use executor is attached. This is local engineering evidence, not a merged release or a complete conversational agent.
+
+New HTTP review runs include a read-time SHA-256 integrity record; changed artifacts are refused, and older runs without that record are labelled unverified. This detects file drift but does not make the local files immutable or replace human review.
+
+A `desktop` CLI now owns the loopback API and a visible idle HUD in one foreground process, shows its fixed port, and stops its owned server when the window closes. Lifecycle tests and a synthetic idle-window capture exist; the current broad-ACL runtime still prevents a real launch. This does not start the microphone or enable computer use.
+
+The local HTTP listener now caps simultaneous client handlers at 16 and returns `503` when full, in addition to its authenticated POST rate limit. This bounds one local connection-exhaustion path; it does not make the service safe for public or LAN exposure.
+
+Run `python -m chaser_agent.cli doctor --data-dir <local-runtime-directory>` for a read-only check of the runtime ACLs and fixed loopback port before launching. It never reads the bearer-token value or changes permissions; a clear preflight still does not prove successful startup.
+
+An optional `desktop --model-dir <pinned-local-STT-model>` adds a push-to-talk panel: Talk starts one bounded take, Cancel discards it, and the transcript is shown as an unverified in-memory draft. With an explicitly configured local Pocket Alba library, the operator may separately click Speak status for a few exact read-only questions. No microphone opens on launch, and neither a draft nor a button click grants tool authority. The panel has synthetic visual QA and local-model-load proof, not operator microphone or audible-response acceptance.
+
+During a spoken status reply, an explicit **Talk next** click now requests cancellation and waits for the speech worker to finish before opening the next bounded take. This ordering is tested with fake devices; audible interruption and real microphone behavior remain unverified.
+
+The native HUD now wraps its status text and reflows controls into two rows at narrow window widths. The [local visual-QA receipt](logs/build/2026-09-27-talk-next-hud-qa.md) records readable Talk-next and computer-use labels at the tested width; keyboard, assistive-technology and real-device acceptance remain open.
+
+Pending local speech can now be cancelled from the HUD or its token-protected HTTP route. Cancellation is recorded so late audio is not exposed after restart; a fake-worker recovery test passes. HUD playback now uses short output-only PCM chunks and aborts pending output on cancellation in the optional speech environment. Actual audible quality and stop latency remain unverified.
 
 Verified P0.1 implementation:
 
