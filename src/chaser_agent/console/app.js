@@ -21,7 +21,7 @@
   };
   const ACTIVE = new Set(['queued', 'reasoning', 'running_tool']);
   const TOOL_TEXT = {
-    graph_search: 'Searched the knowledge graph', graph_node: 'Read a graph record', graph_source_segments: 'Read a source from the graph',
+    chaseos_open_loops: 'Checked what\'s waiting on you', graph_search: 'Searched the knowledge graph', graph_node: 'Read a graph record', graph_source_segments: 'Read a source from the graph',
     library_search: 'Searched the library', read_document: 'Read a document', web_fetch: 'Read a public page',
     workspace_write: 'Saved a working file', workspace_read: 'Opened a working file', workspace_list: 'Listed working files',
     recall_output: 'Re-read an earlier result', update_plan: 'Updated the plan', memory_search: 'Checked reviewed memory', memory_propose: 'Proposed a memory',
