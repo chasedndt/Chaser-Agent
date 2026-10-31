@@ -19,6 +19,7 @@
     graph_record: 'Recorded this in the knowledge graph',
   };
 
+  const suggestionBox = $('suggestions');
   let token = '';
   let current = null;
   let seen = 0;
@@ -302,7 +303,8 @@
       return button;
     }));
     if (!current) setMotion(status.motion, '', 'Ready');
-    const box = $('suggestions');
+    // Held directly: the empty state, and this box with it, leaves the page while a session is open.
+    const box = suggestionBox;
     if (!box.childElementCount) {
       for (const example of status.examples || []) {
         const button = el('button', 'suggestion', example);
