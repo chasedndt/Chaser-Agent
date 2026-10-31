@@ -47,6 +47,7 @@ class ToolContext:
     cancel: Event
     set_mood: Callable[[str], None] = lambda _mood: None
     set_plan: Callable[[list[dict[str, str]]], None] = lambda _plan: None
+    read_only_folders: tuple[str, ...] = ()
 
 
 class ToolFailure(RuntimeError):
