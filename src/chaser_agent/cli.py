@@ -261,6 +261,10 @@ def run_serve_command(args: argparse.Namespace) -> int:
         print("error: port must be between 1 and 65535", file=sys.stderr)
         return 2
     try:
+        if args.memory_limit_mb:
+            from chaser_agent.process_limits import limit_memory
+
+            limit_memory(process_mb=args.memory_limit_mb, total_mb=args.memory_limit_mb * 3)
         token, token_path = load_or_create_token(data_dir)
         agent = None
         if not args.review_only:
@@ -565,6 +569,7 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--review-only", action="store_true", help="Serve the deterministic review API without the agent loop.")
     serve.add_argument("--pack", action="append", default=[], help="Operator-named pack file adding tools and workflows. Repeatable.")
     serve.add_argument("--claude-model", default="sonnet", help="Model for the claude-cli reasoning route.")
+    serve.add_argument("--memory-limit-mb", type=int, default=0, help="Cap each process at this much memory, and the service with its children at three times that.")
     serve.set_defaults(func=run_serve_command)
 
     from chaser_agent.agent_cli import add_agent_commands, add_decide_command
