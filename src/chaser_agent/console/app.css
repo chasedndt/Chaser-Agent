@@ -95,6 +95,9 @@ h1, h2, h3, p { margin: 0; }
 .card h3 { font-size: 13px; font-weight: 600; color: var(--amber); }
 .card p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .card pre { margin: 0; padding: 10px 12px; background: #05080f; border-radius: 7px; font: 12.5px/1.45 "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow: auto; }
+.card .summary-text { max-height: 200px; overflow: auto; color: #c4cede; font-size: 14px; }
+.card details summary { cursor: pointer; color: var(--edge); font-size: 13px; }
+.card details pre { margin-top: 8px; }
 .card .row { display: flex; flex-wrap: wrap; gap: 8px; }
 .card textarea { width: 100%; padding: 9px 12px; background: var(--ink); border: 1px solid var(--line); border-radius: 8px; resize: vertical; }
 .primary, .quiet, #send { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); }

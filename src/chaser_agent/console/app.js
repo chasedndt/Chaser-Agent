@@ -190,11 +190,12 @@
       send.addEventListener('click', () => box.value.trim() && answer(pending.id, box.value.trim()));
       card.append(row, box, send);
     } else {
-      card.append(
-        el('h3', '', 'Approve this exact action?'),
-        el('p', '', TOOL_TEXT[pending.tool] || pending.tool),
-        el('pre', '', JSON.stringify(pending.args, null, 2)),
-      );
+      card.append(el('h3', '', 'Approve this exact action?'), el('p', '', TOOL_TEXT[pending.tool] || pending.tool));
+      if (pending.args.title) card.append(el('strong', '', pending.args.title));
+      if (pending.args.text) card.append(el('p', 'summary-text', pending.args.text));
+      const exact = el('details');
+      exact.append(el('summary', '', 'See the exact request'), el('pre', '', JSON.stringify(pending.args, null, 2)));
+      card.append(exact);
       const row = el('div', 'row');
       const approve = el('button', 'primary', 'Approve');
       const reject = el('button', 'quiet', 'Reject');
@@ -295,6 +296,7 @@
     $('sessions').replaceChildren(...sessions.slice(0, 12).map((row) => {
       const button = el('button', `session${row.id === current ? ' on' : ''}`);
       button.type = 'button';
+      button.dataset.id = row.id;
       button.append(el('b', '', row.title), el('small', '', STATUS_TEXT[row.status] || row.status));
       button.addEventListener('click', () => select(row.id));
       return button;

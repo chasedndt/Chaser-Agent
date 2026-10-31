@@ -77,15 +77,21 @@ def _describe(event: dict[str, Any]) -> str | None:
 
 
 def run_ask(args: argparse.Namespace) -> int:
-    body: dict[str, Any] = {"message": " ".join(args.message), "reasoner": args.reasoner}
-    if args.workflow:
-        body["workflow"] = args.workflow
-    status, session = _call(args, "POST", "/v1/agent/sessions", body)
-    if status != 201:
+    message = " ".join(args.message)
+    if args.session:
+        status, session = _call(args, "POST", f"/v1/agent/sessions/{args.session}/messages", {"message": message})
+    else:
+        body: dict[str, Any] = {"message": message, "reasoner": args.reasoner}
+        if args.workflow:
+            body["workflow"] = args.workflow
+        if args.withhold:
+            body["withhold_tools"] = args.withhold
+        status, session = _call(args, "POST", "/v1/agent/sessions", body)
+    if status not in {201, 202}:
         print(f"error: {session}", file=sys.stderr)
         return 2
-    print(f"session {session['id']} · workflow {session['workflow']}")
-    seen = 0
+    print(f"session {session['id']} · workflow {session['workflow']}", flush=True)
+    seen = session["events"] - 1 if args.session else 0
     while True:
         _, page = _call(args, "GET", f"/v1/agent/sessions/{session['id']}/events?after={seen}")
         for event in page.get("events", []):
@@ -171,6 +177,8 @@ def add_agent_commands(subparsers: argparse._SubParsersAction) -> None:
     ask.add_argument("message", nargs="+")
     ask.add_argument("--workflow")
     ask.add_argument("--reasoner", default="auto")
+    ask.add_argument("--session", help="Continue this session instead of starting a new one.")
+    ask.add_argument("--withhold", action="append", default=[], help="A tool this session must not have, even if its workflow grants it. Repeatable.")
     ask.set_defaults(func=run_ask)
 
     status = subparsers.add_parser("agent-status", help="Show tools, workflows and which reasoning routes are available.")
