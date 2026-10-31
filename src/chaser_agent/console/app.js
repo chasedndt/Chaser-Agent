@@ -8,6 +8,7 @@
   const EXPANDED = { width: 420, height: 600 };
   const VIEWING = { width: 1000, height: 820 };
   const STALE_PLAN_STEPS = 8;
+  const CORNER_SLACK = 8;
   const TONE = {
     queued: 'live', reasoning: 'live', running_tool: 'live', awaiting_human: 'human', awaiting_approval: 'human',
     finished: 'done', failed: 'blocked', budget_stopped: 'blocked', interrupted: 'blocked', cancelled: 'idle',
@@ -47,6 +48,7 @@
   let steps = new Map();
   let effects = {};
   let sized = '';
+  let corner = null;
   let polling = false;
   let firstMessage = null;
   let stepsSincePlan = 0;
@@ -97,11 +99,14 @@
     sized = key;
     const width = size.width + (window.outerWidth - window.innerWidth);
     const height = size.height + (window.outerHeight - window.innerHeight);
+    // Keep the corner where it was. Measuring it afresh each time would creep a few pixels per open,
+    // so it only changes when the window is further away than rounding explains: someone moved it.
     const bottom = window.screenY + window.outerHeight;
     const right = window.screenX + window.outerWidth;
+    if (!corner || Math.abs(corner.right - right) > CORNER_SLACK || Math.abs(corner.bottom - bottom) > CORNER_SLACK) corner = { right, bottom };
     try {
       window.resizeTo(width, height);
-      window.moveTo(Math.max(0, right - width), Math.max(0, bottom - height));
+      window.moveTo(Math.max(0, corner.right - width), Math.max(0, corner.bottom - height));
     } catch (_) { /* An ordinary browser tab can't be resized, and the layout still works there. */ }
   }
 
