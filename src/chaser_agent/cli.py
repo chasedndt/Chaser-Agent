@@ -262,19 +262,29 @@ def run_serve_command(args: argparse.Namespace) -> int:
         return 2
     try:
         token, token_path = load_or_create_token(data_dir)
+        agent = None
+        if not args.review_only:
+            from chaser_agent.agent.service import build_runtime
+
+            agent = build_runtime(data_dir, packs=tuple(Path(item) for item in args.pack), claude_model=args.claude_model)
         server = create_server(
             data_dir=data_dir,
             token=token,
             port=args.port,
             allowed_origins=tuple(args.allowed_origin),
             voice_library=Path(args.voice_library) if args.voice_library else None,
+            agent=agent,
         )
     except (OSError, ValueError) as exc:
         print(f"error: local HTTP startup failed: {exc}", file=sys.stderr)
         return 2
     print(f"Chaser Agent local API: http://127.0.0.1:{server.server_port}/v1/health")
     print(f"Bearer token file: {token_path}")
-    print("Review-only. No provider, tool, computer-use, or memory-promotion authority.")
+    if agent is None:
+        print("Review-only. No provider, tool, computer-use, or memory-promotion authority.")
+    else:
+        print(f"Agent tools: {len(agent.toolbox.ids())}. Workflows: {', '.join(agent.workflows)}. Packs: {len(agent.loaded_packs)}.")
+        print("Sending mail, publishing, paying and deploying have no route through this service.")
     print("Local Pocket Alba voice: configured" if server.voice else "Local Pocket Alba voice: not configured")
     try:
         server.serve_forever(poll_interval=0.25)
@@ -552,7 +562,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--voice-library",
         help="Optional operator-approved local Pocket Alba speech library; no model download or provider call.",
     )
+    serve.add_argument("--review-only", action="store_true", help="Serve the deterministic review API without the agent loop.")
+    serve.add_argument("--pack", action="append", default=[], help="Operator-named pack file adding tools and workflows. Repeatable.")
+    serve.add_argument("--claude-model", default="sonnet", help="Model for the claude-cli reasoning route.")
     serve.set_defaults(func=run_serve_command)
+
+    from chaser_agent.agent_cli import add_agent_commands, add_decide_command
+
+    add_agent_commands(subparsers)
+    add_decide_command(subparsers)
 
     doctor = subparsers.add_parser(
         "doctor", help="Read-only private-runtime and loopback-port preflight; never reads the token value.",

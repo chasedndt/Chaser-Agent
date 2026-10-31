@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chaser Agent</title>
+<link rel="stylesheet" href="/console/app.css">
+<script src="/console/app.js" defer></script>
+</head>
+<body>
+<div class="shell" id="shell">
+  <aside class="side">
+    <div class="companion" id="companion" data-motion="dormant">
+      <video id="motion" muted loop playsinline poster="/assets/motion/dormant.png" src="/assets/motion/dormant.mp4" aria-hidden="true"></video>
+      <img id="motion-still" src="/assets/motion/dormant.png" alt="" hidden>
+      <div class="state"><i></i><span id="state-text">Connecting</span></div>
+    </div>
+    <h1>Chaser Agent</h1>
+    <p class="port" id="port"></p>
+    <section class="routes" aria-label="Reasoning routes">
+      <h2>Thinking with</h2>
+      <div id="routes"></div>
+    </section>
+    <section class="sessions" aria-label="Work">
+      <div class="sessions-head"><h2>Work</h2><button type="button" id="new-work" class="link">New</button></div>
+      <div id="sessions"></div>
+    </section>
+  </aside>
+
+  <main class="run">
+    <header class="run-head" id="run-head" hidden>
+      <div>
+        <p class="eyebrow" id="run-workflow"></p>
+        <h2 id="run-goal"></h2>
+      </div>
+      <div class="meters" id="meters"></div>
+    </header>
+    <div class="timeline" id="timeline" aria-live="polite">
+      <div class="empty" id="empty">
+        <h2>What should I work on?</h2>
+        <p>Say it in a sentence. I check my sources, do what I'm allowed to, and stop to ask you before anything leaves this computer.</p>
+        <div class="suggestions" id="suggestions"></div>
+      </div>
+    </div>
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="Tell Chaser what to do" aria-label="Tell Chaser what to do"></textarea>
+      <button type="button" id="send" aria-label="Send">Send</button>
+      <button type="button" id="stop" class="quiet" hidden>Stop</button>
+    </div>
+    <p class="notice" id="notice" role="status"></p>
+  </main>
+
+  <aside class="tray" id="tray" hidden>
+    <section id="plan-box" hidden>
+      <h2>Plan</h2>
+      <ol id="plan"></ol>
+    </section>
+    <section>
+      <h2>Files made</h2>
+      <div id="artifacts"><p class="muted">Nothing yet.</p></div>
+    </section>
+    <section>
+      <h2>Allowed here</h2>
+      <div id="grants" class="chips"></div>
+    </section>
+  </aside>
+</div>
+
+<dialog id="viewer">
+  <div class="viewer-head"><strong id="viewer-title"></strong><button type="button" id="viewer-close" class="quiet">Close</button></div>
+  <iframe id="viewer-frame" sandbox title="Saved file" hidden></iframe>
+  <pre id="viewer-text" hidden></pre>
+</dialog>
+</body>
+</html>

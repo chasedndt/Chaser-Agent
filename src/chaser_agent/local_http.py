@@ -20,6 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from chaser_agent import agent_http
 from chaser_agent.hud_runtime import HudBridge, HudUnavailable
 from chaser_agent.local_acl import assert_private_runtime_path
 from chaser_agent.local_voice import MAX_SPEECH_CHARS, MAX_WAV_BYTES, VOICE_ID, WarmPocketAlbaVoice, VoiceBusy, VoiceGenerationFailed
@@ -180,7 +181,9 @@ class LocalHTTPServer(ThreadingHTTPServer):
         allowed_origins: tuple[str, ...] = (),
         voice_library: Path | None = None,
         max_client_workers: int = MAX_CLIENT_WORKERS,
+        agent: object | None = None,
     ):
+        self.agent = agent
         if not re.fullmatch(r"[0-9a-f]{64}", token):
             raise ValueError("A 256-bit hexadecimal bearer token is required")
         if not 0 <= port <= 65535:
@@ -199,6 +202,8 @@ class LocalHTTPServer(ThreadingHTTPServer):
         assert_private_runtime_path(self.run_root)
         self.token = token
         self.limiter = SlidingWindowLimiter()
+        # A running agent exchanges far more requests than one person pressing buttons.
+        self.agent_limiter = SlidingWindowLimiter(limit=240)
         self._client_slots = threading.BoundedSemaphore(max_client_workers)
         self.hud = HudBridge()
         self.voice = WarmPocketAlbaVoice(library_root=voice_library, data_dir=data_dir) if voice_library else None
@@ -270,14 +275,14 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Content-Security-Policy", "default-src 'none'")
         origin = self.headers.get("Origin")
         if origin in self.server.allowed_origins:
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
-        for name, value in (extra_headers or {}).items():
+        # Two CSP headers would intersect, so a route's own policy replaces the default.
+        headers = {"Cache-Control": "no-store", "Content-Security-Policy": "default-src 'none'", **(extra_headers or {})}
+        for name, value in headers.items():
             self.send_header(name, value)
         self.end_headers()
         try:
@@ -387,14 +392,20 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
                     "status": "ready",
                     "bind": LOOPBACK_HOST,
                     "port": self.server.server_port,
-                    "mode": "review_with_local_voice" if self.server.voice else "deterministic_review_only",
+                    "mode": "agent_with_review" if self.server.agent else ("review_with_local_voice" if self.server.voice else "deterministic_review_only"),
                     "hud": "executor_attached" if self.server.hud.snapshot()["controls_enabled"] else "not_connected",
                     "voice": "configured_local" if self.server.voice else "not_connected",
                     "voice_runtime": self.server.voice.runtime_state() if self.server.voice else "disabled",
+                    "agent": "ready" if self.server.agent else "not_configured",
                 },
             )
             return
+        if agent_http.serve_public(self):
+            return
         if not self._authorized():
+            return
+        if self.path.startswith("/v1/agent"):
+            agent_http.handle_get(self)
             return
         if self.path == "/v1/voice/runtime":
             adapter = self.server.voice
@@ -478,13 +489,14 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
         if not self._request_allowed():
             return
         cancel_id = self._voice_cancel_id()
-        if self.path not in {"/v1/source-cards", "/v1/voice/replies", "/v1/hud/controls"} and cancel_id is None:
+        agent_route = agent_http.is_agent_post(self.path)
+        if self.path not in {"/v1/source-cards", "/v1/voice/replies", "/v1/hud/controls"} and cancel_id is None and not agent_route:
             self._drain_early_post_body()
             self._error(404, "not_found", "Route not found")
             return
         if not self._authorized():
             return
-        if not self.server.limiter.allow():
+        if not (self.server.agent_limiter if agent_route else self.server.limiter).allow():
             self._drain_early_post_body()
             self._reply(429, {"error": {"code": "rate_limited", "message": "Try again later"}}, extra_headers={"Retry-After": "60"})
             return
@@ -539,6 +551,9 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
             return
         if not isinstance(request, dict):
             self._error(400, "invalid_input", "A JSON object is required")
+            return
+        if agent_route:
+            agent_http.handle_post(self, request)
             return
         if self.path == "/v1/hud/controls":
             self._post_hud_control(request)
@@ -686,6 +701,7 @@ def create_server(
     allowed_origins: tuple[str, ...] = (),
     voice_library: Path | None = None,
     max_client_workers: int = MAX_CLIENT_WORKERS,
+    agent: object | None = None,
 ) -> LocalHTTPServer:
     return LocalHTTPServer(
         data_dir=data_dir,
@@ -694,4 +710,5 @@ def create_server(
         allowed_origins=allowed_origins,
         voice_library=voice_library,
         max_client_workers=max_client_workers,
+        agent=agent,
     )
