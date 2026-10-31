@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -75,3 +76,30 @@ def test_owner_rights_count_only_when_the_user_owns_the_path() -> None:
     assert _allowed_windows_sddl(f"O:{user}G:{user}{aces}", user) is True
     assert _allowed_windows_sddl(f"O:BAG:BA{aces}", user) is False
     assert _allowed_windows_sddl(f"O:{other}G:{other}{aces}", user) is False
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows security descriptors")
+def test_the_api_reader_matches_what_windows_reports_for_a_real_path(tmp_path: Path) -> None:
+    import subprocess
+
+    from chaser_agent.local_acl import _windows_acl
+
+    script = "$ErrorActionPreference='Stop'; [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value; (Get-Acl -LiteralPath $env:CHASER_ACL_TARGET).Sddl"
+    done = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script], env={**os.environ, "CHASER_ACL_TARGET": str(tmp_path)}, capture_output=True, text=True, timeout=60, check=True)
+    expected_sid, expected_sddl = [line.strip() for line in done.stdout.strip().splitlines()]
+    sid, sddl = _windows_acl(tmp_path)
+
+    def parts(text: str) -> tuple[str, list[str]]:
+        # PowerShell sorts the entries and the API returns them as stored. The gate treats them as a set.
+        return text[: text.index("(")], sorted(text[text.index("(") + 1 : -1].split(")("))
+
+    assert sid == expected_sid
+    assert parts(sddl) == parts(expected_sddl)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows security descriptors")
+def test_a_missing_path_fails_closed(tmp_path: Path) -> None:
+    from chaser_agent.local_acl import _windows_acl
+
+    with pytest.raises(InsecureRuntimePath):
+        _windows_acl(tmp_path / "missing")
