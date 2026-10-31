@@ -380,3 +380,34 @@ def test_common_injection_wordings_are_flagged(text: str) -> None:
     from chaser_agent.tools.quarantine import detect_injection_signals
 
     assert "instruction_injection" in detect_injection_signals(text)
+
+
+@pytest.mark.parametrize("name", ["records/a.json", "RECORDS/a.json", "records./a.json", "records/deep/er/a.json"])
+def test_a_read_only_workspace_folder_cannot_be_written(tmp_path, name: str) -> None:
+    from threading import Event
+
+    from chaser_agent.agent.builtin import _workspace_write
+    from chaser_agent.agent.tooling import ToolContext
+    from chaser_agent.tools.registry import ToolDenied
+
+    workspace = tmp_path / "workspace"
+    (workspace / "records").mkdir(parents=True)
+    (workspace / "records" / "a.json").write_text("kept", encoding="utf-8")
+    context = ToolContext("s", "1", "c0001-1", workspace, tmp_path, [], Event(), read_only_folders=("records",))
+    with pytest.raises(ToolDenied):
+        _workspace_write({"name": name, "content": "forged"}, context)
+    assert (workspace / "records" / "a.json").read_text(encoding="utf-8") == "kept"
+
+
+def test_a_trailing_dot_cannot_name_a_folder_before_it_exists(tmp_path) -> None:
+    from threading import Event
+
+    from chaser_agent.agent.builtin import _workspace_write
+    from chaser_agent.agent.tooling import ToolContext
+    from chaser_agent.tools.registry import ToolDenied
+
+    context = ToolContext("s", "1", "c0001-1", tmp_path, tmp_path, [], Event(), read_only_folders=("records",))
+    with pytest.raises(ToolDenied):
+        _workspace_write({"name": "records./a.json", "content": "planted"}, context)
+    assert not (tmp_path / "records").exists()
+    assert _workspace_write({"name": "notes/a.json", "content": "fine"}, context)["bytes"] == 4

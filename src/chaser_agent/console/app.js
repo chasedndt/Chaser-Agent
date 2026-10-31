@@ -27,13 +27,15 @@
     recall_output: 'Re-read an earlier result', update_plan: 'Updated the plan', memory_search: 'Checked reviewed memory', memory_propose: 'Proposed a memory',
     mail_accounts: 'Checked mail identities', mail_outbox: 'Checked the outbox', mail_search: 'Searched mail', mail_read: 'Read an email', mail_create_draft: 'Prepared a mail draft, not sent',
     graph_record: 'Recorded this in the knowledge graph',
-    procurement_rank_adverts: 'Put adverts in reading order', procurement_open_case: 'Opened a contract review', procurement_retain_document: 'Kept an exact copy of a document',
+    procurement_scan_adverts: 'Scanned live adverts for this customer', procurement_read_notice: 'Read an advert', procurement_list_customers: 'Listed the customers',
+    procurement_save_customer: 'Saved the customer\'s evidence', procurement_review_history: 'Checked earlier reviews', procurement_record_review: 'Recorded how the review went',
+    procurement_open_case: 'Opened a contract review', procurement_retain_document: 'Kept an exact copy of a document',
     procurement_record_requirements: 'Checked requirements word for word', procurement_record_evidence: 'Recorded the customer\'s evidence',
     procurement_assess_fit: 'Compared requirements with evidence', procurement_build_brief: 'Built the contract review',
   };
 
   // Rows say what happened. A request hasn't happened yet.
-  const ASK_TEXT = { graph_record: 'Record this in the knowledge graph', mail_create_draft: 'Prepare this mail draft', memory_propose: 'Propose this memory' };
+  const ASK_TEXT = { graph_record: 'Record this in the knowledge graph', mail_create_draft: 'Prepare this mail draft', memory_propose: 'Propose this memory', procurement_save_customer: 'Save this as the customer\'s evidence', procurement_record_review: 'Record how this review went' };
 
   const hud = $('hud');
   const suggestionBox = $('suggestions');

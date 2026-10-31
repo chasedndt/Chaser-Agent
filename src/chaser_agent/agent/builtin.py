@@ -72,7 +72,8 @@ def _public_address(host: str) -> bool:
 
 
 def _workspace_path(context: ToolContext, name: str) -> Path:
-    if not SAFE_NAME.fullmatch(name) or ".." in name:
+    # Windows drops a trailing dot, so "records./a" would be the same place as "records/a".
+    if not SAFE_NAME.fullmatch(name) or ".." in name or any(part.endswith(".") for part in name.split("/")):
         raise ToolDenied("scope_violation", f"{name!r} is not a workspace file name")
     target = (context.workspace / name).resolve()
     if not target.is_relative_to(context.workspace.resolve()):
@@ -95,6 +96,9 @@ def _recall_output(args: dict[str, Any], context: ToolContext) -> dict[str, Any]
 
 def _workspace_write(args: dict[str, Any], context: ToolContext) -> dict[str, Any]:
     target = _workspace_path(context, args["name"])
+    for folder in context.read_only_folders:
+        if target.is_relative_to((context.workspace / folder).resolve()):
+            raise ToolDenied("scope_violation", f"{folder} holds records that only their own tools may change")
     target.parent.mkdir(parents=True, exist_ok=True)
     data = args["content"].encode("utf-8")
     target.write_bytes(data)

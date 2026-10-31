@@ -85,6 +85,8 @@ class AgentRuntime:
         self.workflows: dict[str, WorkflowSpec] = {}
         self.default_workflow = "general"
         self.parent_link: dict[str, str] | None = None
+        # Workspace folders a pack's own tools keep records in. workspace_write can't touch them.
+        self.read_only_workspace_folders: tuple[str, ...] = ()
         self._lock = threading.RLock()
         self._sessions: dict[str, dict[str, Any]] = {}
         self._logs: dict[str, EventLog] = {}
@@ -605,7 +607,7 @@ class AgentRuntime:
             session_id=session_id, turn_id=str(session["turn"]), call_id=call_id,
             workspace=self._folder(session_id) / "workspace", outputs=self._folder(session_id) / "outputs",
             answers=list(session["answers"]), cancel=self._cancels.get(session_id) or Event(),
-            set_mood=set_mood, set_plan=set_plan,
+            set_mood=set_mood, set_plan=set_plan, read_only_folders=self.read_only_workspace_folders,
         )
         started = time.monotonic()
         try:
