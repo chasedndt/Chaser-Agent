@@ -116,6 +116,49 @@ def test_console_loads_without_the_token_but_holds_no_data(served) -> None:
     assert _request(server, "GET", "/assets/motion/../../../secret.png")[0] in {401, 404}
 
 
+def test_the_page_is_the_small_hud_with_no_side_panels(served) -> None:
+    server, _, _ = served
+    _, body, _ = _request(server, "GET", "/")
+    page = body.decode("utf-8")
+    assert 'id="hud"' in page and 'id="stop"' in page and "Tell Chaser Agent what to do" in page
+    for removed in ('class="side"', 'id="tray"', 'id="routes"', 'id="grants"'):
+        assert removed not in page
+    _, script, _ = _request(server, "GET", "/console/app.js")
+    assert b"Tell Chaser " not in script.replace(b"Tell Chaser Agent", b"")
+
+
+def test_a_bridge_nobody_is_answering_does_not_count_as_connected() -> None:
+    from chaser_agent.agent.reasoners import BridgeReasoner
+
+    bridge = BridgeReasoner()
+    assert bridge.status()["connected"] is False
+    assert bridge.status()["reason"]
+    bridge.next_request()
+    assert bridge.status()["connected"] is True
+    assert bridge.status()["reason"] is None
+
+
+def test_auto_uses_the_bridge_only_while_something_is_answering_it(tmp_path) -> None:
+    from chaser_agent.agent import AgentRuntime, Toolbox, WorkflowSpec
+    from chaser_agent.agent.reasoners import BridgeReasoner, ReasonerUnavailable
+
+    bridge = BridgeReasoner()
+    runtime = AgentRuntime(tmp_path, toolbox=Toolbox(), reasoners=[bridge])
+    runtime.add_workflow(WorkflowSpec("general", "General", "Help.", frozenset()))
+    with pytest.raises(ReasonerUnavailable, match="No AI model is connected"):
+        runtime._resolve_reasoner({"reasoner_id": "auto"})
+    bridge.next_request()
+    assert runtime._resolve_reasoner({"reasoner_id": "auto"}) is bridge
+
+
+def test_the_status_names_a_parent_only_when_a_pack_sets_one(served) -> None:
+    server, token, runtime = served
+    status = json.loads(_request(server, "GET", "/v1/agent/status", token)[1])
+    assert status["parent"] is None
+    runtime.parent_link = {"label": "Parent", "url": "http://127.0.0.1:1/"}
+    assert json.loads(_request(server, "GET", "/v1/agent/status", token)[1])["parent"]["label"] == "Parent"
+
+
 def test_artifact_paths_cannot_escape_the_workspace(served) -> None:
     server, token, runtime = served
     _, body, _ = _request(server, "POST", "/v1/agent/sessions", token, {"message": "Say hello", "reasoner": "scripted"})

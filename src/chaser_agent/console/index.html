@@ -8,66 +8,53 @@
 <script src="/console/app.js" defer></script>
 </head>
 <body>
-<div class="shell" id="shell">
-  <aside class="side">
-    <div class="companion" id="companion" data-motion="dormant">
+<main class="hud" id="hud" data-tone="idle">
+  <header class="pill">
+    <button type="button" class="face" id="toggle" aria-expanded="false" aria-controls="panel" aria-label="Show what Chaser Agent is doing">
       <video id="motion" muted loop playsinline disablepictureinpicture disableremoteplayback poster="/assets/motion/dormant.png" src="/assets/motion/dormant.mp4" aria-hidden="true"></video>
       <img id="motion-still" src="/assets/motion/dormant.png" alt="" hidden>
-      <div class="state"><i></i><span id="state-text">Connecting</span></div>
-    </div>
-    <h1>Chaser Agent</h1>
-    <p class="port" id="port"></p>
-    <section class="routes" aria-label="Reasoning routes">
-      <h2>Thinking with</h2>
-      <div id="routes"></div>
-    </section>
-    <section class="sessions" aria-label="Work">
-      <div class="sessions-head"><h2>Work</h2><button type="button" id="new-work" class="link">New</button></div>
-      <div id="sessions"></div>
-    </section>
-  </aside>
+    </button>
+    <button type="button" class="status" id="toggle-text" aria-hidden="true" tabindex="-1">
+      <span class="state"><i></i><b id="state-text">Connecting</b><small id="meta"></small></span>
+      <span class="now" id="now" aria-live="polite"></span>
+    </button>
+    <button type="button" class="control" id="stop" hidden>Stop</button>
+    <button type="button" class="chevron" id="chevron" aria-label="Show or hide details"><span aria-hidden="true"></span></button>
+  </header>
 
-  <main class="run">
-    <header class="run-head" id="run-head" hidden>
-      <div>
-        <p class="eyebrow" id="run-workflow"></p>
-        <h2 id="run-goal"></h2>
-      </div>
-      <div class="meters" id="meters"></div>
-    </header>
-    <div class="timeline" id="timeline" aria-live="polite">
+  <section class="panel" id="panel" hidden>
+    <div class="goal" id="goal" hidden></div>
+    <div class="progress" id="progress" hidden></div>
+
+    <div class="activity" id="activity">
       <div class="empty" id="empty">
-        <h2>What should I work on?</h2>
-        <p>Say it in a sentence. I check my sources, do what I'm allowed to, and stop to ask you before anything leaves this computer.</p>
+        <p>Say what you need in a sentence. Chaser Agent checks its sources, does what it's allowed to, and asks before anything leaves this computer.</p>
         <div class="suggestions" id="suggestions"></div>
       </div>
     </div>
-    <div class="composer">
-      <textarea id="input" rows="1" placeholder="Tell Chaser what to do" aria-label="Tell Chaser what to do"></textarea>
-      <button type="button" id="send" aria-label="Send">Send</button>
-      <button type="button" id="stop" class="quiet" hidden>Stop</button>
-    </div>
-    <p class="notice" id="notice" role="status"></p>
-  </main>
 
-  <aside class="tray" id="tray" hidden>
-    <section id="plan-box" hidden>
-      <h2>Plan</h2>
-      <ol id="plan"></ol>
-    </section>
-    <section>
-      <h2>Files made</h2>
-      <div id="artifacts"><p class="muted">Nothing yet.</p></div>
-    </section>
-    <section>
-      <h2>Allowed here</h2>
-      <div id="grants" class="chips"></div>
-    </section>
-  </aside>
-</div>
+    <div class="pending" id="pending" hidden></div>
+    <p class="route" id="route" hidden></p>
+    <p class="notice" id="notice" role="status"></p>
+
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="Tell Chaser Agent what to do" aria-label="Tell Chaser Agent what to do"></textarea>
+      <button type="button" id="send" aria-label="Send"><span aria-hidden="true">↑</span></button>
+    </div>
+
+    <nav class="foot">
+      <button type="button" class="link" id="recent-button" aria-expanded="false">Earlier work</button>
+      <button type="button" class="link" id="files-button" hidden>Files</button>
+      <button type="button" class="link" id="new-work" hidden>New</button>
+      <span class="grow"></span>
+      <a class="link" id="parent" target="_blank" rel="noopener" hidden></a>
+    </nav>
+    <div class="drawer" id="drawer" hidden></div>
+  </section>
+</main>
 
 <dialog id="viewer">
-  <div class="viewer-head"><strong id="viewer-title"></strong><button type="button" id="viewer-close" class="quiet">Close</button></div>
+  <div class="viewer-head"><strong id="viewer-title"></strong><button type="button" id="viewer-close" class="control">Close</button></div>
   <iframe id="viewer-frame" sandbox title="Saved file" hidden></iframe>
   <pre id="viewer-text" hidden></pre>
 </dialog>
