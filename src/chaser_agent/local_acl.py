@@ -6,12 +6,17 @@ grants access beyond the current user, SYSTEM, and Administrators.
 
 from __future__ import annotations
 
+import ctypes
 import os
 import re
-import shutil
 import stat
-import subprocess
 from pathlib import Path
+
+_TOKEN_QUERY = 0x0008
+_TOKEN_USER = 1
+_SE_FILE_OBJECT = 1
+_SDDL_REVISION_1 = 1
+_ACL_FIELDS = 0x1 | 0x2 | 0x4  # Owner, group and DACL.
 
 
 class InsecureRuntimePath(ValueError):
@@ -60,27 +65,63 @@ def _allowed_windows_sddl(sddl: str, current_sid: str) -> bool:
 
 
 def _windows_acl(path: Path) -> tuple[str, str]:
-    shell = shutil.which("pwsh") or shutil.which("powershell.exe")
-    if shell is None:
-        raise InsecureRuntimePath("Windows ACL inspection is unavailable")
-    script = (
-        "$ErrorActionPreference='Stop'; "
-        "$sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value; "
-        "$acl=Get-Acl -LiteralPath $env:CHASER_ACL_TARGET; "
-        "Write-Output $sid; Write-Output $acl.Sddl"
-    )
-    environment = {**os.environ, "CHASER_ACL_TARGET": str(path)}
+    """The current user's SID and the path's owner, group and DACL, from the Windows API.
+
+    Starting PowerShell for each path took seconds and could time out on a busy machine.
+    """
+    from ctypes import wintypes
+
+    advapi32 = ctypes.WinDLL("advapi32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.LocalFree.argtypes = [ctypes.c_void_p]
+    kernel32.LocalFree.restype = ctypes.c_void_p
+    advapi32.OpenProcessToken.argtypes = [wintypes.HANDLE, wintypes.DWORD, ctypes.POINTER(wintypes.HANDLE)]
+    advapi32.GetTokenInformation.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)]
+    advapi32.ConvertSidToStringSidW.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_wchar_p)]
+    advapi32.GetNamedSecurityInfoW.argtypes = [
+        wintypes.LPCWSTR, ctypes.c_int, wintypes.DWORD, ctypes.c_void_p, ctypes.c_void_p,
+        ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p),
+    ]
+    advapi32.GetNamedSecurityInfoW.restype = wintypes.DWORD
+    advapi32.ConvertSecurityDescriptorToStringSecurityDescriptorW.argtypes = [
+        ctypes.c_void_p, wintypes.DWORD, wintypes.DWORD, ctypes.POINTER(ctypes.c_wchar_p), ctypes.c_void_p,
+    ]
+
+    token = wintypes.HANDLE()
+    if not advapi32.OpenProcessToken(kernel32.GetCurrentProcess(), _TOKEN_QUERY, ctypes.byref(token)):
+        raise InsecureRuntimePath("Windows ACL inspection failed: no process token")
     try:
-        result = subprocess.run(
-            [shell, "-NoProfile", "-NonInteractive", "-Command", script],
-            env=environment, capture_output=True, text=True, timeout=30, check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise InsecureRuntimePath("Windows ACL inspection failed") from exc
-    lines = result.stdout.strip().splitlines()
-    if result.returncode or len(lines) != 2:
-        raise InsecureRuntimePath(f"Windows ACL inspection failed (exit {result.returncode}, lines {len(lines)})")
-    return lines[0].strip(), lines[1].strip()
+        needed = wintypes.DWORD()
+        advapi32.GetTokenInformation(token, _TOKEN_USER, None, 0, ctypes.byref(needed))
+        buffer = ctypes.create_string_buffer(needed.value)
+        if not advapi32.GetTokenInformation(token, _TOKEN_USER, buffer, needed, ctypes.byref(needed)):
+            raise InsecureRuntimePath("Windows ACL inspection failed: no token user")
+    finally:
+        kernel32.CloseHandle(token)
+    user_sid = ctypes.cast(buffer, ctypes.POINTER(ctypes.c_void_p))[0]
+    sid_text = ctypes.c_wchar_p()
+    if not advapi32.ConvertSidToStringSidW(user_sid, ctypes.byref(sid_text)):
+        raise InsecureRuntimePath("Windows ACL inspection failed: unreadable user")
+    try:
+        sid = sid_text.value or ""
+    finally:
+        kernel32.LocalFree(sid_text)
+
+    descriptor = ctypes.c_void_p()
+    status = advapi32.GetNamedSecurityInfoW(str(path), _SE_FILE_OBJECT, _ACL_FIELDS, None, None, None, None, ctypes.byref(descriptor))
+    if status:
+        raise InsecureRuntimePath(f"Windows ACL inspection failed (error {status})")
+    sddl_text = ctypes.c_wchar_p()
+    try:
+        if not advapi32.ConvertSecurityDescriptorToStringSecurityDescriptorW(descriptor, _SDDL_REVISION_1, _ACL_FIELDS, ctypes.byref(sddl_text), None):
+            raise InsecureRuntimePath("Windows ACL inspection failed: unreadable descriptor")
+        sddl = sddl_text.value or ""
+        kernel32.LocalFree(sddl_text)
+    finally:
+        kernel32.LocalFree(descriptor)
+    return sid, sddl
 
 
 def assert_private_runtime_path(path: Path) -> None:
