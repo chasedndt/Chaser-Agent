@@ -181,6 +181,20 @@
     if (near) box.scrollTop = box.scrollHeight;
   }
 
+  // A page or notice is mostly one long text field. Shown as JSON, its line breaks would all be \n.
+  function readableOutput(text) {
+    try {
+      const value = JSON.parse(text);
+      if (value && typeof value.text === 'string') {
+        const { text: body, ...rest } = value;
+        return `${body}\n\n${JSON.stringify(rest, null, 1)}`;
+      }
+      return JSON.stringify(value, null, 1);
+    } catch (_) {
+      return text;
+    }
+  }
+
   function inspect(row, data, thought) {
     const next = row.nextElementSibling;
     if (next && next.classList.contains('inspect')) {
@@ -196,7 +210,7 @@
     box.append(el('h4', '', 'What came back'), result);
     row.after(box);
     api(`/v1/agent/sessions/${current}/outputs/${data.call_id}`).then((value) => {
-      result.textContent = value.text + (value.total_chars > value.text.length ? `\n…${value.total_chars - value.text.length} more characters` : '');
+      result.textContent = readableOutput(value.text) + (value.total_chars > value.text.length ? `\n…${value.total_chars - value.text.length} more characters` : '');
     }).catch(() => { result.textContent = 'Nothing was recorded for this step.'; });
   }
 
