@@ -66,3 +66,12 @@ def test_client_never_reads_token_when_directory_is_broad(tmp_path: Path, monkey
     monkeypatch.setattr("chaser_agent.local_acl.assert_private_runtime_path", broad)
     with pytest.raises(InsecureRuntimePath, match="broad ACL"):
         read_private_control_token(tmp_path)
+
+
+def test_owner_rights_count_only_when_the_user_owns_the_path() -> None:
+    user = "S-1-5-21-1-2-3-1005"
+    other = "S-1-5-21-9-9-9-1006"
+    aces = "D:P(A;OICI;FA;;;OW)(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)"
+    assert _allowed_windows_sddl(f"O:{user}G:{user}{aces}", user) is True
+    assert _allowed_windows_sddl(f"O:BAG:BA{aces}", user) is False
+    assert _allowed_windows_sddl(f"O:{other}G:{other}{aces}", user) is False

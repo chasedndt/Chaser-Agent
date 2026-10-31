@@ -1,5 +1,7 @@
 # Chaser Agent
 
+**31 October 2026:** the [agent loop](docs/01_Product/Chaser-Agent-Agent-Loop.md) now runs locally with real tool use on `127.0.0.1:8765`, approval by exact digest and a saved, hash-chained record of every step. It moves past the P0.1 tool-free boundary described below at the operator's direction. Mail, publishing, payment and deployment still have no route through it. The review-only harness remains available with `serve --review-only`, and sections below that describe P0.1 refer to that path.
+
 Engineering preview: [18-layer architecture](docs/01_Product/Runtime-Architecture.md), [interactive map](https://chaseos.ai/chaser-agent/architecture/), and [conversational companion research programme](docs/research/2026-09-27-conversational-harness-roadmap.md). The local HUD can minimize to the taskbar and toggle always-on-top. General conversation and Hermes/OpenClaw/computer-use integration remain in development.
 
 ### Inside Chaser: the engineering guide

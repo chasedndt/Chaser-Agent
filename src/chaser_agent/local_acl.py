@@ -27,6 +27,7 @@ def _allowed_windows_sddl(sddl: str, current_sid: str) -> bool:
                      if (index := sddl.find(marker, 2)) >= 0), default=-1)
     if owner_end < 0 or sddl[2:owner_end] not in {current_sid, "BA", "SY", "S-1-5-18", "S-1-5-32-544"}:
         return False
+    owned_by_user = sddl[2:owner_end] == current_sid
     dacl_start = sddl.find("D:")
     if dacl_start < 0:
         return False
@@ -45,6 +46,10 @@ def _allowed_windows_sddl(sddl: str, current_sid: str) -> bool:
             return False
         kind, _, _, _, _, trustee = parts
         if kind in {"A", "OA"}:
+            # Python 3.12+ os.mkdir(mode=0o700) writes "owner rights", which is only as
+            # private as the owner: it counts as the user only when the user owns the path.
+            if trustee == "OW" and owned_by_user:
+                trustee = current_sid
             if trustee not in permitted:
                 return False
             if trustee == current_sid:
@@ -68,7 +73,7 @@ def _windows_acl(path: Path) -> tuple[str, str]:
     try:
         result = subprocess.run(
             [shell, "-NoProfile", "-NonInteractive", "-Command", script],
-            env=environment, capture_output=True, text=True, timeout=10, check=False,
+            env=environment, capture_output=True, text=True, timeout=30, check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise InsecureRuntimePath("Windows ACL inspection failed") from exc

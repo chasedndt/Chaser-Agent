@@ -1,5 +1,9 @@
 # Chaser Agent Next Steps
 
+## 31 October 2026 update
+
+The operator directed the move past P0.1 to a running agent with tool use. The loop is in [Chaser-Agent-Agent-Loop.md](docs/01_Product/Chaser-Agent-Agent-Loop.md). In the "Not now" list below, a loopback HTTP service, live reasoning routes and tool execution are now built, within that document's limits. The rest of that list still stands: no public service, no public actions, no payments, trading or deployment, no autonomous planner running unattended, no automatic skill changes, and no merge to `main` without review. The review-first decisions in "Active P0.1 acceptance pass" are still open.
+
 ## Approved direction
 
 Chaser Agent is standalone-first, local-first, open-source, domain-neutral, and human-governed. ChaseOS is an optional enhancement through adapters rather than a dependency of the core.
