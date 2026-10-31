@@ -9,6 +9,7 @@
   const VIEWING = { width: 1000, height: 820 };
   const STALE_PLAN_STEPS = 8;
   const CORNER_SLACK = 8;
+  const SIZE_SLACK = 4;
   const TONE = {
     queued: 'live', reasoning: 'live', running_tool: 'live', awaiting_human: 'human', awaiting_approval: 'human',
     finished: 'done', failed: 'blocked', budget_stopped: 'blocked', interrupted: 'blocked', cancelled: 'idle',
@@ -94,6 +95,8 @@
     if (key === sized) return;
     if (!window.outerWidth) return;  // A minimized window reports no size. Try again when it's shown.
     sized = key;
+    // Already this size, as when first opened. Moving now could undo where the launcher just put it.
+    if (Math.abs(window.innerWidth - size.width) <= SIZE_SLACK && Math.abs(window.innerHeight - size.height) <= SIZE_SLACK) return;
     const width = size.width + (window.outerWidth - window.innerWidth);
     const height = size.height + (window.outerHeight - window.innerHeight);
     // Keep the corner where it was. Measuring it afresh each time would creep a few pixels per open,

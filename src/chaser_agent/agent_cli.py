@@ -155,36 +155,70 @@ def run_status(args: argparse.Namespace) -> int:
     return 0 if status == 200 else 2
 
 
-def _pin_hud_on_windows(width: int = 436, height: int = 115, margin: int = 16, wait: float = 30.0) -> bool:
-    """Keep the HUD above other windows, in the bottom-right corner above the taskbar."""
-    import ctypes
-    from ctypes import wintypes
+class _HudWindow:
+    """The HUD's window on Windows: found by title, kept above other windows, in the bottom-right corner."""
 
-    user32 = ctypes.WinDLL("user32", use_last_error=True)
-    enum_windows = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
-    user32.EnumWindows.argtypes = [enum_windows, wintypes.LPARAM]
-    user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
-    user32.IsWindowVisible.argtypes = [wintypes.HWND]
-    user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.UINT]
-    area = wintypes.RECT()
-    user32.SystemParametersInfoW(0x0030, 0, ctypes.byref(area), 0)  # SPI_GETWORKAREA
-    deadline = time.monotonic() + wait
-    while time.monotonic() < deadline:
+    MARGIN = 16
+
+    def __init__(self) -> None:
+        import ctypes
+        from ctypes import wintypes
+
+        self.ctypes, self.wintypes = ctypes, wintypes
+        self.user32 = ctypes.WinDLL("user32", use_last_error=True)
+        self.callback = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        self.user32.EnumWindows.argtypes = [self.callback, wintypes.LPARAM]
+        self.user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+        for name in ("IsWindowVisible", "IsIconic"):
+            getattr(self.user32, name).argtypes = [wintypes.HWND]
+        self.user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+        self.user32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
+        self.user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.UINT]
+
+    def find(self) -> int | None:
         found: list[int] = []
 
         def visit(window: int, _extra: int) -> bool:
-            text = ctypes.create_unicode_buffer(64)
-            if user32.IsWindowVisible(window) and user32.GetWindowTextW(window, text, 64) and text.value.endswith("Chaser Agent"):
+            text = self.ctypes.create_unicode_buffer(64)
+            if self.user32.IsWindowVisible(window) and self.user32.GetWindowTextW(window, text, 64) and text.value.endswith("Chaser Agent"):
                 found.append(window)
             return True
 
-        user32.EnumWindows(enum_windows(visit), 0)
-        if found:
-            topmost, no_activate = wintypes.HWND(-1), 0x0010
-            user32.SetWindowPos(found[0], topmost, area.right - width - margin, area.bottom - height - margin, width, height, no_activate)
-            return True
-        time.sleep(0.2)
-    return False
+        self.user32.EnumWindows(self.callback(visit), 0)
+        return found[0] if found else None
+
+    def place(self, window: int, width: int | None = None, height: int | None = None) -> None:
+        area, now = self.wintypes.RECT(), self.wintypes.RECT()
+        self.user32.SystemParametersInfoW(0x0030, 0, self.ctypes.byref(area), 0)  # SPI_GETWORKAREA
+        self.user32.GetWindowRect(window, self.ctypes.byref(now))
+        width, height = width or now.right - now.left, height or now.bottom - now.top
+        topmost, no_activate = self.wintypes.HWND(-1), 0x0010
+        self.user32.SetWindowPos(window, topmost, area.right - width - self.MARGIN, area.bottom - height - self.MARGIN, width, height, no_activate)
+
+    def bring_back(self) -> bool:
+        """An open HUD comes back rather than a second one starting, even if it was minimized."""
+        window = self.find()
+        if window is None:
+            return False
+        if self.user32.IsIconic(window):
+            self.user32.ShowWindow(window, 4)  # SW_SHOWNOACTIVATE
+            time.sleep(0.5)
+        self.place(window)
+        return True
+
+    def pin(self, width: int = 436, height: int = 115, wait: float = 30.0) -> bool:
+        deadline = time.monotonic() + wait
+        while time.monotonic() < deadline:
+            window = self.find()
+            if window is not None:
+                self.place(window, width, height)
+                # Edge can still put the window back where it last was as the page finishes loading,
+                # so place it once more at whatever size the page has settled on.
+                time.sleep(1.5)
+                self.place(window)
+                return True
+            time.sleep(0.2)
+        return False
 
 
 def run_open(args: argparse.Namespace) -> int:
@@ -193,10 +227,14 @@ def run_open(args: argparse.Namespace) -> int:
     url = f"http://127.0.0.1:{args.port}/#token={token}"
     pinned = False
     if os.name == "nt":
+        hud = _HudWindow()
+        if hud.bring_back():
+            print(f"Chaser Agent HUD is already open on port {args.port}, and is back in its corner.")
+            return 0
         browser = Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")) / "Microsoft" / "Edge" / "Application" / "msedge.exe"
         command = [str(browser), f"--app={url}", "--window-size=436,115"] if browser.is_file() else ["cmd", "/c", "start", "", url]
         subprocess.Popen(command, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        pinned = browser.is_file() and _pin_hud_on_windows()
+        pinned = browser.is_file() and hud.pin()
     else:
         import webbrowser
 

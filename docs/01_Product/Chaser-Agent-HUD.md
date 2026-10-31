@@ -51,6 +51,6 @@ Most of them report what an agent says it's doing. This one shows what the tools
 
 ## Windows
 
-`chaser-agent open` starts Edge as an app window, keeps it above other windows and places it above the taskbar. The page resizes its own window from the bottom-right, so the pill doesn't move when the panel opens. In an ordinary browser tab it can't resize itself, and the same layout still works.
+`chaser-agent open` starts Edge as an app window, keeps it above other windows and places it above the taskbar. If the HUD is already open, even minimized, it comes back rather than a second one starting. The page resizes its own window from the bottom-right, so the pill doesn't move when the panel opens. In an ordinary browser tab it can't resize itself, and the same layout still works.
 
 The older Tk overlay in [Chaser-Agent-Computer-Use-HUD.md](Chaser-Agent-Computer-Use-HUD.md) is for computer-use sessions that receive their state from a harness. It's a separate surface.
