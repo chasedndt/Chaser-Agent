@@ -1,8 +1,8 @@
 """The agent's routes on the private loopback service.
 
 Mounted on the same handler as the review API, so the loopback, Host, Origin and
-bearer checks there apply first. The console page and the public mascot motions
-load without a token; the console reads the token from its URL fragment, which is
+bearer checks there apply first. The HUD page and the public mascot motions
+load without a token; the HUD reads the token from its URL fragment, which is
 never sent to a server, and every data route still requires it.
 """
 
@@ -35,13 +35,13 @@ ARTIFACT_TYPES = {
 
 
 def serve_public(handler: Any) -> bool:
-    """Console page and approved motion assets. Returns True when it answered."""
+    """HUD page and approved motion assets. Returns True when it answered."""
     path = urlsplit(handler.path).path
     entry = CONSOLE_FILES.get(path)
     if entry is not None:
         target = CONSOLE_ROOT / entry[0]
         if not target.is_file():
-            handler._error(404, "not_found", "The console is not installed")
+            handler._error(404, "not_found", "The HUD is not installed")
             return True
         handler._send_body(200, with_io_retry(target.read_bytes), entry[1], extra_headers={"Content-Security-Policy": CONSOLE_CSP, "Referrer-Policy": "no-referrer"})
         return True

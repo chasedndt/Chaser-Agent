@@ -44,7 +44,7 @@ python -m chaser_agent.cli ask --data-dir <private folder> "What should I work o
 python -m chaser_agent.cli agent-status --brief --data-dir <private folder>
 ```
 
-The console at `http://127.0.0.1:8765/` shows the run, asks its questions and takes approvals. `open` passes the token in the URL fragment, which is never sent to a server. It shows the approved native motion for the current state; those motions illustrate state and are not evidence of work.
+The [HUD](Chaser-Agent-HUD.md) at `http://127.0.0.1:8765/` shows the run, asks its questions and takes approvals. `open` starts it as a small window above your other work, and passes the token in the URL fragment, which is never sent to a server. It shows the approved native motion for the current state; those motions illustrate state and are not evidence of work.
 
 ## Reasoning routes
 

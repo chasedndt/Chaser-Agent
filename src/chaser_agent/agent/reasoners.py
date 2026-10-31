@@ -188,6 +188,9 @@ class HermesTextReasoner:
         return ReasonerReply(str(value.get("text") or ""), self.reasoner_id, str(value.get("model") or self.model), round(time.monotonic() - started, 3))
 
 
+BRIDGE_CONNECTED_SECONDS = 300
+
+
 class BridgeReasoner:
     """Another harness answers over the local API. One waiter per request."""
 
@@ -197,16 +200,22 @@ class BridgeReasoner:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._pending: dict[str, dict[str, Any]] = {}
+        self._last_asked: float | None = None
 
     def status(self) -> dict[str, Any]:
         with self._lock:
             waiting = len(self._pending)
-        return {"id": self.reasoner_id, "label": self.label, "available": True, "waiting_requests": waiting, "reason": None}
+            connected = self._last_asked is not None and time.monotonic() - self._last_asked < BRIDGE_CONNECTED_SECONDS
+        return {
+            "id": self.reasoner_id, "label": self.label, "available": True, "connected": connected, "waiting_requests": waiting,
+            "reason": None if connected else "No other program is answering right now, so work sent this way waits.",
+        }
 
     def next_request(self) -> dict[str, Any] | None:
         """Offer a waiting request. One left unanswered too long is offered again, since its harness may have died."""
         now = time.monotonic()
         with self._lock:
+            self._last_asked = now
             for request_id, row in self._pending.items():
                 if row["offered_at"] is None or now - row["offered_at"] >= BRIDGE_LEASE_SECONDS:
                     row["offered_at"] = now

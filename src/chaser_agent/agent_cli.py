@@ -155,19 +155,53 @@ def run_status(args: argparse.Namespace) -> int:
     return 0 if status == 200 else 2
 
 
+def _pin_hud_on_windows(width: int = 436, height: int = 115, margin: int = 16, wait: float = 30.0) -> bool:
+    """Keep the HUD above other windows, in the bottom-right corner above the taskbar."""
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    enum_windows = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    user32.EnumWindows.argtypes = [enum_windows, wintypes.LPARAM]
+    user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+    user32.IsWindowVisible.argtypes = [wintypes.HWND]
+    user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.UINT]
+    area = wintypes.RECT()
+    user32.SystemParametersInfoW(0x0030, 0, ctypes.byref(area), 0)  # SPI_GETWORKAREA
+    deadline = time.monotonic() + wait
+    while time.monotonic() < deadline:
+        found: list[int] = []
+
+        def visit(window: int, _extra: int) -> bool:
+            text = ctypes.create_unicode_buffer(64)
+            if user32.IsWindowVisible(window) and user32.GetWindowTextW(window, text, 64) and text.value.endswith("Chaser Agent"):
+                found.append(window)
+            return True
+
+        user32.EnumWindows(enum_windows(visit), 0)
+        if found:
+            topmost, no_activate = wintypes.HWND(-1), 0x0010
+            user32.SetWindowPos(found[0], topmost, area.right - width - margin, area.bottom - height - margin, width, height, no_activate)
+            return True
+        time.sleep(0.2)
+    return False
+
+
 def run_open(args: argparse.Namespace) -> int:
-    """Open the console with the token in the fragment. Never printed; never sent to a server."""
+    """Open the HUD with the token in the fragment. Never printed; never sent to a server."""
     token = read_private_control_token(_data_dir(args))
     url = f"http://127.0.0.1:{args.port}/#token={token}"
+    pinned = False
     if os.name == "nt":
         browser = Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")) / "Microsoft" / "Edge" / "Application" / "msedge.exe"
-        command = [str(browser), f"--app={url}", "--window-size=1320,900"] if browser.is_file() else ["cmd", "/c", "start", "", url]
+        command = [str(browser), f"--app={url}", "--window-size=436,115"] if browser.is_file() else ["cmd", "/c", "start", "", url]
         subprocess.Popen(command, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        pinned = browser.is_file() and _pin_hud_on_windows()
     else:
         import webbrowser
 
         webbrowser.open(url)
-    print(f"Chaser Agent console opened on port {args.port}.")
+    print(f"Chaser Agent HUD opened on port {args.port}{'' if pinned else '. It could not be kept on top'}.")
     return 0
 
 
@@ -186,7 +220,7 @@ def add_agent_commands(subparsers: argparse._SubParsersAction) -> None:
     status.add_argument("--brief", action="store_true")
     status.set_defaults(func=run_status)
 
-    console = subparsers.add_parser("open", help="Open the agent console for the running service.")
+    console = subparsers.add_parser("open", help="Open the small always-on-top HUD for the running service.")
     _common(console)
     console.set_defaults(func=run_open)
 

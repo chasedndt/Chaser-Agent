@@ -84,6 +84,7 @@ class AgentRuntime:
         self.reasoners: dict[str, Reasoner] = {r.reasoner_id: r for r in reasoners or []}
         self.workflows: dict[str, WorkflowSpec] = {}
         self.default_workflow = "general"
+        self.parent_link: dict[str, str] | None = None
         self._lock = threading.RLock()
         self._sessions: dict[str, dict[str, Any]] = {}
         self._logs: dict[str, EventLog] = {}
@@ -367,12 +368,19 @@ class AgentRuntime:
                 "tools": [self.toolbox.get(tool_id).catalogue_entry() for tool_id in self.toolbox.ids()],
                 "workflows": [{"id": w.workflow_id, "title": w.title, "max_steps": w.max_steps} for w in self.workflows.values()],
                 "examples": [example for w in self.workflows.values() for example in w.examples][:4],
-                "reasoners": self._status_cache,
+                "reasoners": self._live_routes(),
                 "sessions": len(self._sessions),
                 "active_sessions": active,
                 "waiting_for_operator": waiting,
                 "motion": "tracking" if active else ("awaiting-approval" if waiting else "dormant"),
+                "parent": self.parent_link,
             }
+
+    def _live_routes(self) -> dict[str, Any]:
+        """Other routes are slow to check, so they're cached. The bridge is cheap and changes the moment a program attaches."""
+        bridge = self.reasoners.get("bridge")
+        routes = [bridge.status() if bridge is not None and row["id"] == "bridge" else row for row in self._status_cache["routes"]]
+        return {**self._status_cache, "routes": routes}
 
     def _refresh_reasoner_status(self) -> None:
         with self._lock:
@@ -440,7 +448,11 @@ class AgentRuntime:
             if state.get("available"):
                 return reasoner
             reasons.append(f"{reasoner.label}: {state.get('reason')}")
-        raise ReasonerUnavailable("no_route", "No reasoning route is available. " + " | ".join(reasons))
+        # Last, and only if another program is really answering it: left waiting, work would just hang.
+        bridge = self.reasoners.get("bridge")
+        if bridge is not None and bridge.status().get("connected"):
+            return bridge
+        raise ReasonerUnavailable("no_route", "No AI model is connected, so this can't start. " + " | ".join(reasons))
 
     def _finish(self, session: dict[str, Any], status: str, *, answer: str | None = None, error: str | None = None) -> None:
         with self._lock:
