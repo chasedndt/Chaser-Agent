@@ -15,7 +15,7 @@ from chaser_agent.tools.models import ToolOutcome, ToolResult
 UNTRUSTED = "untrusted_tool_output"
 
 INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("instruction_injection", re.compile(r"(?i)ignore\s+(?:your\s+)?(?:previous\s+)?(?:instructions|rules|governance)")),
+    ("instruction_injection", re.compile(r"(?i)(?:ignore|disregard|forget)\s+(?:all\s+|any\s+)?(?:of\s+)?(?:your\s+|the\s+)?(?:previous\s+|prior\s+|earlier\s+|above\s+)?(?:instructions|rules|governance|prompts?)")),
     ("forged_grant", re.compile(r"(?i)requires_approval\s*[:=]\s*false|granted\s+approval|has\s+been\s+upgraded\s+to")),
     ("scope_widening", re.compile(r"(?i)re-?run\s+this\s+(?:read\s+)?against|\.\./\.\./|grant\s+yourself")),
     ("credential_bait", re.compile(r"(?i)supply\s+the\s+value\s+of|paste\s+the\s+(?:deployment\s+)?secret|api[_-]?key")),

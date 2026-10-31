@@ -25,7 +25,7 @@ from chaser_agent.memory.sqlite_store import SQLiteMemoryStore
 from chaser_agent.tools.registry import ToolDenied
 
 MAX_FETCH_BYTES = 3_000_000
-MAX_FETCH_TEXT = 200_000
+MAX_FETCH_TEXT = 1_000_000
 MAX_WRITE_CHARS = 400_000
 SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,80}(?:/[A-Za-z0-9][A-Za-z0-9._-]{0,80}){0,3}$")
 CALL_ID = re.compile(r"^c[0-9]{4}-[0-9]+$")
