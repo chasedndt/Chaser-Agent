@@ -25,6 +25,7 @@ from threading import Event
 from typing import Any, Protocol
 
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+BRIDGE_LEASE_SECONDS = 240.0
 # A nested CLI must not inherit a parent harness's session plumbing.
 _HARNESS_PREFIXES = ("CLAUDE_", "ANTHROPIC_")
 _HARNESS_NAMES = {"CLAUDECODE"}
@@ -203,10 +204,12 @@ class BridgeReasoner:
         return {"id": self.reasoner_id, "label": self.label, "available": True, "waiting_requests": waiting, "reason": None}
 
     def next_request(self) -> dict[str, Any] | None:
+        """Offer a waiting request. One left unanswered too long is offered again, since its harness may have died."""
+        now = time.monotonic()
         with self._lock:
             for request_id, row in self._pending.items():
-                if not row["delivered"]:
-                    row["delivered"] = True
+                if row["offered_at"] is None or now - row["offered_at"] >= BRIDGE_LEASE_SECONDS:
+                    row["offered_at"] = now
                     return {"request_id": request_id, "system": row["system"], "transcript": row["transcript"]}
             return None
 
@@ -224,7 +227,7 @@ class BridgeReasoner:
         request_id = uuid.uuid4().hex
         ready = Event()
         with self._lock:
-            self._pending[request_id] = {"system": system, "transcript": transcript, "ready": ready, "delivered": False}
+            self._pending[request_id] = {"system": system, "transcript": transcript, "ready": ready, "offered_at": None}
         try:
             deadline = started + timeout
             while not ready.wait(0.25):

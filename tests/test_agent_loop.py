@@ -345,3 +345,25 @@ def test_event_log_survives_a_restart_with_unicode_line_separators_in_text(tmp_p
     assert len(reopened) == 2
     assert reopened.after(0)[0]["data"]["text"] == "first second third\x85fourth"
     assert verify_chain(path)["verified"] is True
+
+
+def test_a_bridge_request_is_offered_again_if_its_harness_dies(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import threading
+    from threading import Event
+
+    import chaser_agent.agent.reasoners as reasoners
+
+    bridge = BridgeReasoner()
+    result: dict[str, str] = {}
+    worker = threading.Thread(target=lambda: result.update(text=bridge.complete("s", "t", timeout=10, cancel=Event()).text))
+    worker.start()
+    first = None
+    while first is None:
+        first = bridge.next_request()
+    assert bridge.next_request() is None
+    monkeypatch.setattr(reasoners, "BRIDGE_LEASE_SECONDS", 0.0)
+    second = bridge.next_request()
+    assert second and second["request_id"] == first["request_id"]
+    assert bridge.reply(second["request_id"], "answer") is True
+    worker.join(5)
+    assert result["text"] == "answer"
