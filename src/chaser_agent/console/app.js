@@ -29,7 +29,7 @@
     graph_record: 'Recorded this in the knowledge graph',
     procurement_scan_adverts: 'Scanned live adverts for this customer', procurement_read_notice: 'Read an advert', procurement_list_customers: 'Listed the customers',
     procurement_save_customer: 'Saved the customer\'s evidence', procurement_review_history: 'Checked earlier reviews', procurement_record_review: 'Recorded how the review went',
-    procurement_start_review: 'Started the review and kept exact copies', procurement_read_buyer_document: 'Read a buyer document', procurement_retain_document: 'Kept an exact copy of a document',
+    procurement_record_opt_out: 'Recorded that they asked not to be emailed', procurement_start_review: 'Started the review and kept exact copies', procurement_read_buyer_document: 'Read a buyer document', procurement_retain_document: 'Kept an exact copy of a document',
     procurement_record_findings: 'Compared requirements with evidence, word for word', procurement_build_brief: 'Built the report, John\'s checks and the email',
   };
 
