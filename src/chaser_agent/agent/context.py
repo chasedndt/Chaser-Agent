@@ -44,7 +44,7 @@ def build_system_prompt(*, catalogue: list[dict[str, Any]], workflow_title: str,
         CONSTITUTION
         + f"\n\nCurrent workflow: {workflow_title}\n{instructions.strip()}"
         + "\n\nTools granted to this session (nothing else exists for you):\n"
-        + json.dumps(catalogue, ensure_ascii=False, indent=1)
+        + json.dumps(catalogue, ensure_ascii=False, separators=(",", ":"))
     )
 
 

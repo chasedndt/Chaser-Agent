@@ -559,7 +559,7 @@
 
   async function filesDrawer(box) {
     const artifacts = await refreshFiles();
-    const rank = (row) => (/brief\.html$/.test(row.name) ? 0 : /\.html$/.test(row.name) ? 1 : 2);
+    const rank = (row) => (/brief\.html$/.test(row.name) ? 0 : /\.html$/.test(row.name) ? 1 : /email\.txt$/.test(row.name) ? 2 : 3);
     box.replaceChildren(...[...artifacts].sort((a, b) => rank(a) - rank(b)).slice(0, 40).map((row) => {
       const button = el('button', 'pick');
       button.type = 'button';
