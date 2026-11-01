@@ -29,9 +29,8 @@
     graph_record: 'Recorded this in the knowledge graph',
     procurement_scan_adverts: 'Scanned live adverts for this customer', procurement_read_notice: 'Read an advert', procurement_list_customers: 'Listed the customers',
     procurement_save_customer: 'Saved the customer\'s evidence', procurement_review_history: 'Checked earlier reviews', procurement_record_review: 'Recorded how the review went',
-    procurement_open_case: 'Opened a contract review', procurement_retain_document: 'Kept an exact copy of a document',
-    procurement_record_requirements: 'Checked requirements word for word', procurement_record_evidence: 'Recorded the customer\'s evidence',
-    procurement_assess_fit: 'Compared requirements with evidence', procurement_build_brief: 'Built the contract review',
+    procurement_start_review: 'Started the review and kept exact copies', procurement_read_buyer_document: 'Read a buyer document', procurement_retain_document: 'Kept an exact copy of a document',
+    procurement_record_findings: 'Compared requirements with evidence, word for word', procurement_build_brief: 'Built the report, John\'s checks and the email',
   };
 
   // Rows say what happened. A request hasn't happened yet.
@@ -564,7 +563,7 @@
 
   async function filesDrawer(box) {
     const artifacts = await refreshFiles();
-    const rank = (row) => (/brief\.html$/.test(row.name) ? 0 : /\.html$/.test(row.name) ? 1 : 2);
+    const rank = (row) => (/brief\.html$/.test(row.name) ? 0 : /\.html$/.test(row.name) ? 1 : /email\.txt$/.test(row.name) ? 2 : 3);
     box.replaceChildren(...[...artifacts].sort((a, b) => rank(a) - rank(b)).slice(0, 40).map((row) => {
       const button = el('button', 'pick');
       button.type = 'button';
