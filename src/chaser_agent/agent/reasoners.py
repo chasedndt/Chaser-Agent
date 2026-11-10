@@ -49,6 +49,8 @@ class ReasonerReply:
     seconds: float
     # What the route says it charged, for the receipt. None where a route charges nothing or does not say.
     credits: int | None = None
+    # Tokens, pricing profile and the model that actually served it, where the route reports them. Metadata only.
+    usage: dict[str, Any] | None = None
 
 
 class Reasoner(Protocol):
@@ -195,6 +197,8 @@ CLOUD_KEY_ENV = "CHASEOS_CLOUD_KEY"
 CLOUD_BASE_URL = "https://chaseos.ai/api/cloud"
 # Cloudflare in front of the gateway refuses Python's default user agent with a 403 that looks like a bad key.
 CLOUD_USER_AGENT = "ChaserAgent/1 (+https://chaseos.ai)"
+# Names this caller so the gateway can price and report it as an agent harness, not a chat window.
+CLOUD_HARNESS = "chaser"
 CLOUD_RETRY_STATUSES = frozenset({502, 503, 504})
 
 
@@ -235,7 +239,8 @@ class ChaseOSCloudReasoner:
 
         request = urllib.request.Request(
             f"{self.base_url}/v1/chat/completions", data=body, method="POST",
-            headers={"Authorization": f"Bearer {self._key}", "Content-Type": "application/json", "User-Agent": CLOUD_USER_AGENT},
+            headers={"Authorization": f"Bearer {self._key}", "Content-Type": "application/json", "User-Agent": CLOUD_USER_AGENT,
+                     "X-ChaseOS-Agent-Harness": CLOUD_HARNESS},
         )
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - the owner's gateway
@@ -291,9 +296,31 @@ class ChaseOSCloudReasoner:
             text = ""
         if not isinstance(text, str) or not text.strip():
             raise ReasonerUnavailable("bad_output", "ChaseOS Cloud returned no text")
-        charged = (value.get("chaseos") or {}).get("actual_credits") if isinstance(value.get("chaseos"), dict) else None
-        credits = charged if isinstance(charged, int) and not isinstance(charged, bool) else None
-        return ReasonerReply(text, self.reasoner_id, str(value.get("model") or self.model), round(time.monotonic() - started, 3), credits)
+        credits, usage = cloud_usage(value)
+        return ReasonerReply(text, self.reasoner_id, str(value.get("model") or self.model), round(time.monotonic() - started, 3), credits, usage)
+
+
+def _count(value: Any) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+
+
+def cloud_usage(value: dict[str, Any]) -> tuple[int | None, dict[str, Any] | None]:
+    """What one gateway reply says it used and charged: token counts, credits, pricing profile and served model."""
+    tokens = value.get("usage") if isinstance(value.get("usage"), dict) else {}
+    meta = value.get("chaseos") if isinstance(value.get("chaseos"), dict) else {}
+    pricing = meta.get("pricing") if isinstance(meta.get("pricing"), dict) else {}
+    routing = meta.get("routing") if isinstance(meta.get("routing"), dict) else {}
+    credits = _count(meta.get("actual_credits"))
+    usage = {
+        "prompt_tokens": _count(tokens.get("prompt_tokens")),
+        "completion_tokens": _count(tokens.get("completion_tokens")),
+        "cached_input_tokens": _count(tokens.get("cached_input_tokens")),
+        "credits": credits,
+        "pricing_profile": pricing.get("pricing_profile") if isinstance(pricing.get("pricing_profile"), str) else None,
+        "resolved_model": meta.get("resolved_model") if isinstance(meta.get("resolved_model"), str) else None,
+        "attempts": _count(routing.get("attempt_count")),
+    }
+    return credits, (usage if any(v is not None for v in usage.values()) else None)
 
 
 BRIDGE_CONNECTED_SECONDS = 300

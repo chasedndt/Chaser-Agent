@@ -24,7 +24,7 @@ class Gateway:
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self) -> None:  # noqa: N802
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-                gateway.requests.append({"path": self.path, "auth": self.headers.get("Authorization"), "agent": self.headers.get("User-Agent"), "body": body})
+                gateway.requests.append({"path": self.path, "auth": self.headers.get("Authorization"), "agent": self.headers.get("User-Agent"), "harness": self.headers.get("X-ChaseOS-Agent-Harness"), "body": body})
                 status, payload = gateway.answers.pop(0)
                 data = json.dumps(payload).encode()
                 self.send_response(status)
@@ -45,7 +45,8 @@ class Gateway:
 
 
 def answer(text: str) -> tuple[int, dict]:
-    return 200, {"model": "chaseos/balanced", "choices": [{"message": {"role": "assistant", "content": text}}], "chaseos": {"actual_credits": 9}}
+    return 200, {"model": "chaseos/balanced", "choices": [{"message": {"role": "assistant", "content": text}}], "usage": {"prompt_tokens": 1200, "completion_tokens": 80, "cached_input_tokens": 0},
+            "chaseos": {"actual_credits": 9, "resolved_model": "chaseos/balanced", "pricing": {"pricing_profile": "agent_harness"}, "routing": {"attempt_count": 1}}}
 
 
 @pytest.fixture
@@ -73,6 +74,9 @@ def test_sends_system_and_transcript_with_the_key_and_a_named_client(gateway_fac
     assert sent["body"]["response_format"] == {"type": "json_object"}
     assert reply.route == "chaseos-cloud" and reply.model == "chaseos/balanced" and reply.text.startswith("{")
     assert reply.credits == 9
+    assert sent["harness"] == "chaser"
+    assert reply.usage == {"prompt_tokens": 1200, "completion_tokens": 80, "cached_input_tokens": 0, "credits": 9,
+                           "pricing_profile": "agent_harness", "resolved_model": "chaseos/balanced", "attempts": 1}
 
 
 def test_retries_one_gateway_error_and_never_more(gateway_factory) -> None:
@@ -121,3 +125,9 @@ def test_cloud_is_the_first_route_auto_tries(tmp_path, monkeypatch) -> None:
     runtime = build_runtime(tmp_path)
     assert list(runtime.reasoners)[0] == "chaseos-cloud"
     assert CLOUD_KEY_ENV not in __import__("os").environ
+
+
+def test_a_reply_without_usage_fields_records_none_rather_than_guessing(gateway_factory) -> None:
+    gateway = gateway_factory((200, {"choices": [{"message": {"content": "plain"}}]}))
+    reply = ChaseOSCloudReasoner("k", base_url=gateway.url).complete("s", "t", timeout=10, cancel=Event())
+    assert reply.credits is None and reply.usage is None
