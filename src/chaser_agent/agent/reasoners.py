@@ -1,8 +1,9 @@
 """Where reasoning comes from. Each reasoner only returns text; none holds authority.
 
 Existing installed routes are reused, each under its own identity, so Chaser Agent
-copies no credentials and adds no paid fallback. A route that is down says so and
-the turn stops. It never silently switches to a different provider.
+copies no credentials and adds no paid fallback. ChaseOS Cloud is a chosen route on
+the owner's own key, not a fallback. A route that is down says so and the turn stops.
+It never silently switches to a different provider.
 
 The bridge route lets any other harness act as the reasoner over the local API.
 It sees only what this loop assembled and its replies pass the same parser, so it
@@ -46,6 +47,8 @@ class ReasonerReply:
     route: str
     model: str
     seconds: float
+    # What the route says it charged, for the receipt. None where a route charges nothing or does not say.
+    credits: int | None = None
 
 
 class Reasoner(Protocol):
@@ -186,6 +189,111 @@ class HermesTextReasoner:
         started = time.monotonic()
         value = self._call({"message": system + "\n\n" + transcript}, timeout=timeout, cancel=cancel)
         return ReasonerReply(str(value.get("text") or ""), self.reasoner_id, str(value.get("model") or self.model), round(time.monotonic() - started, 3))
+
+
+CLOUD_KEY_ENV = "CHASEOS_CLOUD_KEY"
+CLOUD_BASE_URL = "https://chaseos.ai/api/cloud"
+# Cloudflare in front of the gateway refuses Python's default user agent with a 403 that looks like a bad key.
+CLOUD_USER_AGENT = "ChaserAgent/1 (+https://chaseos.ai)"
+CLOUD_RETRY_STATUSES = frozenset({502, 503, 504})
+
+
+class ChaseOSCloudReasoner:
+    """ChaseOS Cloud: the route meant for unattended work, metered in credits on the owner's own key.
+
+    The key is taken out of the environment when the service starts, so tools and other
+    harnesses this service launches never inherit it. A 402 means out of credits: the turn
+    stops and says so, never switching to another provider.
+    """
+
+    reasoner_id = "chaseos-cloud"
+    label = "ChaseOS Cloud"
+    max_context_chars = 120_000
+
+    def __init__(self, key: str = "", *, model: str = "chaseos/balanced", base_url: str = "", max_tokens: int = 8000) -> None:
+        self._key = key.strip()
+        self.model = model
+        self.base_url = (base_url or CLOUD_BASE_URL).rstrip("/")
+        self.max_tokens = max_tokens
+
+    @classmethod
+    def from_environment(cls, environ: dict[str, str] | None = None, **kwargs: Any) -> "ChaseOSCloudReasoner":
+        environ = os.environ if environ is None else environ
+        key = environ.pop(CLOUD_KEY_ENV, "")
+        base_url = kwargs.pop("base_url", "") or environ.get("CHASEOS_CLOUD_BASE_URL", "")
+        return cls(key, base_url=base_url, **kwargs)
+
+    def status(self) -> dict[str, Any]:
+        return {
+            "id": self.reasoner_id, "label": self.label, "available": bool(self._key), "model": self.model,
+            "reason": None if self._key else f"No ChaseOS Cloud key on this machine. Start the service with {CLOUD_KEY_ENV} set.",
+        }
+
+    def _post(self, body: bytes, timeout: float) -> tuple[int, dict[str, Any]]:
+        import urllib.error
+        import urllib.request
+
+        request = urllib.request.Request(
+            f"{self.base_url}/v1/chat/completions", data=body, method="POST",
+            headers={"Authorization": f"Bearer {self._key}", "Content-Type": "application/json", "User-Agent": CLOUD_USER_AGENT},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - the owner's gateway
+                return response.status, json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            try:
+                value = json.loads(exc.read().decode("utf-8", errors="replace") or "{}")
+            except ValueError:
+                value = {}
+            return exc.code, value if isinstance(value, dict) else {}
+        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
+            return 0, {}
+
+    def complete(self, system: str, transcript: str, *, timeout: float, cancel: Event) -> ReasonerReply:
+        if not self._key:
+            raise ReasonerUnavailable("not_configured", self.status()["reason"])
+        started = time.monotonic()
+        body = json.dumps({
+            "model": self.model, "stream": False, "max_completion_tokens": self.max_tokens,
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": transcript}],
+            # Every reply must be one JSON object; without JSON mode the open models broke the format on about a third of steps.
+            "response_format": {"type": "json_object"},
+        }, ensure_ascii=False).encode("utf-8")
+        result: dict[str, Any] = {}
+
+        def call() -> None:
+            deadline = started + timeout
+            result["reply"] = self._post(body, max(1.0, deadline - time.monotonic()))
+            # The gateway sometimes answers 502 and is fine a moment later, so one more try; never more.
+            if result["reply"][0] in CLOUD_RETRY_STATUSES | {0} and not cancel.is_set() and deadline - time.monotonic() > 5:
+                time.sleep(1)
+                result["reply"] = self._post(body, max(1.0, deadline - time.monotonic()))
+
+        worker = threading.Thread(target=call, daemon=True)
+        worker.start()
+        while worker.is_alive():
+            worker.join(0.25)
+            if cancel.is_set():
+                raise ReasonerUnavailable("cancelled", "the operator cancelled this turn")
+            if time.monotonic() - started > timeout + 5:
+                raise ReasonerUnavailable("timeout", f"no reply within {int(timeout)} seconds")
+        status, value = result["reply"]
+        if status == 402:
+            raise ReasonerUnavailable("out_of_credits", "ChaseOS Cloud is out of credits. Top up to keep using it.")
+        if status in {401, 403}:
+            raise ReasonerUnavailable("not_authorised", f"ChaseOS Cloud refused this machine's key (HTTP {status}).")
+        if status != 200:
+            raise ReasonerUnavailable("route_error", f"ChaseOS Cloud did not answer (HTTP {status or 'no connection'}).")
+        try:
+            choice = value["choices"][0]["message"]
+            text = choice.get("content") or ""
+        except (KeyError, IndexError, TypeError, AttributeError):
+            text = ""
+        if not isinstance(text, str) or not text.strip():
+            raise ReasonerUnavailable("bad_output", "ChaseOS Cloud returned no text")
+        charged = (value.get("chaseos") or {}).get("actual_credits") if isinstance(value.get("chaseos"), dict) else None
+        credits = charged if isinstance(charged, int) and not isinstance(charged, bool) else None
+        return ReasonerReply(text, self.reasoner_id, str(value.get("model") or self.model), round(time.monotonic() - started, 3), credits)
 
 
 BRIDGE_CONNECTED_SECONDS = 300

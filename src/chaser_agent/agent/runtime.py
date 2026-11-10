@@ -522,7 +522,7 @@ class AgentRuntime:
                     return
                 continue
             self._logs[session_id].append(
-                "reasoner_reply", step=step, route=reply.route, model=reply.model, seconds=reply.seconds,
+                "reasoner_reply", step=step, route=reply.route, model=reply.model, seconds=reply.seconds, credits=reply.credits,
                 reply_sha256=reply_sha, thought=parsed.thought, actions=[type(a).__name__ for a in parsed.actions],
             )
             with self._lock:
