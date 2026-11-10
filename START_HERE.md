@@ -2,6 +2,8 @@
 
 Chaser Agent is standalone-first and ChaseOS-enhanced. Read the product definition and authority boundary before implementation details.
 
+Anyone changing the code, human or agent, follows `ENGINEERING_PRACTICES.md`.
+
 ## Reading order
 
 1. `docs/01_Product/Chaser-Agent-Product-Narrative-and-Utility.md`
