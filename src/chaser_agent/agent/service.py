@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from chaser_agent.agent.builtin import register_builtin_tools
-from chaser_agent.agent.reasoners import BridgeReasoner, ClaudeCliReasoner
+from chaser_agent.agent.reasoners import BridgeReasoner, ChaseOSCloudReasoner, ClaudeCliReasoner
 from chaser_agent.agent.runtime import AgentRuntime
 from chaser_agent.agent.tooling import Toolbox
 from chaser_agent.agent.workflow import WorkflowSpec
@@ -50,7 +50,9 @@ def load_pack(path: Path, runtime: AgentRuntime) -> dict[str, Any]:
 def build_runtime(data_dir: Path, *, packs: tuple[Path, ...] = (), claude_model: str = "sonnet") -> AgentRuntime:
     toolbox = Toolbox()
     register_builtin_tools(toolbox, memory_database=data_dir / "agent" / "memory.db")
-    runtime = AgentRuntime(data_dir, toolbox=toolbox, reasoners=[ClaudeCliReasoner(model=claude_model), BridgeReasoner()])
+    # ChaseOS Cloud comes first: it is the route allowed to run unattended work. Consumer logins come after it.
+    reasoners = [ChaseOSCloudReasoner.from_environment(), ClaudeCliReasoner(model=claude_model), BridgeReasoner()]
+    runtime = AgentRuntime(data_dir, toolbox=toolbox, reasoners=reasoners)
     runtime.add_workflow(GENERAL)
     runtime.loaded_packs = [load_pack(path, runtime) for path in packs]
     return runtime
