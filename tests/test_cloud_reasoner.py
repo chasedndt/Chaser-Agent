@@ -131,3 +131,9 @@ def test_a_reply_without_usage_fields_records_none_rather_than_guessing(gateway_
     gateway = gateway_factory((200, {"choices": [{"message": {"content": "plain"}}]}))
     reply = ChaseOSCloudReasoner("k", base_url=gateway.url).complete("s", "t", timeout=10, cancel=Event())
     assert reply.credits is None and reply.usage is None
+
+
+def test_model_can_be_chosen_from_the_environment():
+    reasoner = ChaseOSCloudReasoner.from_environment({"CHASEOS_CLOUD_KEY": "k", "CHASEOS_CLOUD_MODEL": "@cf/zai-org/glm-5.3"})
+    assert reasoner.model == "@cf/zai-org/glm-5.3"
+    assert ChaseOSCloudReasoner.from_environment({"CHASEOS_CLOUD_KEY": "k"}).model == "chaseos/balanced"

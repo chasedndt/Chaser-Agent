@@ -225,7 +225,9 @@ class ChaseOSCloudReasoner:
         environ = os.environ if environ is None else environ
         key = environ.pop(CLOUD_KEY_ENV, "")
         base_url = kwargs.pop("base_url", "") or environ.get("CHASEOS_CLOUD_BASE_URL", "")
-        return cls(key, base_url=base_url, **kwargs)
+        # A different model, e.g. a candidate evaluated against an OpenAI-compatible endpoint.
+        model = kwargs.pop("model", "") or environ.get("CHASEOS_CLOUD_MODEL", "") or "chaseos/balanced"
+        return cls(key, base_url=base_url, model=model, **kwargs)
 
     def status(self) -> dict[str, Any]:
         return {
