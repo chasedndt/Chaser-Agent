@@ -101,11 +101,11 @@ def _slow(_args: dict[str, Any], context: Any) -> dict[str, Any]:
 def register(runtime: Any) -> None:
     text = {"type": "string", "maxLength": 8000}
     tools = [
-        AgentTool("demo_read", "Read something.", {"properties": {"query": text}, "required": ["query"]}, "read_only", _read),
+        AgentTool("demo_read", "Read something.", {"properties": {"query": text}, "required": ["query"]}, "read_only", _read, label="Read the demo source"),
         AgentTool("demo_fail", "Always fails.", {"properties": {}}, "read_only", _fail),
         AgentTool("demo_save", "Save a page.", {"properties": {}}, "local_write", _save),
         AgentTool("demo_draft", "Make a draft.", {"properties": {}}, "local_write", _draft),
-        AgentTool("demo_gate", "Needs approval.", {"properties": {"title": text, "text": text}, "required": ["title", "text"]}, "local_write", _gate, requires_approval=True),
+        AgentTool("demo_gate", "Needs approval.", {"properties": {"title": text, "text": text}, "required": ["title", "text"]}, "local_write", _gate, requires_approval=True, ask_label="Save this demo page"),
         AgentTool("demo_hostile", "Returns hostile text.", {"properties": {}}, "read_only", _hostile),
         AgentTool("demo_slow", "Takes a long time.", {"properties": {}}, "read_only", _slow),
     ]

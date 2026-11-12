@@ -215,12 +215,12 @@ This roadmap follows Layer 0 and the approved standalone-first product direction
 
 **Purpose:** Define Chaser Agent as the governed, computer-local, multi-domain orchestration harness. Trading is one skill/workflow family alongside source intelligence, social-media growth/control, web and UI design, coding, business operations, and future personal workflows.
 
-**Deliverables:** multi-domain skill/workflow registry; current repository/system map; per-domain inputs/outputs/tools/datasets/evals/authority contracts; shared permission/audit model; and bounded domain plans. The trading pack additionally covers normalized signal/thesis/candidate/order contracts, TradeSync digital-twin integration, an independent risk-engine contract, and disabled-by-default execution levels.
+**Deliverables:** multi-domain skill/workflow registry; current repository/system map; per-domain inputs/outputs/tools/datasets/evals/authority contracts; shared permission/audit model; and bounded domain plans. The trading pack additionally covers normalized signal/thesis/candidate/order contracts, a paper-trading digital-twin integration, an independent risk-engine contract, and disabled-by-default execution levels.
 
 **Definition of done:** no domain pack becomes Chaser Agent's primary identity; each skill family has isolated authority and eval gates; each authority level is separately operator-approved; agent reasoning cannot override risk or governance; review loops cannot self-authorize; and implementation existence never implies live authority.
 
 **Out of scope:** unrestricted multi-tool autonomy, current live orders, unapproved social publishing/account mutation, production deployment without approval, exchange/wallet credentials, silent self-training, canonical-memory mutation, or production-autonomy claims.
 
-**Plan:** [`docs/plans/2026-07-11-multi-domain-agent-harness-direction.md`](../plans/2026-07-11-multi-domain-agent-harness-direction.md) · [`docs/plans/2026-07-11-domain-skill-workflow-registry.md`](../plans/2026-07-11-domain-skill-workflow-registry.md)
+**Plan:** kept in the owner's private records.
 
 **Current status:** future governed multi-domain track. Immediate work remains bounded V0 source-intelligence, eval, skill, and harness foundations.

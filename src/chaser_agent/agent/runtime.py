@@ -374,6 +374,8 @@ class AgentRuntime:
             waiting = [row["id"] for row in self._sessions.values() if row["status"] in {"awaiting_human", "awaiting_approval"}]
             return {
                 "tools": [self.toolbox.get(tool_id).catalogue_entry() for tool_id in self.toolbox.ids()],
+                "tool_labels": {tool_id: {"done": tool.label, "ask": tool.ask_label} for tool_id in self.toolbox.ids()
+                                if (tool := self.toolbox.get(tool_id)).label or tool.ask_label},
                 "workflows": [{"id": w.workflow_id, "title": w.title, "max_steps": w.max_steps} for w in self.workflows.values()],
                 "examples": [example for w in self.workflows.values() for example in w.examples][:4],
                 "reasoners": self._live_routes(),

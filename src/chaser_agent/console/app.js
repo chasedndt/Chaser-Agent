@@ -450,6 +450,11 @@
   async function refreshStatus() {
     const status = await api('/v1/agent/status');
     effects = Object.fromEntries((status.tools || []).map((row) => [row.tool, row.side_effect]));
+    // A pack's own tools bring their own words; the core only knows its built-in ones.
+    for (const [tool, words] of Object.entries(status.tool_labels || {})) {
+      if (words.done) TOOL_TEXT[tool] = words.done;
+      if (words.ask) ASK_TEXT[tool] = words.ask;
+    }
     showRoute(status.reasoners && status.reasoners.routes);
     const parent = $('parent');
     if (status.parent) {

@@ -69,6 +69,10 @@ class AgentTool:
     max_calls_per_session: int = 40
     check: ScopeCheck | None = None
     toolset: str = "core"
+    # Plain words for the HUD, supplied by whoever registers the tool, so a pack's own tools are described without the
+    # core naming them: `label` says what happened ("Read an advert"), `ask_label` asks before it happens.
+    label: str = ""
+    ask_label: str = ""
 
     def catalogue_entry(self) -> dict[str, Any]:
         return {

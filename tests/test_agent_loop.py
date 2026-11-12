@@ -438,3 +438,13 @@ def test_a_top_level_final_beside_tool_calls_is_set_aside_and_alone_is_refused()
                 '{"thought":"x","actions":[],"final":{"answer":"z"}}', '{"thought":"x","final":{"answer":"z"}}'):
         with pytest.raises(ReplyRejected):
             parse_reply(bad)
+
+
+def test_a_pack_tool_brings_its_own_hud_words_through_the_status(tmp_path: Path) -> None:
+    toolbox = Toolbox()
+    toolbox.register(AgentTool("pack_lookup", "Look up.", {"properties": {}}, "read_only", lambda a, c: {}, label="Looked it up", ask_label=""))
+    toolbox.register(AgentTool("plain", "Plain.", {"properties": {}}, "read_only", lambda a, c: {}))
+    runtime = AgentRuntime(tmp_path, toolbox=toolbox, reasoners=[ScriptedReasoner([])])
+    labels = runtime.status()["tool_labels"]
+    assert labels == {"pack_lookup": {"done": "Looked it up", "ask": ""}}
+    assert "label" not in toolbox.get("pack_lookup").catalogue_entry()  # the model's catalogue is unchanged
