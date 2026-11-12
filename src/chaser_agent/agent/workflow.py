@@ -15,6 +15,8 @@ class WorkflowSpec:
     examples: tuple[str, ...] = ()
     max_steps: int = 40
     max_seconds: int = 3_600
+    # Score each turn before it may stop (agent/objective.py); off unless a workflow asks for it.
+    objective_check: bool = False
 
     def __post_init__(self) -> None:
         if not self.workflow_id.strip() or not self.instructions.strip():

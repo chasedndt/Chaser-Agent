@@ -22,6 +22,7 @@ from threading import Event
 from typing import Any
 
 from chaser_agent.agent.context import MAX_CONTEXT_CHARS, build_system_prompt, render_transcript
+from chaser_agent.agent import objective
 from chaser_agent.agent.events import EventLog, utc_now, with_io_retry
 from chaser_agent.agent.protocol import AskHuman, Finish, ReplyRejected, ToolAction, parse_reply
 from chaser_agent.agent.reasoners import Reasoner, ReasonerUnavailable
@@ -212,7 +213,8 @@ class AgentRuntime:
             if session["status"] not in RESUMABLE_STATES or session["pending"]:
                 raise Conflict("This session is busy or waiting for an answer")
             session["transcript"].append({"role": "user", "text": message})
-            session.update(goal=message, turn=session["turn"] + 1, steps_used=0, active_seconds=0.0, status="queued", final_answer=None, error=None, mood=None)
+            session.update(goal=message, turn=session["turn"] + 1, steps_used=0, active_seconds=0.0, status="queued", final_answer=None, error=None, mood=None,
+                           objective=None, objective_retries=0)
             self._logs[session_id].append("message", text=message, turn=session["turn"])
             self._save(session)
         self._start(session_id)
@@ -229,7 +231,7 @@ class AgentRuntime:
             row = {"answer_id": answer_id, "question_id": question_id, "question": pending["question"], "text": text, "at": utc_now()}
             session["answers"].append(row)
             session["transcript"].append({"role": "human_answer", "answer_id": answer_id, "question_id": question_id, "text": text})
-            session.update(pending=None, status="queued")
+            session.update(pending=None, status="queued", objective=None, objective_retries=0)
             self._logs[session_id].append("question_answered", question_id=question_id, answer_id=answer_id, text=text)
             self._save(session)
         self._start(session_id)
@@ -310,6 +312,7 @@ class AgentRuntime:
                 "pending": pending,
                 "plan": list(session["plan"]),
                 "final_answer": session["final_answer"],
+                "objective": session.get("objective"),
                 "error": session["error"],
                 "created_at": session["created_at"],
                 "updated_at": session["updated_at"],
@@ -459,7 +462,8 @@ class AgentRuntime:
     def _finish(self, session: dict[str, Any], status: str, *, answer: str | None = None, error: str | None = None) -> None:
         with self._lock:
             session.update(status=status, final_answer=answer, error=error)
-            self._logs[session["id"]].append("turn_finished", status=status, answer=answer, error=error, steps=session["steps_used"])
+            self._logs[session["id"]].append("turn_finished", status=status, answer=answer, error=error, steps=session["steps_used"],
+                                             objective=session.get("objective"))
             self._save(session)
 
     def _drive(self, session: dict[str, Any]) -> None:
@@ -547,6 +551,8 @@ class AgentRuntime:
         """Returns True when the thread should stop: finished or waiting for a person."""
         session_id = session["id"]
         for index, action in enumerate(actions):
+            if isinstance(action, (Finish, AskHuman)) and not self._objective_allows_stop(session, action):
+                return False
             if isinstance(action, Finish):
                 self._finish(session, "finished", answer=action.answer)
                 return True
@@ -557,7 +563,7 @@ class AgentRuntime:
                         "kind": "question", "id": question_id, "question": action.question,
                         "question_kind": action.kind, "options": list(action.options), "at": utc_now(),
                     })
-                    self._logs[session_id].append("question_asked", question_id=question_id, question=action.question, kind=action.kind, options=list(action.options))
+                    self._logs[session_id].append("question_asked", question_id=question_id, question=action.question, kind=action.kind, options=list(action.options), objective=session.get("objective"))
                     self._save(session)
                 return True
             assert isinstance(action, ToolAction)
@@ -588,6 +594,29 @@ class AgentRuntime:
                 return True
             self._execute(session, tool, action.args, call_id)
         return False
+
+    def _objective_allows_stop(self, session: dict[str, Any], action: Any) -> bool:
+        """Score the turn before it ends. Too low, with retries and steps left: keep working."""
+        workflow = self._workflow(session)
+        if not workflow.objective_check:
+            return True
+        transcript = session["transcript"]
+        start = max((i for i, row in enumerate(transcript) if row.get("role") in ("user", "human_answer")), default=0)
+        ending = "final" if isinstance(action, Finish) else "ask"
+        verdict = objective.assess(session["goal"], transcript[start + 1:], ending=ending,
+                                   answer=action.answer if ending == "final" else action.question)
+        retries = int(session.get("objective_retries") or 0)
+        room = session["steps_used"] < workflow.max_steps - 1
+        retry = not verdict.met and retries < objective.MAX_RETRIES and room
+        with self._lock:
+            self._logs[session["id"]].append("objective_checked", ending=ending, decision="retry" if retry else "stop", **verdict.as_record())
+            if retry:
+                session["objective_retries"] = retries + 1
+                transcript.append({"role": "note", "text": objective.retry_note(verdict, retries + 1)})
+            else:
+                session["objective"] = verdict.as_record()
+            self._save(session)
+        return not retry
 
     def _execute(self, session: dict[str, Any], tool: AgentTool, args: dict[str, Any], call_id: str) -> None:
         session_id = session["id"]
