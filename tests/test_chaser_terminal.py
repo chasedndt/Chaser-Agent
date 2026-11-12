@@ -194,3 +194,10 @@ def test_the_checks_use_the_services_own_sign_in_check(monkeypatch: pytest.Monke
     rows = {r["id"]: r for r in setup_checks.run(chaser_home.load(), environ={}, routes=routes)["rows"]}
     assert rows["claude_code"]["state"] == "warn" and "not logged in" in rows["claude_code"]["detail"]
     assert rows["routes"]["state"] == "fail"
+
+
+def test_a_key_held_by_the_running_service_counts_as_added() -> None:
+    routes = [{"id": "chaseos-cloud", "available": True}, {"id": "claude-cli", "available": False, "reason": "not logged in"}]
+    rows = {r["id"]: r for r in setup_checks.run(chaser_home.load(), environ={}, routes=routes)["rows"]}
+    assert rows["cloud_key"]["state"] == "ok" and rows["cloud_key"]["detail"] == "In use by the running Chaser"
+    assert rows["routes"]["detail"] == "ChaseOS Cloud"

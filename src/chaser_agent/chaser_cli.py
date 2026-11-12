@@ -256,14 +256,15 @@ def run_onboard(args: argparse.Namespace) -> int:
         print("\n  QuickStart  sensible defaults: asks only for your key and your name\n  Advanced    also choose the folder, port and packs")
         advanced = ask("QuickStart or Advanced? [Q/a]").lower().startswith("a")
 
-    heading(f"Step 1 of {total} · Checking this computer")
-    show_rows(setup_checks.run(settings)["rows"])
-
-    heading(f"Step 2 of {total} · Where Chaser keeps its work")
     found = chaser_home.detect_chaseos()
     if found and found["data_dir"] != settings["data_dir"] and (args.use_chaseos or (interactive and not args.non_interactive and _offer_chaseos(found))):
         settings = chaser_home.save({key: found[key] for key in ("data_dir", "port", "packs", "memory_limit_mb")})
-        print(f"  {paint('✓', 'ok')} Using this computer's ChaseOS setup for Chaser")
+        print(f"  {paint('✓', 'ok')} Using this computer's ChaseOS setup for Chaser: its folder, port and packs")
+
+    heading(f"Step 1 of {total} · Checking this computer")
+    show_rows(setup_checks.run(settings, routes=_routes(settings))["rows"])
+
+    heading(f"Step 2 of {total} · Where Chaser keeps its work")
     if interactive and advanced:
         folder = ask("Folder", settings["data_dir"])
         port = ask("Port", str(settings["port"]))
@@ -279,7 +280,8 @@ def run_onboard(args: argparse.Namespace) -> int:
     if interactive:
         step_key(settings)
     else:
-        print(f"  {MARK['info']} Key: {cloud_key.describe()['source']}. Add one with: chaser key add")
+        key = next((r for r in setup_checks.run(settings, routes=_routes(settings))["rows"] if r["id"] == "cloud_key"), None)
+        print(f"  {paint(MARK[key['state']], key['state'])} Key: {key['detail']}" if key else f"  {MARK['info']} Key: add one with: chaser key add")
 
     heading(f"Step 4 of {total} · Your name on approvals")
     if interactive:
@@ -295,7 +297,10 @@ def run_onboard(args: argparse.Namespace) -> int:
     if not args.no_start and (not interactive or confirm("Start Chaser now and open the HUD?")):
         started = step_start(settings, open_hud=interactive)
     else:
-        print(f"  {MARK['info']} Not started. Start it any time: chaser gateway")
+        running = setup_checks.gateway_health(int(settings["port"]))
+        print(f"  {paint('✓', 'ok')} Already running on http://127.0.0.1:{settings['port']}/" if running
+              else f"  {MARK['info']} Not started. Start it any time: chaser gateway")
+        started = bool(running)
     from datetime import UTC, datetime
 
     settings = chaser_home.save({"onboarded_at": datetime.now(UTC).isoformat(timespec="seconds")})

@@ -142,7 +142,9 @@ def run(settings: dict[str, Any] | None = None, *, online: bool = False, environ
                         "Installed; sign-in is checked once Chaser is running" if installed else "Not installed (optional)"))
     cloud_route = routes.get("chaseos-cloud")
     if cloud_route is not None:
-        has_cloud = bool(cloud_route.get("available")) and has_cloud
+        has_cloud = bool(cloud_route.get("available"))
+        if has_cloud and key_row["state"] != OK:  # the service holds a key this terminal can't see, e.g. from a vault
+            rows[rows.index(key_row)] = row("cloud_key", "ChaseOS Cloud key", OK, "In use by the running Chaser")
     names = [name for name, ok in (("ChaseOS Cloud", has_cloud), ("Claude Code", claude)) if ok]
     rows.append(row("routes", "A way for Chaser to think", OK if names else FAIL, ", then ".join(names) or "None yet",
                     None if names else "Add a ChaseOS Cloud key, or install and sign in to Claude Code"))
