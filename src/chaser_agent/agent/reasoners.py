@@ -200,6 +200,12 @@ CLOUD_USER_AGENT = "ChaserAgent/1 (+https://chaseos.ai)"
 # Names this caller so the gateway can price and report it as an agent harness, not a chat window.
 CLOUD_HARNESS = "chaser"
 CLOUD_RETRY_STATUSES = frozenset({502, 503, 504})
+# A route that is down (12 Nov 2026: chaseos/balanced answered 502 and 503 "the upstream provider failed" while
+# chaseos/auto, fast and deep answered) is no reason to fail the owner's task: the next ChaseOS route is tried, still
+# on ChaseOS Cloud and still in JSON mode. A 402 or a refused key never moves on.
+CLOUD_FALLBACK_ENV = "CHASEOS_CLOUD_FALLBACK"
+CLOUD_FALLBACK_DEFAULT = ("chaseos/deep", "chaseos/fast")
+CLOUD_MOVE_ON_STATUSES = CLOUD_RETRY_STATUSES | {0, 409, 429, 500}
 
 
 class ChaseOSCloudReasoner:
@@ -214,9 +220,11 @@ class ChaseOSCloudReasoner:
     label = "ChaseOS Cloud"
     max_context_chars = 120_000
 
-    def __init__(self, key: str = "", *, model: str = "chaseos/balanced", base_url: str = "", max_tokens: int = 8000) -> None:
+    def __init__(self, key: str = "", *, model: str = "chaseos/balanced", base_url: str = "", max_tokens: int = 8000,
+                 fallback: tuple[str, ...] = ()) -> None:
         self._key = key.strip()
         self.model = model
+        self.fallback = tuple(m for m in fallback if m and m != model)
         self.base_url = (base_url or CLOUD_BASE_URL).rstrip("/")
         self.max_tokens = max_tokens
 
@@ -227,7 +235,9 @@ class ChaseOSCloudReasoner:
         base_url = kwargs.pop("base_url", "") or environ.get("CHASEOS_CLOUD_BASE_URL", "")
         # A different model, e.g. a candidate evaluated against an OpenAI-compatible endpoint.
         model = kwargs.pop("model", "") or environ.get("CHASEOS_CLOUD_MODEL", "") or "chaseos/balanced"
-        return cls(key, base_url=base_url, model=model, **kwargs)
+        raw = environ.get(CLOUD_FALLBACK_ENV)
+        fallback = tuple(m.strip() for m in raw.split(",") if m.strip()) if raw is not None else CLOUD_FALLBACK_DEFAULT
+        return cls(key, base_url=base_url, model=model, fallback=kwargs.pop("fallback", fallback), **kwargs)
 
     def status(self) -> dict[str, Any]:
         return {
@@ -260,21 +270,29 @@ class ChaseOSCloudReasoner:
         if not self._key:
             raise ReasonerUnavailable("not_configured", self.status()["reason"])
         started = time.monotonic()
-        body = json.dumps({
-            "model": self.model, "stream": False, "max_completion_tokens": self.max_tokens,
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": transcript}],
-            # Every reply must be one JSON object; without JSON mode the open models broke the format on about a third of steps.
-            "response_format": {"type": "json_object"},
-        }, ensure_ascii=False).encode("utf-8")
+
+        def body_for(model: str) -> bytes:
+            return json.dumps({
+                "model": model, "stream": False, "max_completion_tokens": self.max_tokens,
+                "messages": [{"role": "system", "content": system}, {"role": "user", "content": transcript}],
+                # Every reply must be one JSON object; without JSON mode the open models broke the format on about a third of steps.
+                "response_format": {"type": "json_object"},
+            }, ensure_ascii=False).encode("utf-8")
+        body = body_for(self.model)
         result: dict[str, Any] = {}
 
         def call() -> None:
             deadline = started + timeout
             result["reply"] = self._post(body, max(1.0, deadline - time.monotonic()))
-            # The gateway sometimes answers 502 and is fine a moment later, so one more try; never more.
+            # The gateway sometimes answers 502 and is fine a moment later, so one more try on the same route.
             if result["reply"][0] in CLOUD_RETRY_STATUSES | {0} and not cancel.is_set() and deadline - time.monotonic() > 5:
                 time.sleep(1)
                 result["reply"] = self._post(body, max(1.0, deadline - time.monotonic()))
+            # Still down: one try on each fallback route, in order.
+            for model in self.fallback:
+                if result["reply"][0] not in CLOUD_MOVE_ON_STATUSES or cancel.is_set() or deadline - time.monotonic() <= 5:
+                    break
+                result["reply"] = self._post(body_for(model), max(1.0, deadline - time.monotonic()))
 
         worker = threading.Thread(target=call, daemon=True)
         worker.start()
@@ -290,7 +308,9 @@ class ChaseOSCloudReasoner:
         if status in {401, 403}:
             raise ReasonerUnavailable("not_authorised", f"ChaseOS Cloud refused this machine's key (HTTP {status}).")
         if status != 200:
-            raise ReasonerUnavailable("route_error", f"ChaseOS Cloud did not answer (HTTP {status or 'no connection'}).")
+            said = value.get("error", {}).get("message") if isinstance(value.get("error"), dict) else None
+            raise ReasonerUnavailable("route_error", f"ChaseOS Cloud did not answer (HTTP {status or 'no connection'})."
+                                      + (f" {str(said)[:200]}" if said else ""))
         try:
             choice = value["choices"][0]["message"]
             text = choice.get("content") or ""
