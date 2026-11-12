@@ -23,6 +23,7 @@ from typing import Any
 
 from chaser_agent.agent.context import MAX_CONTEXT_CHARS, build_system_prompt, render_transcript
 from chaser_agent.agent.events import EventLog, utc_now, with_io_retry
+from chaser_agent.agent.guards import Limits, SpendLedger, spend_stop
 from chaser_agent.agent.protocol import AskHuman, Finish, ReplyRejected, ToolAction, parse_reply
 from chaser_agent.agent.reasoners import Reasoner, ReasonerUnavailable
 from chaser_agent.agent.tooling import AgentTool, Toolbox, ToolContext, ToolFailure, args_digest
@@ -94,6 +95,9 @@ class AgentRuntime:
         self.parent_link: dict[str, str] | None = None
         # Workspace folders a pack's own tools keep records in. workspace_write can't touch them.
         self.read_only_workspace_folders: tuple[str, ...] = ()
+        # Hard limits the service enforces (agent/guards.py); the service sets them from the person's settings.
+        self.limits = Limits()
+        self.spend = SpendLedger(data_dir / "agent" / "spend")
         self._lock = threading.RLock()
         self._sessions: dict[str, dict[str, Any]] = {}
         self._logs: dict[str, EventLog] = {}
@@ -254,6 +258,31 @@ class AgentRuntime:
         paths = [self._folder(session["id"]) / p for entry in session["transcript"] for p in entry.get("images") or []]
         return [p for p in paths if p.is_file()][-IMAGES_SENT_TO_MODEL:]
 
+    def expire_approvals(self, now: float | None = None) -> list[str]:
+        """Turn approvals nobody answered within the timeout into a "no", signed as automatic. Returns the sessions."""
+        minutes = self.limits.approval_timeout_minutes
+        if not minutes:
+            return []
+        import datetime as _dt
+
+        now = time.time() if now is None else now
+        expired = []
+        with self._lock:
+            waiting = [(sid, dict(s["pending"])) for sid, s in self._sessions.items()
+                       if s.get("pending") and s["pending"].get("kind") == "approval" and s.get("status") == "awaiting_approval"]
+        for session_id, pending in waiting:
+            try:
+                asked = _dt.datetime.fromisoformat(str(pending.get("at")).replace("Z", "+00:00")).timestamp()
+            except ValueError:
+                continue
+            if now - asked >= minutes * 60:
+                try:
+                    self.decide(session_id, pending["id"], pending["digest"], "reject", f"automatic (no answer in {minutes} min)")
+                    expired.append(session_id)
+                except (Conflict, NotFound):
+                    continue
+        return expired
+
     def set_permission_mode(self, session_id: str, mode: str, set_by: str = "local_operator") -> dict[str, Any]:
         if mode not in PERMISSION_MODES:
             raise ValueError(f"mode must be one of {', '.join(PERMISSION_MODES)}")
@@ -273,7 +302,8 @@ class AgentRuntime:
             session["transcript"].append({"role": "user", "text": message})
             if images:
                 session["transcript"][-1]["images"] = self._store_images(session, images)
-            session.update(goal=message, turn=session["turn"] + 1, steps_used=0, active_seconds=0.0, status="queued", final_answer=None, error=None, mood=None)
+            session.update(goal=message, turn=session["turn"] + 1, steps_used=0, active_seconds=0.0, status="queued", final_answer=None, error=None, mood=None,
+                           repeat_counts={}, loop_denials=0)
             self._logs[session_id].append("message", text=message, turn=session["turn"])
             self._save(session)
         self._start(session_id)
@@ -560,6 +590,14 @@ class AgentRuntime:
             if session["steps_used"] >= workflow.max_steps or session["active_seconds"] >= workflow.max_seconds:
                 self._finish(session, "budget_stopped", error="This turn used its step or time budget. Send a message to continue it.")
                 return
+            capped = spend_stop(self.limits, self.spend, float(session.get("credits_used") or 0))
+            if capped:
+                self._logs[session_id].append("spend_cap_reached", reason=capped, today=self.spend.today())
+                self._finish(session, "budget_stopped", error=capped)
+                return
+            if session.get("loop_stopped"):
+                self._finish(session, "budget_stopped", error=session.pop("loop_stopped"))
+                return
             transcript, elided = render_transcript(
                 session["transcript"], goal=session["goal"], steps_left=workflow.max_steps - session["steps_used"], max_chars=limit,
             )
@@ -577,6 +615,7 @@ class AgentRuntime:
             )
             images = self._session_images(session)
             extra = {"images": images} if images and getattr(reasoner, "sees_images", False) else {}
+            self.spend.add(calls=1)
             try:
                 reply = reasoner.complete(system, transcript, timeout=REASONER_TIMEOUT_SECONDS, cancel=cancel, **extra)
             except ReasonerUnavailable as exc:
@@ -585,6 +624,9 @@ class AgentRuntime:
                 else:
                     self._finish(session, "failed", error=f"{reasoner.label} did not answer: {exc.message}")
                 return
+            if reply.credits:
+                self.spend.add(credits=reply.credits)
+                session["credits_used"] = float(session.get("credits_used") or 0) + float(reply.credits)
             _write_text(reasoner_folder / f"{step:04d}.reply.txt", reply.text)
             reply_sha = hashlib.sha256(reply.text.encode("utf-8")).hexdigest()
             try:
@@ -645,6 +687,24 @@ class AgentRuntime:
                 self._logs[session_id].append("tool_denied", call_id=call_id, tool=action.tool, reason=denial.reason_code, message=denial.message)
                 self._observe(session, action.tool, call_id, "denied", f"Refused ({denial.reason_code}): {denial.message}. Nothing ran.", record=False)
                 continue
+            limit = self.limits.repeat_limit
+            if limit:
+                seen = session.setdefault("repeat_counts", {})
+                same = f"{tool.tool_id}:{args_digest(tool.tool_id, action.args)}"
+                seen[same] = seen.get(same, 0) + 1
+                if seen[same] > limit:
+                    with self._lock:
+                        session["denied_calls"] += 1
+                        session["loop_denials"] = int(session.get("loop_denials") or 0) + 1
+                    self._logs[session_id].append("tool_denied", call_id=call_id, tool=action.tool, reason="loop_guard",
+                                                  message=f"The same call ran {limit} times this turn")
+                    self._observe(session, action.tool, call_id, "denied",
+                                  f"Refused (loop_guard): this exact call already ran {limit} times this turn. Try something different or finish.", record=False)
+                    if session["loop_denials"] >= 2:
+                        session["loop_stopped"] = (f"Stopped a loop: {tool.tool_id} kept being called with the same arguments. "
+                                                   "Send a message to continue in a different direction.")
+                        return False
+                    continue
             mode = session.get("permission_mode", "ask")
             if mode == "plan" and tool.side_effect_class != "read_only":
                 with self._lock:

@@ -719,6 +719,15 @@ def run_doctor(args: argparse.Namespace) -> int:
     if args.fix:
         for line in setup_checks.fix(settings):
             print(f"{MARK['ok']} {line}")
+    if getattr(args, "security", False):
+        report = setup_checks.security(settings)
+        if args.json:
+            print(json.dumps(report, indent=1, ensure_ascii=False))
+        else:
+            heading("Chaser security check")
+            show_rows(report["rows"])
+            print("\n" + paint({"ok": "Nothing exposed.", "warn": "Worth fixing: the items marked !", "fail": "Fix the items marked ✗ now."}[report["result"]], report["result"]))
+        return 1 if report["result"] == "fail" else 0
     report = setup_checks.run(settings, online=args.online, routes=_routes(settings))
     if args.json:
         print(json.dumps(report, indent=1, ensure_ascii=False))
@@ -954,7 +963,7 @@ def run_home(_: argparse.Namespace) -> int:
                 continue
             if choice == "t":
                 run_channels(argparse.Namespace(action="list", platform=None))
-                pick = ask("Add or change one? telegram, discord, slack, email (Enter to go back)").lower()
+                pick = ask("Add or change one? telegram, discord, slack, email, signal, matrix (Enter to go back)").lower()
                 if pick in channels.PLATFORMS:
                     add_channel(pick)
                 terminal_ui.pause(paint)
@@ -1012,9 +1021,10 @@ HELP = (
               ("chaser stop", "stop every task now; the kill switch"),
               ("chaser approve [SESSION]", "say yes, signed with your name"), ("chaser reject [SESSION]", "say no, signed with your name"),
               ("chaser receipt [SESSION]", "check the hash chain; who approved what; what it wrote"))),
-    ("Set up", (("chaser model", "choose the AI provider and model"), ("chaser model reserve", "up to 4 backups if the main key fails"), ("chaser channels", "Telegram, Discord, Slack, email; owner-only (add, test, remove)"), ("chaser voice", "speak to Chaser, offline"), ("chaser key", "the ChaseOS Cloud key"),
+    ("Set up", (("chaser model", "choose the AI provider and model"), ("chaser model reserve", "up to 4 backups if the main key fails"), ("chaser channels", "Telegram, Discord, Slack, email, Signal, Matrix; owner-only"), ("chaser voice", "speak to Chaser, offline"), ("chaser key", "the ChaseOS Cloud key"),
                 ("chaser setup [section]", "every setting from a menu"), ("chaser shortcuts", "the stop and take-over keys"),
-                ("chaser doctor [--online] [--fix]", "pre-flight checks"))),
+                ("chaser doctor [--online] [--fix]", "pre-flight checks; --security for exposure, keys and caps"),
+                ("chaser limits", "spend caps, loop guard, approval timeout"))),
     ("Help", (("chaser help [command]", "this, or one command's options"), ("chaser version", "the installed version"))),
 )
 
@@ -1159,6 +1169,32 @@ def run_stop_all(_: argparse.Namespace) -> int:
     return 0
 
 
+def run_limits(args: argparse.Namespace) -> int:
+    """`chaser limits`: the hard caps the service enforces. Zero turns one off."""
+    from chaser_agent.agent.guards import DEFAULTS, Limits
+
+    settings = chaser_home.load()
+    limits = Limits.from_settings(settings.get("limits"))
+    if args.action == "set":
+        if args.name not in DEFAULTS or args.value is None or not str(args.value).isdecimal():
+            print("chaser limits set NAME N   names: " + ", ".join(DEFAULTS))
+            return 2
+        chosen = {**(settings.get("limits") or {}), args.name: int(args.value)}
+        chaser_home.save({"limits": chosen})
+        limits = Limits.from_settings(chosen)
+        print(f"{MARK['ok']} {args.name} = {args.value}. Restart Chaser to apply it: chaser gateway restart")
+    elif args.action == "reset":
+        chaser_home.save({"limits": {}})
+        limits = Limits()
+        print(f"{MARK['ok']} Back to the defaults. Restart Chaser to apply them.")
+    words = {"model_calls_per_day": "model calls a day, any provider", "credits_per_day": "credits a day", "credits_per_session": "credits per session",
+             "repeat_limit": "identical tool calls in one turn before refusing", "approval_timeout_minutes": "minutes before an unanswered approval becomes a no"}
+    heading("Limits (enforced by the service; 0 = off)")
+    for name, value in limits.as_dict().items():
+        print(f"  {name:<26} {paint(str(value), 'head' if value else 'warn'):<6}  {paint(words[name], 'dim')}")
+    return 0
+
+
 def run_receipt(args: argparse.Namespace) -> int:
     settings = chaser_home.load()
     folder = chaser_work.find_session(Path(settings["data_dir"]), args.session)
@@ -1191,6 +1227,10 @@ def add_channel(platform: str) -> int:
     print(paint(f"  {info['where']} The token won't show as you paste it.", "dim"))
     if platform == "email":
         return add_email_channel(settings)
+    if platform == "signal":
+        return add_signal_channel(settings)
+    if platform == "matrix":
+        return add_matrix_channel(settings)
     try:
         token = cloud_key.validate(secret_input(f"  {info['label']} bot token: "))
     except (ValueError, SecretInputUnavailable) as exc:
@@ -1299,6 +1339,53 @@ def add_email_channel(settings: dict[str, Any]) -> int:
     return 0
 
 
+def add_signal_channel(settings: dict[str, Any]) -> int:
+    """Signal through a signal-cli REST server on this computer. No key: the server holds the linked number."""
+    base = ask("signal-cli REST server", "http://127.0.0.1:8080").rstrip("/")
+    number = ask("Chaser's Signal number, with country code (e.g. +447700900000)").strip()
+    allow = [n.strip() for n in ask("Numbers allowed to instruct Chaser, separated by commas").split(",") if n.strip().startswith("+")]
+    if not number.startswith("+") or not allow:
+        print(f"  {paint('✗', 'fail')} Numbers need the country code, starting with +, and at least one allowed number.")
+        return 2
+    config = {"enabled": True, "allow": allow, "base_url": base, "number": number}
+    ok, name = channels.Signal(config, allow).whoami()
+    if not ok:
+        print(f"  {paint('✗', 'fail')} {name}")
+        return 2
+    chosen = dict(settings.get("channels") or {})
+    chosen["signal"] = config
+    settings = chaser_home.save({"channels": chosen})
+    print(f"  {paint('✓', 'ok')} Signal is set up on {number}; Chaser answers {', '.join(allow)}.")
+    _restart_offer(settings)
+    return 0
+
+
+def add_matrix_channel(settings: dict[str, Any]) -> int:
+    """A Matrix account for Chaser. Invite it to a room from an allowed account; it joins only those."""
+    homeserver = ask("Homeserver", "https://matrix.org").rstrip("/")
+    try:
+        token = cloud_key.validate(secret_input("  Chaser's Matrix access token: "))
+    except (ValueError, SecretInputUnavailable, EOFError, KeyboardInterrupt) as exc:
+        print(f"  {paint('✗', 'fail')} {exc}" if isinstance(exc, ValueError) else "")
+        return 2
+    allow = [u.strip() for u in ask("Matrix IDs allowed to instruct Chaser, e.g. @sam:matrix.org (commas between)").split(",") if u.strip().startswith("@")]
+    if not allow:
+        print(f"  {paint('✗', 'fail')} Allow at least one Matrix ID.")
+        return 2
+    config = {"enabled": True, "allow": allow, "homeserver": homeserver}
+    ok, name = channels.Matrix(token, config, allow).whoami()
+    if not ok:
+        print(f"  {paint('✗', 'fail')} {name}")
+        return 2
+    channels.save_token("matrix", token)
+    chosen = dict(settings.get("channels") or {})
+    chosen["matrix"] = config
+    settings = chaser_home.save({"channels": chosen})
+    print(f"  {paint('✓', 'ok')} Signed in as {name}. Invite it to a room from {', '.join(allow)}; encrypted rooms aren't read yet.")
+    _restart_offer(settings)
+    return 0
+
+
 def run_voice(args: argparse.Namespace) -> int:
     from chaser_agent import chaser_inputs
 
@@ -1329,7 +1416,7 @@ def run_channels(args: argparse.Namespace) -> int:
                 state = paint("○ not set up", "dim") + paint(f"  chaser channels add {platform}", "dim")
             print(f"    {info['label']:<10} {state}")
         print(paint("\n  Only allowed accounts are heard. Every approval still needs a yes, signed by name into the receipt.", "dim"))
-        print(paint("  Next: WhatsApp (official Cloud API), Signal, Microsoft Teams, Matrix.", "dim"))
+        print(paint("  WhatsApp's official API only delivers to a public web address, so it waits for a hosted relay. Teams is next.", "dim"))
         return 0
     if not args.platform:
         print(f"chaser channels {args.action} {'|'.join(channels.PLATFORMS)}")
@@ -1356,7 +1443,7 @@ def run_channels(args: argparse.Namespace) -> int:
             print(f"{MARK['fail']} {name}")
             return 2
         for user in value.get("allow") or []:
-            if args.platform in {"telegram", "email"}:
+            if args.platform in {"telegram", "email", "signal"}:
                 adapter.send(user, "A test from chaser channels test.")
             else:
                 adapter.greet(user, "A test from chaser channels test.")
@@ -1413,6 +1500,7 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.add_argument("--online", action="store_true", help="Also check the key with ChaseOS Cloud (free: it reads the balance).")
     doctor.add_argument("--fix", action="store_true", help="Create the private data folder if it's missing.")
     doctor.add_argument("--json", action="store_true")
+    doctor.add_argument("--security", action="store_true", help="Check what could be reached: network exposure, token, keys, caps, channels, packs.")
     doctor.set_defaults(func=run_doctor)
     key = sub.add_parser("key", help="The ChaseOS Cloud key: status, add, check, remove.")
     key.add_argument("action", nargs="?", default=None, choices=["status", "add", "check", "remove"])  # None: plain `chaser key`
@@ -1446,6 +1534,11 @@ def build_parser() -> argparse.ArgumentParser:
         decide.add_argument("session", nargs="?", help="Which session; leave out when only one is waiting.")
         decide.add_argument("--yes", action="store_true", help="Don't ask to confirm.")
         decide.set_defaults(func=run_decision, decision="approve" if verb == "approve" else "reject")
+    caps = sub.add_parser("limits", help="Spend caps, the loop guard and the approval timeout.")
+    caps.add_argument("action", nargs="?", default="show", choices=["show", "set", "reset"])
+    caps.add_argument("name", nargs="?")
+    caps.add_argument("value", nargs="?")
+    caps.set_defaults(func=run_limits)
     halt = sub.add_parser("stop", help="Stop every task now (the kill switch). Chaser itself keeps running.")
     halt.set_defaults(func=run_stop_all)
     proof = sub.add_parser("receipt", help="Check a session's hash chain from disk and show who approved what.")

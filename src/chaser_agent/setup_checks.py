@@ -168,6 +168,85 @@ def run(settings: dict[str, Any] | None = None, *, online: bool = False, environ
     return {"result": result, "rows": rows, "online": online, "key_shown": False}
 
 
+def _lan_addresses() -> list[str]:
+    import socket
+
+    try:
+        names = socket.gethostbyname_ex(socket.gethostname())[2]
+    except OSError:
+        return []
+    return [a for a in names if not a.startswith("127.")]
+
+
+def reachable_from(addresses: list[str], port: int, timeout: float = 0.5) -> list[str]:
+    import socket
+
+    open_on = []
+    for address in addresses:
+        try:
+            with socket.create_connection((address, port), timeout=timeout):
+                open_on.append(address)
+        except OSError:
+            continue
+    return open_on
+
+
+def _token_exposed(path: Path) -> list[str]:
+    """Groups beyond this account that can read the token file, from icacls on Windows."""
+    if os.name != "nt" or not path.exists():
+        return []
+    try:
+        out = subprocess.run(["icacls", str(path)], capture_output=True, text=True, timeout=10,
+                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [group for group in ("Everyone", "BUILTIN\\Users", "Authenticated Users") if group.lower() in out.lower()]
+
+
+def security(settings: dict[str, Any] | None = None, *, environ: dict[str, str] | None = None) -> dict[str, Any]:
+    """`chaser doctor --security`: what an attacker or a mistake could reach."""
+    from chaser_agent import channels, model_providers
+    from chaser_agent.agent.guards import Limits
+
+    settings = settings or chaser_home.load()
+    environ = os.environ if environ is None else environ
+    port = int(settings["port"])
+    rows = []
+    open_on = reachable_from(_lan_addresses(), port)
+    rows.append(row("bind", "Reachable only from this computer", FAIL if open_on else OK,
+                    f"Port {port} answers on {', '.join(open_on)}" if open_on else f"Port {port} isn't reachable from your network",
+                    "Chaser binds to 127.0.0.1; something else is forwarding the port. Stop it." if open_on else None))
+    token = Path(settings["data_dir"]) / "control-token"
+    exposed = _token_exposed(token)
+    rows.append(row("token", "Control token private to you", WARN if exposed else OK,
+                    f"Readable by {', '.join(exposed)}" if exposed else ("Only this account can read it" if token.exists() else "Not created yet"),
+                    "chaser doctor --fix makes the data folder private again" if exposed else None))
+    in_env = sorted({p.key_env for p in model_providers.CATALOGUE if p.key_env and environ.get(p.key_env)}
+                    | {c["env"] for c in channels.PLATFORMS.values() if environ.get(c["env"])})
+    rows.append(row("env_keys", "No keys left in the environment", WARN if in_env else OK,
+                    f"Set here: {', '.join(in_env)}" if in_env else "None found",
+                    "Programs started from this shell can read them. Save them with chaser model, chaser key or chaser channels add instead, "
+                    "unless a vault injects them." if in_env else None))
+    configured = channels.configured(settings)
+    detail = ", ".join(f"{channels.PLATFORMS[name]['label']} ({len(value['allow'])} allowed)" for name, value in configured.items())
+    rows.append(row("channels", "Channels answer only allowed accounts", OK, detail or "No channels set up"))
+    limits = Limits.from_settings(settings.get("limits"))
+    rows.append(row("caps", "Spend caps and loop guard", OK if limits.model_calls_per_day else WARN,
+                    f"{limits.model_calls_per_day or 'no'} model calls a day, "
+                    + (f"{limits.credits_per_day} credits a day" if limits.credits_per_day else "no daily credit cap")
+                    + f", same call refused after {limits.repeat_limit or '∞'}",
+                    "chaser limits set credits_per_day N puts a hard stop on spend" if not limits.credits_per_day else None))
+    rows.append(row("timeout", "Unanswered approvals become a no", OK if limits.approval_timeout_minutes else WARN,
+                    f"After {limits.approval_timeout_minutes} minutes" if limits.approval_timeout_minutes else "Never: they wait forever",
+                    None if limits.approval_timeout_minutes else "chaser limits set approval_timeout_minutes 60"))
+    packs = settings.get("packs") or []
+    rows.append(row("packs", "Packs are files you chose", OK if not packs else INFO,
+                    "None loaded" if not packs else f"{len(packs)} loaded at start; each file's SHA-256 is recorded when it loads: "
+                    + ", ".join(Path(p).name for p in packs)))
+    worst = FAIL if any(r["state"] == FAIL for r in rows) else WARN if any(r["state"] == WARN for r in rows) else OK
+    return {"rows": rows, "result": worst}
+
+
 def fix(settings: dict[str, Any] | None = None) -> list[str]:
     """The safe fixes: create the private data folder. Returns what was done."""
     settings = settings or chaser_home.load()

@@ -27,14 +27,11 @@
     recall_output: 'Re-read an earlier result', update_plan: 'Updated the plan', memory_search: 'Checked reviewed memory', memory_propose: 'Proposed a memory',
     mail_accounts: 'Checked mail identities', mail_outbox: 'Checked the outbox', mail_search: 'Searched mail', mail_read: 'Read an email', mail_create_draft: 'Prepared a mail draft, not sent',
     graph_record: 'Recorded this in the knowledge graph',
-    procurement_scan_adverts: 'Scanned live adverts for this customer', procurement_read_notice: 'Read an advert', procurement_list_customers: 'Listed the customers',
-    procurement_save_customer: 'Saved the customer\'s evidence', procurement_review_history: 'Checked earlier reviews', procurement_record_review: 'Recorded how the review went',
-    procurement_record_opt_out: 'Recorded that they asked not to be emailed', procurement_start_review: 'Started the review and kept exact copies', procurement_read_buyer_document: 'Read a buyer document', procurement_retain_document: 'Kept an exact copy of a document',
-    procurement_record_findings: 'Compared requirements with evidence, word for word', procurement_build_brief: 'Built the report, John\'s checks and the email',
+    // A pack's own tools show the description the pack registered with them; none are named here.
   };
 
   // Rows say what happened. A request hasn't happened yet.
-  const ASK_TEXT = { graph_record: 'Record this in the knowledge graph', mail_create_draft: 'Prepare this mail draft', memory_propose: 'Propose this memory', procurement_save_customer: 'Save this as the customer\'s evidence', procurement_record_review: 'Record how this review went' };
+  const ASK_TEXT = { graph_record: 'Record this in the knowledge graph', mail_create_draft: 'Prepare this mail draft', memory_propose: 'Propose this memory' };
 
   const hud = $('hud');
   const suggestionBox = $('suggestions');
@@ -343,7 +340,7 @@
       row.prepend(send);
       box.append(body, input, row);
     } else {
-      body.append(el('h3', '', 'Say yes to this exact action?'), el('p', '', ASK_TEXT[pending.tool] || TOOL_TEXT[pending.tool] || pending.tool));
+      body.append(el('h3', '', 'Say yes to this exact action?'), el('p', '', ASK_TEXT[pending.tool] || TOOL_TEXT[pending.tool] || pending.description || pending.tool));
       if (pending.args.title) body.append(el('strong', '', pending.args.title));
       if (pending.args.text) body.append(el('p', '', pending.args.text));
       const exact = el('details');
@@ -420,7 +417,7 @@
     $('stop').hidden = !(active || session.pending);
     $('input').placeholder = session.pending ? 'Answer in the box above' : 'Tell Chaser what to do next';
 
-    if (session.pending) setNow(session.pending.kind === 'question' ? session.pending.question : `${ASK_TEXT[session.pending.tool] || TOOL_TEXT[session.pending.tool] || session.pending.tool}?`);
+    if (session.pending) setNow(session.pending.kind === 'question' ? session.pending.question : `${ASK_TEXT[session.pending.tool] || TOOL_TEXT[session.pending.tool] || session.pending.description || session.pending.tool}?`);
     else if (session.status === 'finished' && session.final_answer) setNow(session.final_answer);
     else if (session.error && !active) setNow(session.error);
     else if (session.status === 'reasoning' && lastThought) setNow(lastThought);

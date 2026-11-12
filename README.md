@@ -21,6 +21,7 @@ Then just `chaser`: a home screen with what's running, which model, what's waiti
   - `plan` only reads and plans;
   - `bypass` says yes itself. It must be typed to confirm, is shown in red, and every automatic yes is still in the receipt. Messaging channels can never turn it on.
   - "Always allow this tool here" covers just the rest of one session.
+- **Hard limits the model can't talk its way past:** a daily model-call cap and optional credit caps that stop work rather than warn, a loop guard, and approvals that turn into a "no" if nobody answers. Secrets are redacted before anything is written to a receipt. `chaser limits` and `chaser doctor --security`.
 - **One command stops everything:** `chaser stop` (or `/stopall` from a channel). Keyboard shortcuts stop Chaser or take over at once.
 - **Local-first.** The service listens only on 127.0.0.1 with a private token. Keys, tokens and passwords are saved encrypted for your Windows account and never shown.
 
@@ -37,13 +38,13 @@ Keys are checked for free by listing the provider's models, which you then pick 
 
 ## Talk to it from anywhere you are
 
-`chaser channels add telegram`, `discord`, `slack` or `email`.
+`chaser channels add telegram`, `discord`, `slack`, `email`, `signal` or `matrix`.
 - **Only the accounts you allow are heard.** Email also requires the sender's mail server to vouch for them (DKIM or SPF).
 - **Approvals arrive in the same app:** Telegram buttons, or a typed yes. Each is checked against the waiting request before anything runs.
 - **Photos and screenshots come through as context.**
 - **No public address or webhook needed.**
 
-WhatsApp (through the official Cloud API), Signal, Microsoft Teams and Matrix are next.
+WhatsApp and Microsoft Teams are next; both need a hosted relay, because their official APIs only deliver to a public address.
 
 ## Show it, say it
 
@@ -58,7 +59,7 @@ WhatsApp (through the official Cloud API), Signal, Microsoft Teams and Matrix ar
 
 | | Today |
 |---|---|
-| Channels | Telegram, Discord, Slack, email. More are planned. |
+| Channels | Telegram, Discord, Slack, email, Signal, Matrix. WhatsApp and Teams need a hosted relay. |
 | Schedules, recurring briefings | Not yet. |
 | MCP servers | Not yet. |
 | Computer use (mouse and keyboard) | In development behind the HUD's stop and take-over controls. |

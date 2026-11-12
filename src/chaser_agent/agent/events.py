@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import threading
 import time
 from collections.abc import Callable
@@ -37,6 +38,29 @@ def with_io_retry(operation: Callable[[], T]) -> T:
     raise AssertionError("unreachable")
 
 
+# Receipts are meant to be shown to people, so secrets never go into them: values under secret-sounding
+# names, and strings shaped like well-known keys and tokens, are replaced before the event is hashed.
+SECRET_NAMES = re.compile(r"(pass(word)?|secret|token|api[_-]?key|authorization|auth|credential|private[_-]?key|cookie|session[_-]?key)$", re.I)
+SECRET_SHAPES = re.compile(
+    r"(sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|xox[abprs]-[A-Za-z0-9-]{10,}|xapp-[A-Za-z0-9-]{10,}|gh[pousr]_[A-Za-z0-9]{20,}"
+    r"|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|\b\d{8,10}:[A-Za-z0-9_-]{30,}\b"
+    r"|Bearer\s+[A-Za-z0-9._~+/-]{16,}=*|-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----)")
+REDACTED = "[redacted]"
+
+
+def redact(value: Any, name: str = "") -> Any:
+    """A copy with secrets replaced; digests and ids keep their names, so only key-like values change."""
+    if isinstance(value, dict):
+        return {k: redact(v, str(k)) for k, v in value.items()}
+    if isinstance(value, list):
+        return [redact(v, name) for v in value]
+    if isinstance(value, str):
+        if name and SECRET_NAMES.search(name) and value and name.lower() not in {"digest", "prompt_sha256", "reply_sha256"}:
+            return REDACTED
+        return SECRET_SHAPES.sub(REDACTED, value)
+    return value
+
+
 def _digest(row: dict[str, Any]) -> str:
     body = {key: value for key, value in row.items() if key != "hash"}
     canonical = json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -54,6 +78,7 @@ class EventLog:
             self._rows = [json.loads(line) for line in text.split("\n") if line.strip()]
 
     def append(self, event_type: str, /, **data: Any) -> dict[str, Any]:
+        data = redact(data)
         with self._lock:
             row = {
                 "seq": len(self._rows) + 1,

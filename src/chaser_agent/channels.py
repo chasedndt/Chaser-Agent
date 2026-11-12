@@ -36,6 +36,10 @@ PLATFORMS = {
                 "where": "discord.com/developers/applications → New Application → Bot → Reset Token. Then invite the bot to a server you're in."},
     "slack": {"label": "Slack", "env": "SLACK_BOT_TOKEN",
               "where": "api.slack.com/apps → Create App → OAuth & Permissions: add bot scopes chat:write, im:history, im:write, files:read; install, copy the xoxb- token."},
+    "signal": {"label": "Signal", "env": "CHASER_SIGNAL_UNUSED",
+               "where": "Run signal-cli-rest-api on this computer (github.com/bbernhard/signal-cli-rest-api) and link it to a Signal number."},
+    "matrix": {"label": "Matrix", "env": "MATRIX_ACCESS_TOKEN",
+               "where": "Make a Matrix account for Chaser and copy its access token (Element: Settings → Help & About → Access token)."},
     "email": {"label": "Email", "env": "CHASER_EMAIL_PASSWORD",
               "where": "Use an app password from your mail provider (Gmail, Outlook and iCloud all offer them), not your main password."},
 }
@@ -318,6 +322,105 @@ class Slack:
         return bool(channel)
 
 
+class Signal:
+    """Signal through a signal-cli REST server on this computer: Chaser polls it, nothing listens publicly."""
+
+    platform, label = "signal", "Signal"
+
+    def __init__(self, config: dict[str, Any], allow: list[str], request: Callable[..., tuple[int, Any]] = _request) -> None:
+        self.base = str(config.get("base_url") or "http://127.0.0.1:8080").rstrip("/")
+        self.number, self.allow, self.request = str(config.get("number") or ""), allow, request
+
+    def whoami(self) -> tuple[bool, str]:
+        status, value = self.request(f"{self.base}/v1/about", timeout=10)
+        return (True, self.number) if status == 200 else (False, f"No signal-cli REST server answered at {self.base} (HTTP {status or 'no connection'}).")
+
+    def poll(self, wait: int = 3) -> list[Inbound]:
+        status, rows = self.request(f"{self.base}/v1/receive/{urllib.parse.quote(self.number)}", timeout=40)
+        out = []
+        for row in rows if status == 200 and isinstance(rows, list) else []:
+            envelope = row.get("envelope") or {}
+            sender = str(envelope.get("sourceNumber") or envelope.get("source") or "")
+            message = (envelope.get("dataMessage") or {})
+            images = []
+            for attachment in message.get("attachments") or []:
+                kind = str(attachment.get("contentType", "")).split(";")[0]
+                if kind in IMAGE_TYPES and attachment.get("id"):
+                    image = _image(attachment.get("filename") or "image", kind, _download(f"{self.base}/v1/attachments/{attachment['id']}"))
+                    if image:
+                        images.append(image)
+            text = message.get("message") or ("What's in this picture?" if images else "")
+            if sender and text:
+                out.append(Inbound(sender, sender, text, envelope.get("sourceName", ""), images=images))
+        time.sleep(wait)
+        return out
+
+    def send(self, chat: str, text: str, buttons: list[tuple[str, str]] | None = None) -> None:
+        if buttons:
+            text += "\n\nReply yes or no."
+        self.request(f"{self.base}/v2/send", method="POST", body={"message": text[:LIMIT], "number": self.number, "recipients": [chat]}, timeout=20)
+
+    def acknowledge(self, button_id: str, text: str) -> None:
+        return None
+
+
+class Matrix:
+    """A Matrix account for Chaser, read with /sync and answered in the same room. Encrypted rooms aren't read yet."""
+
+    platform, label = "matrix", "Matrix"
+
+    def __init__(self, token: str, config: dict[str, Any], allow: list[str], request: Callable[..., tuple[int, Any]] = _request,
+                 state: dict[str, Any] | None = None) -> None:
+        self.base = str(config.get("homeserver") or "https://matrix.org").rstrip("/")
+        self.headers = {"Authorization": f"Bearer {token}"}
+        self.allow, self.request = allow, request
+        self.state = state if state is not None else {}
+        self.me = ""
+
+    def whoami(self) -> tuple[bool, str]:
+        status, value = self.request(f"{self.base}/_matrix/client/v3/account/whoami", headers=self.headers, timeout=15)
+        if status == 200:
+            self.me = str(value.get("user_id"))
+            return True, self.me
+        return False, f"{self.base} refused the token (HTTP {status or 'no connection'})."
+
+    def poll(self, wait: int = 25) -> list[Inbound]:
+        if not self.me:
+            self.whoami()
+        since = self.state.get("since")
+        query = urllib.parse.urlencode({"timeout": wait * 1000 if since else 0, **({"since": since} if since else {})})
+        status, value = self.request(f"{self.base}/_matrix/client/v3/sync?{query}", headers=self.headers, timeout=wait + 15)
+        if status != 200:
+            time.sleep(5)
+            return []
+        self.state["since"] = value.get("next_batch")
+        out = []
+        rooms = value.get("rooms") or {}
+        for room_id, room in (rooms.get("invite") or {}).items():
+            inviter = next((e.get("sender") for e in (room.get("invite_state") or {}).get("events") or [] if e.get("type") == "m.room.member"), None)
+            if inviter in self.allow:  # join only rooms an allowed person invited Chaser to
+                self.request(f"{self.base}/_matrix/client/v3/join/{urllib.parse.quote(room_id)}", method="POST", body={}, headers=self.headers, timeout=20)
+        if not since:
+            return []  # the first sync only finds where to start
+        for room_id, room in (rooms.get("join") or {}).items():
+            for event in (room.get("timeline") or {}).get("events") or []:
+                content = event.get("content") or {}
+                if event.get("type") == "m.room.message" and event.get("sender") != self.me and content.get("msgtype") == "m.text":
+                    out.append(Inbound(str(event.get("sender")), room_id, str(content.get("body") or ""), str(event.get("sender"))))
+        return out
+
+    def send(self, chat: str, text: str, buttons: list[tuple[str, str]] | None = None) -> None:
+        import uuid
+
+        if buttons:
+            text += "\n\nReply yes or no."
+        self.request(f"{self.base}/_matrix/client/v3/rooms/{urllib.parse.quote(chat)}/send/m.room.message/{uuid.uuid4().hex}", method="PUT",
+                     body={"msgtype": "m.text", "body": text[:LIMIT]}, headers=self.headers, timeout=20)
+
+    def acknowledge(self, button_id: str, text: str) -> None:
+        return None
+
+
 def sender_vouched(message: Any, address: str) -> bool:
     """True when the receiving server recorded a DKIM or SPF pass for the sender's own domain."""
     domain = address.rsplit("@", 1)[-1].lower()
@@ -575,6 +678,10 @@ def adapter_for(platform: str, settings: dict[str, Any], state: dict[str, Any]) 
         return Slack(token, allow, state=state.setdefault("slack_adapter", {}))
     if platform == "email":
         return Email(token, value, allow, state=state.setdefault("email_adapter", {}))
+    if platform == "signal":
+        return Signal(value, allow)
+    if platform == "matrix":
+        return Matrix(token, value, allow, state=state.setdefault("matrix_adapter", {}))
     return Discord(token, allow, state=state.setdefault("discord", {}))
 
 
@@ -593,7 +700,7 @@ def run(settings: dict[str, Any], call: Callable[[str, str, dict[str, Any] | Non
         state = {}
     bridges = []
     for platform, value in configured(settings).items():
-        if not load_token(platform):
+        if platform != "signal" and not load_token(platform):
             log(f"{PLATFORMS[platform]['label']}: no token saved; run chaser channels add {platform}")
             continue
         adapter = adapter_for(platform, settings, state)

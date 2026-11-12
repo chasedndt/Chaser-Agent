@@ -87,11 +87,32 @@ def _reserve(entry: dict, cloud: ChaseOSCloudReasoner, claude: ClaudeCliReasoner
     return OpenAICompatibleReasoner.from_settings({"provider": provider.id, "model": entry.get("model") or "", "base_url": entry.get("base_url") or ""})
 
 
+def _start_approval_sweeper(runtime: AgentRuntime, every: float = 30.0) -> None:
+    """Once a half-minute, approvals left unanswered past the timeout become a "no"."""
+    import threading
+    import time
+
+    def sweep() -> None:
+        while True:
+            time.sleep(every)
+            try:
+                runtime.expire_approvals()
+            except Exception:  # noqa: BLE001 - the sweeper must outlive one bad session
+                pass
+
+    threading.Thread(target=sweep, daemon=True, name="chaser-approval-timeout").start()
+
+
 def build_runtime(data_dir: Path, *, packs: tuple[Path, ...] = (), claude_model: str = "sonnet") -> AgentRuntime:
     toolbox = Toolbox()
     register_builtin_tools(toolbox, memory_database=data_dir / "agent" / "memory.db")
     reasoners = ordered_routes(claude_model)
     runtime = AgentRuntime(data_dir, toolbox=toolbox, reasoners=reasoners)
+    from chaser_agent import chaser_home
+    from chaser_agent.agent.guards import Limits
+
+    runtime.limits = Limits.from_settings(chaser_home.load().get("limits"))
+    _start_approval_sweeper(runtime)
     runtime.add_workflow(GENERAL)
     runtime.loaded_packs = [load_pack(path, runtime) for path in packs]
     return runtime

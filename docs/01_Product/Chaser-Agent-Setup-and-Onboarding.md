@@ -95,6 +95,29 @@ Every provider keeps the existing rules: the chosen one comes first so "auto" us
 
 Moving on is the person's own configured choice, so it's never a silent switch. Chat shows "a reserve answered" with the reason, and the receipt's `reasoner_reply` records which route answered and why the earlier ones didn't.
 
+## Hard limits
+
+The service enforces these whatever the model says; they aren't instructions a long conversation could lose. `chaser limits` shows them, `chaser limits set NAME N` changes one (0 turns it off), `chaser limits reset` goes back to the defaults.
+
+| Limit | Default | What happens |
+|---|---|---|
+| `model_calls_per_day` | 500 | Counted on this computer across every provider; at the cap the turn stops *before* calling the model again. The guard against a runaway loop. |
+| `credits_per_day`, `credits_per_session` | off | What the route reports it charged (ChaseOS Cloud reports credits). At the cap the turn stops, because billing alerts arrive about a day after the money is gone. |
+| `repeat_limit` | 3 | The same tool with the same arguments more often than this in one turn is refused; refused twice, the turn stops ("Stopped a loop"). |
+| `approval_timeout_minutes` | 60 | An approval nobody answers becomes a "no", signed "automatic (no answer in 60 min)" in the receipt. |
+
+Each stop is in the receipt (`spend_cap_reached`, `tool_denied` with `loop_guard`, the automatic decision), and today's totals are in `agent/spend/<date>.json`.
+
+**Secrets never reach the receipt.** Before an event is hashed, values under secret-sounding names (password, token, api_key, authorization…) and strings shaped like well-known keys (OpenAI, Anthropic, Slack, GitHub, AWS and Google keys, Telegram bot tokens, bearer tokens, private keys) become `[redacted]`. Digests are kept, so approvals still bind to the exact request.
+
+**`chaser doctor --security`** checks:
+- that the service port answers nowhere but this computer;
+- that the control token is readable only by this Windows account;
+- that no provider or channel keys sit in the environment;
+- that channels have allowlists;
+- that the caps and approval timeout are on;
+- which packs load at start.
+
 ## Permission modes
 
 Each session has a mode, recorded in its receipt with who set it:
@@ -167,7 +190,7 @@ Chaser now matches both on setup, model choice, health, the background service, 
 
 ## Messaging channels
 
-**Built: Telegram, Discord, Slack and email.** `chaser channels add telegram` takes the BotFather token (no echo), checks it, then asks you to message the bot from your own account and allowlists exactly that account. `chaser channels add discord` takes the bot token and your Discord user ID and says hello in a direct message. Tokens are saved encrypted for this Windows account (`keys\channel-<platform>.dpapi`, or `TELEGRAM_BOT_TOKEN` / `DISCORD_BOT_TOKEN` from a vault). The gateway's supervisor serves the channels beside the service, so they run whenever Chaser does.
+**Built: Telegram, Discord, Slack, email, Signal and Matrix.** `chaser channels add telegram` takes the BotFather token (no echo), checks it, then asks you to message the bot from your own account and allowlists exactly that account. `chaser channels add discord` takes the bot token and your Discord user ID and says hello in a direct message. Tokens are saved encrypted for this Windows account (`keys\channel-<platform>.dpapi`, or `TELEGRAM_BOT_TOKEN` / `DISCORD_BOT_TOKEN` from a vault). The gateway's supervisor serves the channels beside the service, so they run whenever Chaser does.
 
 - Only allowlisted accounts are heard; anyone else is ignored and noted in the service log.
 - A message starts or continues that chat's session through the same local API as the terminal; `/new`, `/waiting` and `/stop` work there too.
@@ -176,6 +199,9 @@ Chaser now matches both on setup, model choice, health, the background service, 
 - None needs a public address: Telegram is long-polled; Discord and Slack are read from the bot's direct message with each allowed person over their web APIs; email is read over IMAP and answered over SMTP, both over TLS.
 - **Slack:** `chaser channels add slack` takes the bot token (scopes `chat:write`, `im:history`, `im:write`, `files:read`) and your member ID.
 - **Email:** `chaser channels add email` takes Chaser's address, the IMAP and SMTP servers (filled in for Gmail, Outlook and iCloud), an app password and the senders allowed to instruct it. A message counts only when the receiving server recorded a DKIM or SPF pass for the sender's own domain, because a From line can be forged; anything else is ignored and noted in the log. Mail threads can cross, so an approval by email must quote the start of the digest: "yes 9ac1f0e4".
+- **Signal:** `chaser channels add signal` uses a signal-cli REST server on this computer (no key in Chaser) and the numbers you allow.
+- **Matrix:** `chaser channels add matrix` takes the homeserver, Chaser's access token (saved encrypted) and the Matrix IDs you allow. Chaser joins only rooms an allowed person invites it to. Encrypted rooms aren't read yet.
+- **WhatsApp isn't built:** its official Cloud API delivers incoming messages only to a public web address, which this local-first service doesn't open. It waits for a hosted relay.
 - Photos and image attachments arrive as context (see Images and voice).
 
 ### The rest of the plan
@@ -186,8 +212,8 @@ Hermes reaches people on Telegram, Discord, Slack, WhatsApp, Signal, SMS, email,
 
 **Order, by reach and effort:**
 
-1. Discord, Telegram, Slack and email: built (above).
-2. WhatsApp (official Cloud API), Signal (through signal-cli), Microsoft Teams, Matrix.
+1. Discord, Telegram, Slack, email, Signal and Matrix: built (above).
+2. WhatsApp (needs a hosted relay for its webhook) and Microsoft Teams (needs an Azure bot registration).
 3. Others on request: Mattermost, Google Chat, SMS, LINE, ntfy for notifications only.
 
 **Shape.** Each new platform is one adapter class with `poll`, `send` and `acknowledge`; the door (allowlist, approvals bound to the digest, signing) is shared and already tested. Schedules still go only through ChaseOS's existing ingestion owner.
