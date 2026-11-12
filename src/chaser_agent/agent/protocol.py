@@ -19,6 +19,7 @@ MAX_ANSWER_CHARS = 40_000
 MAX_QUESTION_CHARS = 2_000
 MAX_PREAMBLE_CHARS = 2_000
 QUESTION_KINDS = ("missing_information", "preference", "approval")
+_TOOL_NAME = re.compile(r"[a-z][a-z0-9_]{1,119}")
 
 
 class ReplyRejected(ValueError):
@@ -129,7 +130,16 @@ def _action(item: Any) -> Action:
     if kind == "final":
         _exact_keys(item, {"type", "answer"}, {"type", "answer"}, "final action")
         return Finish(_text(item["answer"], "answer", MAX_ANSWER_CHARS))
-    raise ReplyRejected("invalid_action", "action type must be tool, ask_human or final")
+    # 12 Nov 2026: ChaseOS Cloud's models often name the tool in "type", as {"type": "graph_search", "args": {...}},
+    # and repeat it after being refused, so a card failed with "kept replying outside the protocol". That shape has one
+    # meaning, so it is read as the tool call; whether the tool may run is still decided by the session's grants.
+    if isinstance(kind, str) and _TOOL_NAME.fullmatch(kind) and set(item) <= {"type", "args"}:
+        args = item.get("args", {})
+        if not isinstance(args, dict):
+            raise ReplyRejected("invalid_field", "tool args must be an object")
+        return ToolAction(kind, args)
+    raise ReplyRejected("invalid_action", 'action type must be tool, ask_human or final; a tool call is '
+                                          '{"type": "tool", "tool": "<name>", "args": {...}}')
 
 
 def parse_reply(text: str) -> ModelReply:
