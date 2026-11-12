@@ -429,3 +429,12 @@ def test_a_trailing_dot_cannot_name_a_folder_before_it_exists(tmp_path) -> None:
         _workspace_write({"name": "records./a.json", "content": "planted"}, context)
     assert not (tmp_path / "records").exists()
     assert _workspace_write({"name": "notes/a.json", "content": "fine"}, context)["bytes"] == 4
+
+
+def test_a_top_level_final_beside_tool_calls_is_set_aside_and_alone_is_refused() -> None:
+    parsed = parse_reply('{"thought":"x","actions":[{"type":"tool","tool":"a","args":{}}],"final":{"answer":"early"}}')
+    assert [type(a).__name__ for a in parsed.actions] == ["ToolAction"] and parsed.set_aside_final is True
+    for bad in ('{"thought":"x","actions":[{"type":"final","answer":"y"}],"final":{"answer":"z"}}',
+                '{"thought":"x","actions":[],"final":{"answer":"z"}}', '{"thought":"x","final":{"answer":"z"}}'):
+        with pytest.raises(ReplyRejected):
+            parse_reply(bad)

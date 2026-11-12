@@ -150,7 +150,10 @@ def _action(item: Any) -> Action:
 def parse_reply(text: str) -> ModelReply:
     """Parse one reasoner reply, refusing anything outside the protocol."""
     value, had_preamble = _decode_object(text)
-    _exact_keys(value, {"thought", "actions"}, {"thought", "actions"}, "reply")
+    # A final answer sent in its own top-level "final" field beside tool calls is the same premature answer as a final
+    # action after them (below): the tools run and the answer is set aside. With no tool calls it is still refused.
+    early_final = "final" in value and isinstance(value.get("actions"), list) and bool(value["actions"])
+    _exact_keys(value, {"thought", "actions", "final"} if early_final else {"thought", "actions"}, {"thought", "actions"}, "reply")
     actions = value["actions"]
     if not isinstance(actions, list) or not actions:
         raise ReplyRejected("invalid_field", "actions must be a non-empty list")
@@ -166,6 +169,10 @@ def parse_reply(text: str) -> ModelReply:
     if (len(parsed) > 1 and isinstance(parsed[-1], Finish)
             and all(isinstance(action, ToolAction) for action in parsed[:-1])):
         parsed, set_aside = parsed[:-1], True
+    if early_final:
+        if not all(isinstance(action, ToolAction) for action in parsed):
+            raise ReplyRejected("unknown_field", 'a top-level "final" field is only set aside beside tool calls')
+        set_aside = True
     if len(parsed) > 1 and not all(isinstance(action, ToolAction) for action in parsed):
         raise ReplyRejected("mixed_actions", "ask_human and final must be the only action in a step")
     return ModelReply(_text(value["thought"], "thought", MAX_THOUGHT_CHARS), parsed, had_preamble, set_aside)
