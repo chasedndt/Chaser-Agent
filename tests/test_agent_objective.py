@@ -40,7 +40,7 @@ def runtime(data_dir: Path, replies: list[str], *, check: bool = True) -> AgentR
         return {"query": query, "results": hits}
 
     def node(args: dict, _context: object) -> dict:
-        return {"reference": args["reference"], "text": "HarborDesk is Example Co's go-between between readers and independent writers."}
+        return {"reference": args["reference"], "text": "HarborDesk is Example Co's go-between for readers and independent writers."}
 
     toolbox.register(AgentTool("graph_search", "Search.", {"properties": {"query": {"type": "string"}, "namespace": {"type": "string"}}, "required": ["query"]}, "read_only", search))
     toolbox.register(AgentTool("graph_node", "Read.", {"properties": {"reference": {"type": "string"}}, "required": ["reference"]}, "read_only", node))
@@ -61,7 +61,7 @@ def test_asking_after_one_empty_search_is_sent_back_to_work(tmp_path: Path) -> N
         reply("Nothing found.", ask("Could you give me more context?")),
         reply("Search everywhere.", tool("graph_search", query="HarborDesk")),
         reply("Read it.", tool("graph_node", reference="apps#harbordesk")),
-        reply("Done.", final("HarborDesk is Example Co's go-between between readers and writers.")),
+        reply("Done.", final("HarborDesk is Example Co's go-between for readers and writers.")),
     ])
     snap = run(rt, "What is HarborDesk?")
     assert snap["status"] == "finished"
@@ -135,9 +135,9 @@ def test_a_required_source_must_be_read_before_the_turn_can_stop(tmp_path: Path)
     rt = runtime_with_page(tmp_path, [
         reply("Search.", tool("graph_search", query="HarborDesk")),
         reply("Read.", tool("graph_node", reference="apps#harbordesk")),
-        reply("Done.", final("HarborDesk is Example Co's go-between between readers and writers.")),
+        reply("Done.", final("HarborDesk is Example Co's go-between for readers and writers.")),
         reply("Read its page.", tool("web_fetch", url="https://example.com/harbordesk/")),
-        reply("Done.", final("HarborDesk is Example Co's go-between between readers and independent writers.")),
+        reply("Done.", final("HarborDesk is Example Co's go-between for readers and independent writers.")),
     ])
     snap = run(rt, "What is HarborDesk?")
     checks = [e["data"] for e in rt.events(snap["id"]) if e["type"] == "objective_checked"]
