@@ -18,7 +18,9 @@ The way to see and steer the running agent. It's a small window that stays above
 - a list with one row per action, tagged `READ`, `SAVED`, `DRAFT`, `REFUSED` or `FAILED`
 - a question or approval, pinned above the input until it's answered
 - one input to tell it what to do
-- Earlier work, Files, and a link out to the parent application if a pack sets one
+- Earlier work, Files, Settings, and a link out to the parent application if a pack sets one
+
+**Settings** covers the panel with four tabs: the ChaseOS Cloud key, your name on approvals, the stop and take-over shortcuts, and the pre-flight checks. On a first run the empty panel offers "Set up Chaser", which walks the same four tabs as steps. See [setup and onboarding](Chaser-Agent-Setup-and-Onboarding.md). On screen it's "Chaser" throughout.
 
 Open any row to see why it did that, exactly what it asked for and what came back. That's the whole point of the HUD: you can check what the agent did without reading a log.
 

@@ -25,6 +25,7 @@ dev = [
 
 [project.scripts]
 chaser-agent = "chaser_agent.cli:main"
+chaser = "chaser_agent.chaser_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

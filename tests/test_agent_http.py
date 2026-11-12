@@ -109,7 +109,7 @@ def test_console_loads_without_the_token_but_holds_no_data(served) -> None:
     server, _, _ = served
     status, body, headers = _request(server, "GET", "/")
     assert status == 200
-    assert b"Chaser Agent" in body
+    assert b"<title>Chaser</title>" in body
     assert "script-src 'self'" in headers["Content-Security-Policy"]
     assert _request(server, "GET", "/console/app.js")[0] == 200
     assert _request(server, "GET", "/assets/motion/compiling.png")[0] == 200
@@ -120,11 +120,11 @@ def test_the_page_is_the_small_hud_with_no_side_panels(served) -> None:
     server, _, _ = served
     _, body, _ = _request(server, "GET", "/")
     page = body.decode("utf-8")
-    assert 'id="hud"' in page and 'id="stop"' in page and "Tell Chaser Agent what to do" in page
+    assert 'id="hud"' in page and 'id="stop"' in page and "Tell Chaser what to do" in page
     for removed in ('class="side"', 'id="tray"', 'id="routes"', 'id="grants"'):
         assert removed not in page
     _, script, _ = _request(server, "GET", "/console/app.js")
-    assert b"Tell Chaser " not in script.replace(b"Tell Chaser Agent", b"")
+    assert b"Chaser Agent" not in script and b"Chaser Agent" not in body
 
 
 def test_a_bridge_nobody_is_answering_does_not_count_as_connected() -> None:

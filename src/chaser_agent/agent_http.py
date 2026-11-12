@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
+from chaser_agent import setup_http
 from chaser_agent.agent.events import with_io_retry
 from chaser_agent.agent.reasoners import BridgeReasoner
 from chaser_agent.agent.runtime import AgentRuntime, Conflict, NotFound
@@ -82,6 +83,8 @@ def handle_get(handler: Any) -> None:
         request = bridge.next_request() if isinstance(bridge, BridgeReasoner) else None
         handler._reply(200, {"request": request})
         return
+    if parts.path.startswith(setup_http.PREFIX) and setup_http.handle_get(handler, runtime):
+        return
     match = SESSION_ROUTE.fullmatch(parts.path)
     if not match:
         handler._error(404, "not_found", "Route not found")
@@ -112,7 +115,7 @@ def handle_get(handler: Any) -> None:
 
 def is_agent_post(path: str) -> bool:
     route = urlsplit(path).path
-    return route in {"/v1/agent/sessions", "/v1/agent/reasoner/reply"} or bool(SESSION_ROUTE.fullmatch(route))
+    return route in {"/v1/agent/sessions", "/v1/agent/reasoner/reply"} or route in setup_http.POSTS or bool(SESSION_ROUTE.fullmatch(route))
 
 
 def _text(request: dict[str, Any], name: str, *, required: bool = True) -> str | None:
@@ -129,6 +132,9 @@ def handle_post(handler: Any, request: dict[str, Any]) -> None:
     if runtime is None:
         return
     route = urlsplit(handler.path).path
+    if route in setup_http.POSTS:
+        setup_http.handle_post(handler, runtime, request)
+        return
     try:
         if route == "/v1/agent/sessions":
             if set(request) - {"message", "workflow", "reasoner", "title", "withhold_tools"}:

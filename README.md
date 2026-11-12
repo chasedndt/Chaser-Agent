@@ -8,7 +8,9 @@ Engineering preview: [18-layer architecture](docs/01_Product/Runtime-Architectur
 
 [Explore all 18 responsibilities](https://chaseos.ai/chaser-agent/architecture/) or [read the local gateway instructions](https://chaseos.ai/chaser-agent/architecture/#run-local). The website is explanatory documentation; it does not start your agent, read your files or connect to localhost. The refreshed guide is published and browser-verified; its release evidence and remaining limits are tracked in the [experience record](docs/01_Product/2026-09-28-Engineering-Experience.md).
 
-The engineering checkout provides `doctor` (read-only preflight), `serve` (local API), `desktop` (API plus native HUD), `hud` and `voice-mode`. There are no `gateway` or `stop` aliases yet. Stop `serve` with Ctrl+C in its original terminal; close the combined desktop HUD to stop its owned server. The default bind is `127.0.0.1:8765`, not a public or LAN endpoint. A successful launch does not connect a reasoning provider or computer-use executor.
+**Start here:** `chaser onboard` walks through the first run (checks, a private data folder, an optional ChaseOS Cloud key, your name on approvals, the stop shortcuts) and starts Chaser. After that, `chaser gateway` starts it in the background (`stop`, `restart`, `status`, `logs`), `chaser doctor` runs the pre-flight checks, `chaser setup` changes any setting from a menu, `chaser key` adds or removes the Cloud key without showing it, and `chaser open` opens the HUD, which has the same settings under **Settings**. `python -m chaser_agent` runs the same command before the package is reinstalled. See [setup and onboarding](docs/01_Product/Chaser-Agent-Setup-and-Onboarding.md).
+
+The lower-level `chaser-agent` commands remain: `doctor` (read-only preflight), `serve` (local API), `desktop` (API plus native HUD), `hud` and `voice-mode`. The default bind is `127.0.0.1:8765`, not a public or LAN endpoint. A successful launch does not connect a computer-use executor.
 
 **Standalone-first. Local-first. Evidence-linked. Human-governed. ChaseOS-enhanced.**
 

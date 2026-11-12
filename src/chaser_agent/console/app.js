@@ -120,6 +120,7 @@
     $('panel').hidden = !open;
     $('toggle').setAttribute('aria-expanded', String(open));
     $('drawer').hidden = true;
+    if (!open) closeSettings();
     fit(open ? EXPANDED : COLLAPSED);
     if (open) requestAnimationFrame(() => { const box = $('activity'); box.scrollTop = box.scrollHeight; });
   }
@@ -324,7 +325,7 @@
     box.replaceChildren();
     const body = el('div', 'pending-body');
     if (pending.kind === 'question') {
-      body.append(el('h3', '', 'Chaser Agent needs something from you'), el('p', '', pending.question));
+      body.append(el('h3', '', 'Chaser needs something from you'), el('p', '', pending.question));
       const row = el('div', 'choices');
       for (const option of pending.options || []) {
         const choice = el('button', 'control', option);
@@ -407,7 +408,7 @@
     hud.dataset.tone = TONE[session.status] || 'idle';
     $('state-text').textContent = STATUS_TEXT[session.status] || session.status;
     // The taskbar is all that's left of a minimized window, so a waiting question shows there.
-    document.title = session.pending ? `${STATUS_TEXT[session.status]} · Chaser Agent` : 'Chaser Agent';
+    document.title = session.pending ? `${STATUS_TEXT[session.status]} · Chaser` : 'Chaser';
     setMotion(session.motion);
     $('goal').hidden = false;
     $('goal').textContent = session.goal;
@@ -417,7 +418,7 @@
     renderProgress(session);
     renderMeta(session);
     $('stop').hidden = !(active || session.pending);
-    $('input').placeholder = session.pending ? 'Answer in the box above' : 'Tell Chaser Agent what to do next';
+    $('input').placeholder = session.pending ? 'Answer in the box above' : 'Tell Chaser what to do next';
 
     if (session.pending) setNow(session.pending.kind === 'question' ? session.pending.question : `${ASK_TEXT[session.pending.tool] || TOOL_TEXT[session.pending.tool] || session.pending.tool}?`);
     else if (session.status === 'finished' && session.final_answer) setNow(session.final_answer);
@@ -447,7 +448,7 @@
     const usable = (routes || []).filter((route) => route.available && route.connected !== false);
     box.hidden = usable.length > 0 || !routes || !routes.length;
     if (box.hidden) return;
-    box.textContent = 'No AI model is connected, so Chaser Agent can\'t start work yet. Hover here to see why.';
+    box.textContent = 'Chaser has no way to think yet. Add a ChaseOS Cloud key in Settings, or sign in to Claude Code.';
     box.title = routes.map((route) => `${route.label}: ${route.reason || 'not available'}`).join('\n');
   }
 
@@ -473,7 +474,7 @@
       setMotion(status.motion);
       hud.dataset.tone = 'idle';
       $('state-text').textContent = 'Ready';
-      setNow('Tell Chaser Agent what to do.');
+      setNow('Tell Chaser what to do.');
       $('meta').textContent = '';
     }
     return status;
@@ -507,7 +508,7 @@
       $('progress').hidden = true;
       $('stop').hidden = true;
       $('new-work').hidden = true;
-      $('input').placeholder = 'Tell Chaser Agent what to do';
+      $('input').placeholder = 'Tell Chaser what to do';
       lastMotion = '';
     }
     refreshStatus().catch(report);
@@ -519,7 +520,9 @@
   }
 
   async function decide(pending, decision) {
-    try { await api(`/v1/agent/sessions/${current}/approvals`, { approval_id: pending.id, digest: pending.digest, decision }); await refreshSession(); } catch (error) { report(error); }
+    // Signed with the name from Settings, so the receipt says who decided. Without one the service records local_operator.
+    const decidedBy = setup && setup.reviewer ? `${setup.reviewer} (HUD)` : undefined;
+    try { await api(`/v1/agent/sessions/${current}/approvals`, { approval_id: pending.id, digest: pending.digest, decision, decided_by: decidedBy }); await refreshSession(); } catch (error) { report(error); }
   }
 
   async function send() {
@@ -530,7 +533,7 @@
     try {
       if (current) {
         const session = await api(`/v1/agent/sessions/${current}`);
-        if (ACTIVE.has(session.status) || session.pending) { $('notice').textContent = 'Chaser Agent is mid-task. Answer above, or press Stop first.'; return; }
+        if (ACTIVE.has(session.status) || session.pending) { $('notice').textContent = 'Chaser is mid-task. Answer above, or press Stop first.'; return; }
         await api(`/v1/agent/sessions/${current}/messages`, { message: text });
       } else {
         const session = await api('/v1/agent/sessions', { message: text });
@@ -539,6 +542,241 @@
       box.value = '';
       box.style.height = '';
     } catch (error) { report(error); }
+  }
+
+  // --- Settings: the Cloud key, your name, the shortcuts and the checks. The first run walks through them. ---
+
+  const TABS = [['key', 'Cloud key'], ['you', 'Your name'], ['shortcuts', 'Shortcuts'], ['checks', 'Checks']];
+  const KEY_SOURCE = {
+    saved: 'In use. Saved for this Windows account only.',
+    environment: 'In use. Given by your vault for this session.',
+    none: 'Not added yet.',
+  };
+  const SHORTCUT_STATE = { free: ['ok', 'Free'], taken: ['warn', 'Taken by another app: pick another'], invalid: ['fail', 'Can\'t be used'], unknown: ['info', 'Not checked here'] };
+  const MARK = { ok: '✓', warn: '!', fail: '✗', info: '·' };
+  const NAMED_KEYS = { Pause: 'Pause', Home: 'Home', End: 'End', Insert: 'Insert', Delete: 'Delete', PageUp: 'PageUp', PageDown: 'PageDown' };
+  let setup = null;
+  let settingsTab = 'key';
+  let guiding = false;
+  let capturing = null;
+  let removeArmed = false;
+
+  async function loadSetup() {
+    setup = await api('/v1/agent/setup');
+    $('welcome').hidden = setup.onboarded;
+    return setup;
+  }
+
+  function openSettings(tab, guide) {
+    guiding = Boolean(guide);
+    settingsTab = tab || 'key';
+    capturing = null;
+    removeArmed = false;
+    setOpen(true);
+    $('drawer').hidden = true;
+    $('settings').hidden = false;
+    $('settings-title').textContent = guiding ? 'Set up Chaser' : 'Settings';
+    renderSettings();
+    loadSetup().then(renderSettings).catch(report);
+  }
+
+  function closeSettings() {
+    capturing = null;
+    $('settings').hidden = true;
+  }
+
+  function dot(state, text) {
+    const node = el('span', `dot ${state}`);
+    node.append(el('i', '', MARK[state]), el('span', '', text));
+    return node;
+  }
+
+  function renderSettings() {
+    const tabs = $('settings-tabs');
+    tabs.replaceChildren(...TABS.map(([id, label], index) => {
+      const button = el('button', `tab${id === settingsTab ? ' on' : ''}`, guiding ? `${index + 1}. ${label}` : label);
+      button.type = 'button';
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-selected', String(id === settingsTab));
+      button.addEventListener('click', () => { settingsTab = id; capturing = null; removeArmed = false; renderSettings(); });
+      return button;
+    }));
+    const body = $('settings-body');
+    body.replaceChildren();
+    if (!setup) { body.append(el('p', 'hint', 'Loading…')); return; }
+    ({ key: keyTab, you: youTab, shortcuts: shortcutsTab, checks: checksTab })[settingsTab](body);
+    const foot = $('settings-foot');
+    foot.hidden = !guiding;
+    if (guiding) {
+      const index = TABS.findIndex(([id]) => id === settingsTab);
+      const back = el('button', 'control', 'Back');
+      back.type = 'button';
+      back.disabled = index === 0;
+      back.addEventListener('click', () => { settingsTab = TABS[index - 1][0]; renderSettings(); });
+      const last = index === TABS.length - 1;
+      const next = el('button', 'yes', last ? 'Finish' : 'Next');
+      next.type = 'button';
+      next.addEventListener('click', async () => {
+        if (!last) { settingsTab = TABS[index + 1][0]; renderSettings(); return; }
+        try { setup = await api('/v1/agent/setup/profile', { onboarded: true }); } catch (error) { report(error); return; }
+        $('welcome').hidden = true;
+        closeSettings();
+        setNow('Chaser is set up. Tell it what to do.');
+        $('input').focus();
+      });
+      foot.replaceChildren(el('span', 'hint', `Step ${index + 1} of ${TABS.length}`), el('span', 'grow'), back, next);
+    }
+  }
+
+  function keyTab(body) {
+    const key = setup.key;
+    body.append(
+      el('h3', '', 'ChaseOS Cloud key'),
+      el('p', 'hint', 'Chaser uses ChaseOS Cloud for work it does on its own, metered in credits on your account. The key is encrypted for your Windows account and never shown again.'),
+      key.in_use ? dot('ok', KEY_SOURCE[key.source] || KEY_SOURCE.saved)
+        : dot('warn', key.saved ? 'Saved. Chaser uses it the next time it starts.' : KEY_SOURCE.none),
+    );
+    const form = el('form', 'field');
+    const input = el('input');
+    input.type = 'password';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    const has = key.in_use || key.saved;
+    input.placeholder = has ? 'Paste a new key to replace it' : 'Paste your ChaseOS Cloud key';
+    input.setAttribute('aria-label', 'ChaseOS Cloud key');
+    const save = el('button', 'yes', has ? 'Replace' : 'Save key');
+    save.type = 'submit';
+    form.append(input, save);
+    const result = el('p', 'result');
+    result.setAttribute('role', 'status');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const value = input.value.trim();
+      input.value = '';
+      if (!value) { input.focus(); return; }
+      save.disabled = true;
+      result.className = 'result';
+      result.textContent = 'Checking the key with ChaseOS Cloud…';
+      try {
+        const reply = await api('/v1/agent/setup/key', { key: value });
+        setup.key = reply.key;
+        const credits = reply.check && typeof reply.check.credits === 'number' ? ` ${Math.round(reply.check.credits).toLocaleString()} credits left.` : '';
+        const note = reply.check && reply.check.ok === false ? ` ${reply.check.reason}` : '';
+        renderSettings();
+        const shown = $('settings-body').querySelector('.result');
+        shown.className = 'result ok';
+        shown.textContent = `${reply.key.in_use ? 'Saved. Chaser is using it now.' : 'Saved. Chaser uses it the next time it starts.'}${credits}${note}`;
+        refreshStatus().catch(() => {});
+      } catch (error) {
+        save.disabled = false;
+        result.className = 'result fail';
+        result.textContent = error.message;
+      }
+    });
+    body.append(form, result);
+    if (key.saved) {
+      const remove = el('button', 'link danger', removeArmed ? 'Click again to remove the key' : 'Remove the saved key');
+      remove.type = 'button';
+      remove.addEventListener('click', async () => {
+        if (!removeArmed) { removeArmed = true; renderSettings(); return; }
+        removeArmed = false;
+        try { setup.key = (await api('/v1/agent/setup/key/remove', {})).key; renderSettings(); refreshStatus().catch(() => {}); } catch (error) { report(error); }
+      });
+      body.append(remove);
+    }
+    body.append(el('p', 'hint small', 'No key? Chaser still works with Claude Code if it\'s installed and signed in.'));
+  }
+
+  function youTab(body) {
+    body.append(
+      el('h3', '', 'Your name on approvals'),
+      el('p', 'hint', 'Every yes or no you give here is signed with this name, so each receipt shows who decided.'),
+    );
+    const form = el('form', 'field');
+    const input = el('input');
+    input.value = setup.reviewer || '';
+    input.maxLength = 60;
+    input.placeholder = 'Your name';
+    input.setAttribute('aria-label', 'Your name');
+    const save = el('button', 'yes', 'Save');
+    save.type = 'submit';
+    const result = el('p', 'result');
+    form.append(input, save);
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      try {
+        setup = await api('/v1/agent/setup/profile', { reviewer: input.value });
+        result.className = 'result ok';
+        result.textContent = setup.reviewer ? `Approvals will be signed "${setup.reviewer} (HUD)".` : 'Approvals will be signed "local_operator".';
+      } catch (error) { result.className = 'result fail'; result.textContent = error.message; }
+    });
+    body.append(form, result);
+  }
+
+  function chordFrom(event) {
+    let key = '';
+    if (/^Key[A-Z]$/.test(event.code)) key = event.code.slice(3);
+    else if (/^Digit[0-9]$/.test(event.code)) key = event.code.slice(5);
+    else if (/^F([1-9]|1[01])$/.test(event.key)) key = event.key;
+    else if (NAMED_KEYS[event.key] || event.code === 'Pause') key = NAMED_KEYS[event.key] || 'Pause';
+    if (!key) return null;
+    return [event.ctrlKey && 'Ctrl', event.altKey && 'Alt', event.shiftKey && 'Shift', key].filter(Boolean).join('+');
+  }
+
+  function shortcutsTab(body) {
+    body.append(el('h3', '', 'Keys that stop Chaser'), el('p', 'hint', 'Click the keys to change them, then press the new combination.'));
+    const list = el('div', 'keys');
+    for (const row of setup.shortcuts) {
+      const line = el('div', 'key-row');
+      const caps = el('button', `caps${capturing === row.name ? ' listening' : ''}`);
+      caps.type = 'button';
+      caps.setAttribute('aria-label', `Change ${row.title}`);
+      if (capturing === row.name) caps.append(el('span', '', 'Press the new keys… (Esc to cancel)'));
+      else for (const cap of row.keys.length ? row.keys : [row.chord]) caps.append(el('kbd', '', cap));
+      caps.addEventListener('click', () => { capturing = capturing === row.name ? null : row.name; renderSettings(); });
+      const [state, words] = SHORTCUT_STATE[row.state] || SHORTCUT_STATE.unknown;
+      line.append(el('span', 'key-title', row.title), caps, dot(state, row.problem || words));
+      list.append(line);
+    }
+    const takeOver = el('p', 'hint small', 'Take over also happens the moment you move the mouse or type. Only you can resume, from the HUD.');
+    const reset = el('button', 'link', 'Back to the standard keys');
+    reset.type = 'button';
+    reset.addEventListener('click', async () => {
+      try { setup = await api('/v1/agent/setup/shortcuts', { reset: true }); renderSettings(); } catch (error) { report(error); }
+    });
+    body.append(list, el('p', 'result', ''), takeOver, el('p', 'hint small', setup.shortcuts_note), reset);
+  }
+
+  async function saveShortcut(name, chord) {
+    capturing = null;
+    try {
+      setup = await api('/v1/agent/setup/shortcuts', { name, chord });
+      renderSettings();
+    } catch (error) {
+      renderSettings();
+      const shown = $('settings-body').querySelector('.result');
+      shown.className = 'result fail';
+      shown.textContent = error.message;
+    }
+  }
+
+  function checksTab(body) {
+    body.append(el('h3', '', 'Is Chaser ready?'), el('p', 'hint', 'What Chaser needs on this computer. The key check asks ChaseOS Cloud for your balance, which costs nothing.'));
+    const list = el('div', 'checks');
+    list.append(el('p', 'hint', 'Checking…'));
+    const again = el('button', 'link', 'Check again');
+    again.type = 'button';
+    again.addEventListener('click', () => renderSettings());
+    body.append(list, again);
+    api('/v1/agent/setup/checks?online=1').then((found) => {
+      if (settingsTab !== 'checks') return;
+      list.replaceChildren(...found.rows.map((row) => {
+        const line = el('div', `check ${row.state}`);
+        line.append(el('i', '', MARK[row.state]), el('b', '', row.title), el('span', '', row.detail));
+        if (row.fix && (row.state === 'warn' || row.state === 'fail')) line.append(el('small', '', row.fix));
+        return line;
+      }));
+    }).catch((error) => { list.replaceChildren(el('p', 'result fail', error.message)); });
   }
 
   // --- Drawers and the file viewer. ---
@@ -615,6 +853,10 @@
   $('new-work').addEventListener('click', () => { select(null); $('input').focus(); });
   $('recent-button').addEventListener('click', () => toggleDrawer(recentDrawer));
   $('files-button').addEventListener('click', () => toggleDrawer(filesDrawer));
+  $('settings-button').addEventListener('click', () => ($('settings').hidden ? openSettings('key', false) : closeSettings()));
+  $('settings-close').addEventListener('click', closeSettings);
+  $('welcome-start').addEventListener('click', () => openSettings('key', true));
+  $('route').addEventListener('click', () => openSettings('key', false));
   $('viewer-close').addEventListener('click', () => $('viewer').close());
   $('viewer').addEventListener('close', () => fit(open ? EXPANDED : COLLAPSED));
   $('input').addEventListener('keydown', (event) => {
@@ -625,8 +867,18 @@
     event.target.style.height = `${event.target.scrollHeight}px`;
   });
   document.addEventListener('keydown', (event) => {
+    if (capturing) {
+      if (['Control', 'Alt', 'Shift', 'Meta', 'AltGraph'].includes(event.key)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.key === 'Escape') { capturing = null; renderSettings(); return; }
+      const chord = chordFrom(event);
+      if (chord) saveShortcut(capturing, chord);
+      return;
+    }
+    if (event.key === 'Escape' && !$('settings').hidden) { closeSettings(); return; }
     if (event.key === 'Escape' && open && !$('viewer').open) setOpen(false);
-  });
+  }, true);
 
   async function start() {
     token = readToken();
@@ -644,6 +896,7 @@
     window.addEventListener('load', refit);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) refit(); });
     select(null);
+    loadSetup().catch(() => {});
     // Pick up where things stand: something running or waiting comes back into view.
     try {
       const status = await refreshStatus();

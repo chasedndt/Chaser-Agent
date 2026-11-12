@@ -378,6 +378,11 @@ class AgentRuntime:
                 "parent": self.parent_link,
             }
 
+    def refresh_routes(self) -> None:
+        """Check every route again on the next status read, as after a key is added or removed."""
+        with self._lock:
+            self._status_cache = {**self._status_cache, "checked_at": 0}
+
     def _live_routes(self) -> dict[str, Any]:
         """Other routes are slow to check, so they're cached. The bridge is cheap and changes the moment a program attaches."""
         bridge = self.reasoners.get("bridge")

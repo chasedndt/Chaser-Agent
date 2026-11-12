@@ -214,25 +214,43 @@ class ChaseOSCloudReasoner:
     label = "ChaseOS Cloud"
     max_context_chars = 120_000
 
-    def __init__(self, key: str = "", *, model: str = "chaseos/balanced", base_url: str = "", max_tokens: int = 8000) -> None:
+    def __init__(self, key: str = "", *, model: str = "chaseos/balanced", base_url: str = "", max_tokens: int = 8000, key_source: str = "") -> None:
         self._key = key.strip()
+        self.key_source = (key_source or "given") if self._key else "none"
         self.model = model
         self.base_url = (base_url or CLOUD_BASE_URL).rstrip("/")
         self.max_tokens = max_tokens
 
     @classmethod
-    def from_environment(cls, environ: dict[str, str] | None = None, **kwargs: Any) -> "ChaseOSCloudReasoner":
+    def from_environment(cls, environ: dict[str, str] | None = None, *, saved: bool | None = None, **kwargs: Any) -> "ChaseOSCloudReasoner":
+        """The key from the environment (a vault injecting it), else the one saved for this Windows account.
+
+        The saved key is read only for the real environment, unless saved=True is passed.
+        """
+        if saved is None:
+            saved = environ is None
         environ = os.environ if environ is None else environ
         key = environ.pop(CLOUD_KEY_ENV, "")
+        source = "environment" if key.strip() else ""
+        if not source and saved:
+            from chaser_agent import cloud_key
+
+            key = cloud_key.load()
+            source = "saved" if key else ""
         base_url = kwargs.pop("base_url", "") or environ.get("CHASEOS_CLOUD_BASE_URL", "")
         # A different model, e.g. a candidate evaluated against an OpenAI-compatible endpoint.
         model = kwargs.pop("model", "") or environ.get("CHASEOS_CLOUD_MODEL", "") or "chaseos/balanced"
-        return cls(key, base_url=base_url, model=model, **kwargs)
+        return cls(key, base_url=base_url, model=model, key_source=source, **kwargs)
+
+    def set_key(self, key: str, *, source: str = "saved") -> None:
+        """Use a key added or removed in Settings from the next step on. Nothing restarts."""
+        self._key = (key or "").strip()
+        self.key_source = source if self._key else "none"
 
     def status(self) -> dict[str, Any]:
         return {
             "id": self.reasoner_id, "label": self.label, "available": bool(self._key), "model": self.model,
-            "reason": None if self._key else f"No ChaseOS Cloud key on this machine. Start the service with {CLOUD_KEY_ENV} set.",
+            "reason": None if self._key else "No ChaseOS Cloud key yet. Add one in Settings, or run: chaser key add",
         }
 
     def _post(self, body: bytes, timeout: float) -> tuple[int, dict[str, Any]]:

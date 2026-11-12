@@ -29,7 +29,7 @@ from chaser_agent.local_acl import read_private_control_token
 ROOT = Path(__file__).resolve().parents[1]
 EDGE = Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")) / "Microsoft" / "Edge" / "Application" / "msedge.exe"
 PACK = ROOT / "scripts" / "hud_check_pack.py"
-BARE_NAME = r"/\bChaser\b(?! Agent)/.test(document.body.innerText)"
+LONG_NAME = "/Chaser Agent/.test(document.body.innerText)"  # on screen it's Chaser; Chaser Agent is the product name
 TAGS = "[...document.querySelectorAll('.row .tag')].map(n => n.textContent)"
 
 
@@ -110,7 +110,9 @@ def _free_port() -> int:
 
 
 def _serve(data: Path, port: int, *, no_model: bool = False) -> subprocess.Popen:
-    env = {**os.environ, "HUD_CHECK_NO_MODEL": "1" if no_model else ""}
+    # Its own settings folder and no Cloud key, so the check never reads this computer's real ones or calls ChaseOS Cloud.
+    env = {key: value for key, value in os.environ.items() if key != "CHASEOS_CLOUD_KEY"}
+    env.update({"HUD_CHECK_NO_MODEL": "1" if no_model else "", "CHASER_AGENT_HOME": str(data.parent / "home"), "CHASEOS_CLOUD_BASE_URL": "http://127.0.0.1:9"})
     process = subprocess.Popen(
         [sys.executable, "-B", "-X", "utf8", "-m", "chaser_agent.cli", "serve", "--data-dir", str(data), "--port", str(port), "--pack", str(PACK), "--memory-limit-mb", "800"],
         env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
@@ -166,17 +168,19 @@ def main_phase(page: Page, check: Checks, out: Path) -> None:
     check("an example fills the input", page.js("document.getElementById('input').value.startsWith('An example')"))
     page.js("document.getElementById('input').value = ''")
     check("the parent link shows", page.until("!document.getElementById('parent').hidden && document.getElementById('parent').textContent === 'Open Parent'"))
-    check("the agent is never called by half its name", not page.js(BARE_NAME))
+    check("on screen it is Chaser, never Chaser Agent", not page.js(LONG_NAME))
+    check("a first run offers setup", page.until("!document.getElementById('welcome').hidden"))
     page.shot(out / "02-panel-idle.png")
+    settings_phase(page, check, out)
     page.js("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))")
     check("Esc closes the panel", page.until(f"!{opened} && innerHeight <= 80"))
 
     # A run that reaches a question while collapsed.
     send("SCRIPT:main please do the whole thing")
     check("a sentence and Enter starts work", page.until("document.getElementById('input').value === '' && !document.getElementById('goal').hidden"))
-    check("the panel opens itself for a question", page.until(f"{opened} && document.querySelector('#pending h3')?.textContent === 'Chaser Agent needs something from you'"))
+    check("the panel opens itself for a question", page.until(f"{opened} && document.querySelector('#pending h3')?.textContent === 'Chaser needs something from you'"))
     check("the question stays on the pill", "Which colour" in text("now"), text("now"))
-    check("the taskbar title says a person is needed", page.until("document.title === 'Needs your answer · Chaser Agent'"), page.js("document.title"))
+    check("the taskbar title says a person is needed", page.until("document.title === 'Needs your answer · Chaser'"), page.js("document.title"))
     check("amber while waiting for a person", page.js("document.getElementById('hud').dataset.tone === 'human'"))
     check("Stop is offered while waiting", not page.js("document.getElementById('stop').hidden"))
     tags = page.js(TAGS)
@@ -221,12 +225,12 @@ def main_phase(page: Page, check: Checks, out: Path) -> None:
     check("the answer is on the pill", "All finished" in text("now"), text("now"))
     check("teal when finished", page.js("document.getElementById('hud').dataset.tone === 'done'"))
     check("Stop goes away when finished", page.js("document.getElementById('stop').hidden"))
-    check("the taskbar title goes back", page.js("document.title === 'Chaser Agent'"))
+    check("the taskbar title goes back", page.js("document.title === 'Chaser'"))
     check("a finished session doesn't show a stale step", page.js("document.getElementById('progress').hidden"))
     first = text("meta")
     time.sleep(2.5)
     check("the clock stops when finished", text("meta") == first, [first, text("meta")])
-    check("the agent is never called by half its name when finished", not page.js(BARE_NAME))
+    check("still Chaser, never Chaser Agent, when finished", not page.js(LONG_NAME))
     page.shot(out / "06-finished.png")
 
     # A saved page opens sandboxed and the window goes back afterwards.
@@ -274,13 +278,65 @@ def main_phase(page: Page, check: Checks, out: Path) -> None:
     # A reload while something is waiting, then a typed answer.
     click("#new-work")
     send("SCRIPT:ask a question please")
-    check("a free-text question shows", page.until("document.querySelector('#pending h3')?.textContent === 'Chaser Agent needs something from you' && document.querySelector('#pending p').textContent.includes('called')"))
+    check("a free-text question shows", page.until("document.querySelector('#pending h3')?.textContent === 'Chaser needs something from you' && document.querySelector('#pending p').textContent.includes('called')"))
     page.js("location.reload()")
     time.sleep(1)
     check("a waiting question comes back after a reload", page.until("document.querySelector('#pending p')?.textContent.includes('called')", 15), page.js("document.getElementById('pending')?.textContent"))
     page.js("(() => { const box = document.querySelector('#pending textarea'); box.value = 'Quarterly'; document.querySelector('#pending .yes').click(); })()")
     check("a typed answer goes through", page.until("document.querySelector('.answer')?.textContent === 'Called what you said.'"), page.js("document.getElementById('activity').textContent"))
     check("no script error from anything above", page.js("window.__pwned === undefined"))
+
+
+def settings_phase(page: Page, check: Checks, out: Path) -> None:
+    """The first-run walk-through: Cloud key, your name, shortcuts, checks. The key is fake and never leaves the computer."""
+    def body(text: str) -> str:
+        return f"document.getElementById('settings-body').textContent.includes({json.dumps(text)})"
+
+    def next_step() -> None:
+        page.js("document.querySelector('#settings-foot .yes').click()")
+
+    page.js("document.getElementById('welcome-start').click()")
+    check("setup opens on the Cloud key step", page.until(f"!document.getElementById('settings').hidden && {body('Not added yet.')}"), page.js("document.getElementById('settings-body').textContent"))
+    check("setup says which step this is", page.js("document.getElementById('settings-foot').textContent.includes('Step 1 of 4')"))
+    check("the key field hides what is typed", page.js("document.querySelector('#settings-body input').type === 'password'"))
+    check("no sideways overflow in settings", page.js("document.documentElement.scrollWidth <= innerWidth"))
+    page.shot(out / "10-setup-key.png")
+    page.js("(() => { const box = document.querySelector('#settings-body input'); box.value = 'hud-check-not-a-real-key'; document.querySelector('#settings-body form').requestSubmit(); })()")
+    check("a key is saved and the field is cleared", page.until(f"{body('Saved.')} && document.querySelector('#settings-body input').value === ''"), page.js("document.getElementById('settings-body').textContent"))
+    check("the key is never shown again", not page.js("document.body.innerText.includes('hud-check-not-a-real-key')"))
+    check("an unreachable Cloud is said plainly", page.js(body("Couldn't reach ChaseOS Cloud")))
+    page.shot(out / "11-setup-key-saved.png")
+    page.js("document.querySelector('#settings-body .danger').click()")
+    check("removing asks twice", page.until(body("Click again to remove")))
+    page.js("document.querySelector('#settings-body .danger').click()")
+    check("the key can be removed", page.until(f"{body('Not added yet.')} && !document.querySelector('#settings-body .danger')"))
+    next_step()
+    check("step 2 asks for your name", page.until(body("Your name on approvals")))
+    page.js("(() => { document.querySelector('#settings-body input').value = 'HUD Check'; document.querySelector('#settings-body form').requestSubmit(); })()")
+    check("the name is saved", page.until(body('signed "HUD Check (HUD)"')), page.js("document.getElementById('settings-body').textContent"))
+    next_step()
+    check("step 3 shows the shortcuts", page.until("document.querySelectorAll('.key-row').length === 3 && document.querySelector('.key-row kbd').textContent === 'Ctrl'"))
+    check("each shortcut says whether it is free", page.js("[...document.querySelectorAll('.key-row .dot')].every(n => /Free|Taken|checked/.test(n.textContent))"), page.js("[...document.querySelectorAll('.key-row .dot')].map(n => n.textContent)"))
+    page.shot(out / "12-setup-shortcuts.png")
+    page.js("document.querySelectorAll('.key-row .caps')[2].click()")
+    check("clicking the keys listens for new ones", page.until("!!document.querySelector('.caps.listening')"))
+    page.js("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'E', code: 'KeyE', ctrlKey: true, altKey: true, bubbles: true}))")
+    check("a chord the keyboard uses for characters is refused", page.until("document.querySelector('#settings-body .result.fail')?.textContent.includes('AltGr')"), page.js("document.querySelector('#settings-body .result')?.textContent"))
+    page.js("document.querySelectorAll('.key-row .caps')[2].click()")
+    page.js("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Y', code: 'KeyY', ctrlKey: true, altKey: true, shiftKey: true, bubbles: true}))")
+    check("a free chord is taken", page.until("[...document.querySelectorAll('.key-row')][2].textContent.includes('Y')"), page.js("[...document.querySelectorAll('.key-row')].map(n => n.textContent)"))
+    page.js("[...document.querySelectorAll('#settings-body .link')].find(n => n.textContent.includes('standard')).click()")
+    check("the standard keys come back", page.until("[...document.querySelectorAll('.key-row')][2].textContent.includes('T')"))
+    next_step()
+    check("step 4 runs the checks", page.until("document.querySelectorAll('.check').length >= 6", 30), page.js("document.getElementById('settings-body').textContent"))
+    check("the checks show the name and that Chaser is running", page.js("document.querySelector('.check.ok') && " + body("HUD Check") + " && " + body("Running, ready for work")))
+    page.shot(out / "13-setup-checks.png")
+    next_step()
+    check("finishing closes setup and hides the welcome", page.until("document.getElementById('settings').hidden && document.getElementById('welcome').hidden"))
+    page.js("document.getElementById('settings-button').click()")
+    check("Settings opens again from the foot of the panel", page.until("!document.getElementById('settings').hidden && document.getElementById('settings-title').textContent === 'Settings' && document.getElementById('settings-foot').hidden"))
+    page.js("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))")
+    check("Esc closes Settings first, not the panel", page.until("document.getElementById('settings').hidden && document.getElementById('hud').classList.contains('open')"))
 
 
 def lost_contact_phase(page: Page, check: Checks, process: subprocess.Popen, out: Path) -> None:
@@ -291,12 +347,14 @@ def lost_contact_phase(page: Page, check: Checks, process: subprocess.Popen, out
 
 
 def no_model_phase(page: Page, check: Checks, out: Path) -> None:
-    check("with no model the HUD says so", page.until("!document.getElementById('route').hidden && document.getElementById('route').textContent.includes('No AI model is connected')", 30), page.js("document.getElementById('route').textContent"))
+    check("with no model the HUD says so", page.until("!document.getElementById('route').hidden && document.getElementById('route').textContent.includes('no way to think yet')", 30), page.js("document.getElementById('route').textContent"))
     check("the reasons are in its tooltip", page.js("document.getElementById('route').title.includes('Another harness')"), page.js("document.getElementById('route').title"))
     page.js("(() => { const box = document.getElementById('input'); box.value = 'Anything'; box.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true})); })()")
     check("work without a model stops and says why", page.until("document.getElementById('state-text').textContent === 'Stopped' && document.getElementById('now').textContent.includes('No AI model is connected')"), page.js("[document.getElementById('state-text').textContent, document.getElementById('now').textContent]"))
     check("red when stopped", page.js("document.getElementById('hud').dataset.tone === 'blocked'"))
     page.shot(out / "09-no-model.png")
+    page.js("document.getElementById('route').click()")
+    check("the no-model line opens the Cloud key setting", page.until("!document.getElementById('settings').hidden && document.getElementById('settings-body').textContent.includes('ChaseOS Cloud key')"))
 
 
 def main() -> int:
