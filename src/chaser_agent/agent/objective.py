@@ -12,6 +12,13 @@ cover, how many tools failed, and whether the agent is asking the person before 
 tried. w and b are set by hand to start with (WEIGHTS below), so every decision is explainable
 term by term; they are meant to be refitted later from the owner's own accept/reject history.
 
+The terms follow the task-verification failures in Cemri et al., "Why Do Multi-Agent LLM Systems
+Fail?" (arXiv 2503.13657): premature termination (FM-3.1) is what deferred_early and the stop gate
+catch, no or incomplete verification (FM-3.2) is what found/read/coverage/required_missing measure,
+and being unaware of termination conditions (FM-1.5) is what the threshold makes explicit. Its
+opposite failure, not asking for clarification (FM-2.2), is why a question is still allowed once the
+tools have really been tried.
+
 Below THRESHOLD, with retries and budget left, the agent is not allowed to stop: it is told which
 terms pulled the score down and what to try next, and the loop continues. When it does stop, the
 score and whether the objective was met are recorded with the turn, so a failure says it failed.
