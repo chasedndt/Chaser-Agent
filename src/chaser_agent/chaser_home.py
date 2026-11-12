@@ -70,5 +70,25 @@ def save(changes: dict[str, Any]) -> dict[str, Any]:
     return value
 
 
+def detect_chaseos() -> dict[str, Any] | None:
+    """This computer's ChaseOS setup for Chaser, if it has one: ChaseOS is optional, so None is normal.
+
+    Read from operations/chaser-agent-service.json in CHASEOS_ROOT, or in Documents\\ChaserOS.
+    """
+    roots = [os.environ.get("CHASEOS_ROOT"), str(Path.home() / "Documents" / "ChaserOS")]
+    for root in filter(None, roots):
+        binding = Path(root) / "operations" / "chaser-agent-service.json"
+        try:
+            value = json.loads(binding.read_text(encoding="utf-8-sig"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(value, dict) or not value.get("data_dir"):
+            continue
+        packs = [value["pack"]] if value.get("pack") else [str(p) for p in value.get("packs") or []]
+        return {"source": str(binding), "data_dir": str(value["data_dir"]), "port": int(value.get("port") or DEFAULT_PORT),
+                "packs": packs, "memory_limit_mb": int(value.get("memory_limit_mb_per_process") or DEFAULT_MEMORY_LIMIT_MB)}
+    return None
+
+
 def is_onboarded() -> bool:
     return bool(load().get("onboarded_at"))

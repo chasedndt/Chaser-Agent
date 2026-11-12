@@ -155,6 +155,11 @@ def run_status(args: argparse.Namespace) -> int:
     return 0 if status == 200 else 2
 
 
+def is_hud_title(title: str) -> bool:
+    """The HUD's window title: "Chaser", or "Needs your yes · Chaser" while it waits. Older pages said "Chaser Agent"."""
+    return title in {"Chaser", "Chaser Agent"} or title.endswith((" · Chaser", " · Chaser Agent"))
+
+
 class _HudWindow:
     """The HUD's window on Windows: found by title, kept above other windows, in the bottom-right corner."""
 
@@ -180,7 +185,7 @@ class _HudWindow:
 
         def visit(window: int, _extra: int) -> bool:
             text = self.ctypes.create_unicode_buffer(64)
-            if self.user32.IsWindowVisible(window) and self.user32.GetWindowTextW(window, text, 64) and text.value.endswith("Chaser Agent"):
+            if self.user32.IsWindowVisible(window) and self.user32.GetWindowTextW(window, text, 64) and is_hud_title(text.value):
                 found.append(window)
             return True
 
@@ -229,7 +234,7 @@ def run_open(args: argparse.Namespace) -> int:
     if os.name == "nt":
         hud = _HudWindow()
         if hud.bring_back():
-            print(f"Chaser Agent HUD is already open on port {args.port}, and is back in its corner.")
+            print(f"The Chaser HUD is already open on port {args.port}, and is back in its corner.")
             return 0
         browser = Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")) / "Microsoft" / "Edge" / "Application" / "msedge.exe"
         command = [str(browser), f"--app={url}", "--window-size=436,115"] if browser.is_file() else ["cmd", "/c", "start", "", url]
@@ -239,7 +244,7 @@ def run_open(args: argparse.Namespace) -> int:
         import webbrowser
 
         webbrowser.open(url)
-    print(f"Chaser Agent HUD opened on port {args.port}{'' if pinned else '. It could not be kept on top'}.")
+    print(f"The Chaser HUD opened on port {args.port}{'' if pinned else '. It could not be kept on top'}.")
     return 0
 
 

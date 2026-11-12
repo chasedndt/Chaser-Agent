@@ -110,8 +110,9 @@ def _key(online: bool, environ: dict[str, str]) -> tuple[dict[str, Any], bool]:
 
 
 def run(settings: dict[str, Any] | None = None, *, online: bool = False, environ: dict[str, str] | None = None,
-        running: dict[str, Any] | None = None) -> dict[str, Any]:
-    """running: when the service itself asks, what it already knows (its port and Cloud key source)."""
+        running: dict[str, Any] | None = None, routes: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """running: when the service itself asks, what it already knows (its port and Cloud key source).
+    routes: the running service's own route checks, which test sign-in rather than only finding a program."""
     settings = settings or chaser_home.load()
     environ = os.environ if environ is None else environ
     rows = []
@@ -127,12 +128,24 @@ def run(settings: dict[str, Any] | None = None, *, online: bool = False, environ
         rows.append(_gateway(int(settings["port"])))
     key_row, has_cloud = _key(online, environ)
     rows.append(key_row)
-    claude = shutil.which("claude")
-    rows.append(row("claude_code", "Claude Code", OK if claude else INFO,
-                    "Found. Chaser can use your Claude Code sign-in" if claude else "Not installed (optional)"))
-    rows.append(row("routes", "A way for Chaser to think", OK if (has_cloud or claude) else FAIL,
-                    "ChaseOS Cloud" if has_cloud and not claude else "Claude Code" if claude and not has_cloud else "ChaseOS Cloud, then Claude Code" if claude else "None yet",
-                    None if (has_cloud or claude) else "Add a ChaseOS Cloud key, or install and sign in to Claude Code"))
+    routes = {route.get("id"): route for route in (routes or [])}
+    claude_route = routes.get("claude-cli")
+    installed = bool(shutil.which("claude"))
+    if claude_route is not None:  # the running service tried it, sign-in included
+        claude = bool(claude_route.get("available"))
+        detail = "Signed in. Chaser can use it" if claude else (claude_route.get("reason") or "Not available")
+        rows.append(row("claude_code", "Claude Code", OK if claude else (WARN if installed else INFO), detail,
+                        None if claude or not installed else "Sign in with: claude auth login"))
+    else:
+        claude = installed
+        rows.append(row("claude_code", "Claude Code", OK if installed else INFO,
+                        "Installed; sign-in is checked once Chaser is running" if installed else "Not installed (optional)"))
+    cloud_route = routes.get("chaseos-cloud")
+    if cloud_route is not None:
+        has_cloud = bool(cloud_route.get("available")) and has_cloud
+    names = [name for name, ok in (("ChaseOS Cloud", has_cloud), ("Claude Code", claude)) if ok]
+    rows.append(row("routes", "A way for Chaser to think", OK if names else FAIL, ", then ".join(names) or "None yet",
+                    None if names else "Add a ChaseOS Cloud key, or install and sign in to Claude Code"))
     missing = [pack for pack in settings.get("packs") or [] if not Path(pack).is_file()]
     if settings.get("packs"):
         rows.append(row("packs", "Packs", FAIL if missing else OK,

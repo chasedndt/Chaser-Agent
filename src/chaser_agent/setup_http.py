@@ -46,7 +46,8 @@ def handle_get(handler: Any, runtime: Any) -> bool:
         online = (parse_qs(parts.query).get("online") or ["0"])[0] == "1"
         cloud = _cloud(runtime)
         running = {"port": port, "key_source": getattr(cloud, "key_source", "none"), "key": getattr(cloud, "_key", "")}
-        handler._reply(200, setup_checks.run({**chaser_home.load(), "data_dir": str(runtime.data_dir), "port": port}, online=online, running=running))
+        routes = (runtime.status().get("reasoners") or {}).get("routes") or None
+        handler._reply(200, setup_checks.run({**chaser_home.load(), "data_dir": str(runtime.data_dir), "port": port}, online=online, running=running, routes=routes))
         return True
     return False
 

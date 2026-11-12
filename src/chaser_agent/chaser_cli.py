@@ -1,8 +1,10 @@
-"""`chaser`: set up, start and check Chaser Agent from a terminal.
+"""`chaser`: set up, start, talk to and check Chaser Agent from a terminal.
 
-    chaser                 what's set up, and what to run next
+    chaser                 the home menu: chat, what's waiting, the HUD, start or stop, settings, checks, logs
+    chaser chat            talk to Chaser and watch it work; answer questions and approvals inline
     chaser onboard         first-run setup: checks, folder, key, your name, shortcuts, start
-    chaser gateway         start Chaser's service in the background (stop, restart, status, logs)
+    chaser gateway         start Chaser in the background, kept running by a supervisor
+                           (stop, restart, status, logs [-f], run, install, uninstall)
     chaser setup           change any setting from a menu
     chaser doctor          pre-flight checks (--online also checks the key, --fix creates the folder)
     chaser key             add, check or remove the ChaseOS Cloud key (never shown)
@@ -20,17 +22,14 @@ import argparse
 import getpass
 import json
 import os
-import signal
-import subprocess
 import sys
 import time
 from pathlib import Path
 from typing import Any
 
-from chaser_agent import chaser_home, cloud_key, setup_checks, shortcuts
+from chaser_agent import chaser_home, cloud_key, gateway_service, setup_checks, shortcuts, terminal_ui
 
 PASS_THROUGH = {"ask", "open", "decide", "agent-status", "reasoner"}
-PID_FILE = "gateway.pid"
 MARK = {"ok": "✓", "warn": "!", "fail": "✗", "info": "·"}
 COLOUR = {"ok": "32", "warn": "33", "fail": "31", "info": "90", "head": "1", "dim": "90", "teal": "36"}
 _colour = False
@@ -95,83 +94,16 @@ def confirm(prompt: str, default: bool = True) -> bool:
 
 # --- The service ----------------------------------------------------------------
 
-def _source_root() -> Path:
-    return Path(__file__).resolve().parents[1]
-
-
 def gateway_command(settings: dict[str, Any]) -> list[str]:
-    command = [sys.executable, "-X", "utf8", "-m", "chaser_agent.cli", "serve", "--data-dir", str(settings["data_dir"]),
-               "--port", str(settings["port"]), "--memory-limit-mb", str(settings.get("memory_limit_mb") or 0)]
-    for pack in settings.get("packs") or []:
-        command += ["--pack", str(pack)]
-    return command
-
-
-def _listening_pid(port: int) -> int | None:
-    if os.name != "nt":
-        return None
-    done = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True, text=True, timeout=20)
-    for line in done.stdout.splitlines():
-        parts = line.split()
-        if len(parts) >= 5 and parts[1] == f"127.0.0.1:{port}" and parts[3].upper() == "LISTENING":
-            return int(parts[4])
-    return None
+    return gateway_service.service_command(settings)
 
 
 def gateway_start(settings: dict[str, Any], *, wait: float = 60) -> tuple[bool, str]:
-    port = int(settings["port"])
-    health = setup_checks.gateway_health(port)
-    if health and health.get("service") == "chaser-agent":
-        return True, f"Chaser is already running on http://127.0.0.1:{port}/"
-    if not setup_checks.port_free(port):
-        return False, f"Another program is using port {port}. Choose another with: chaser setup"
-    folder = Path(settings["data_dir"])
-    if not folder.exists():
-        setup_checks.make_private_folder(folder)
-    log = folder / "service.log"
-    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONPATH": os.pathsep.join([str(_source_root()), os.environ.get("PYTHONPATH", "")]).rstrip(os.pathsep)}
-    flags = (getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)) if os.name == "nt" else 0
-    with open(log, "ab") as out, open(str(log) + ".err", "ab") as err:
-        process = subprocess.Popen(gateway_command(settings), cwd=str(folder), env=env, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
-                                   creationflags=flags, start_new_session=os.name != "nt", close_fds=True)
-    (folder / PID_FILE).write_text(str(process.pid), encoding="ascii")
-    deadline = time.monotonic() + wait
-    while time.monotonic() < deadline:
-        if process.poll() is not None:
-            return False, f"Chaser stopped as it started. See {log}.err"
-        health = setup_checks.gateway_health(port, timeout=1)
-        if health and health.get("service") == "chaser-agent":
-            return True, f"Chaser is running on http://127.0.0.1:{port}/"
-        time.sleep(0.5)
-    return False, f"Chaser didn't answer within {int(wait)} seconds. See {log}.err"
+    return gateway_service.start_detached(settings, wait=wait)
 
 
 def gateway_stop(settings: dict[str, Any]) -> tuple[bool, str]:
-    port = int(settings["port"])
-    health = setup_checks.gateway_health(port)
-    if not (health and health.get("service") == "chaser-agent"):
-        return True, "Chaser isn't running."
-    pid_file = Path(settings["data_dir"]) / PID_FILE
-    pid = None
-    try:
-        pid = int(pid_file.read_text(encoding="ascii").strip())
-    except (OSError, ValueError):
-        pass
-    listening = _listening_pid(port)
-    if listening is not None and listening != pid:
-        pid = listening  # started some other way, such as Start-ChaserAgent.ps1
-    if pid is None:
-        return False, f"Couldn't find Chaser's process on port {port}."
-    try:
-        os.kill(pid, signal.SIGTERM)
-    except OSError as exc:
-        return False, f"Couldn't stop Chaser: {exc}"
-    for _ in range(40):
-        if not setup_checks.gateway_health(port, timeout=0.5):
-            pid_file.unlink(missing_ok=True)
-            return True, "Chaser stopped. Its work and receipts are kept."
-        time.sleep(0.25)
-    return False, "Chaser is still answering. Try again."
+    return gateway_service.stop(settings)
 
 
 # --- Talking to the running service ------------------------------------------
@@ -181,6 +113,17 @@ def _service_call(settings: dict[str, Any], method: str, path: str, body: dict[s
 
     args = argparse.Namespace(data_dir=str(settings["data_dir"]), port=int(settings["port"]))
     return agent_cli._call(args, method, path, body)
+
+
+def _routes(settings: dict[str, Any]) -> list[dict[str, Any]] | None:
+    """The running service's own route checks, which test sign-in. None when Chaser isn't running."""
+    if not _running(settings):
+        return None
+    status, reply = _service_call(settings, "GET", "/v1/agent/status")
+    if status == 200 and not (reply.get("reasoners") or {}).get("routes"):
+        time.sleep(2)  # routes are checked in the background the first time anyone asks
+        status, reply = _service_call(settings, "GET", "/v1/agent/status")
+    return ((reply.get("reasoners") or {}).get("routes") or None) if status == 200 else None
 
 
 def _running(settings: dict[str, Any]) -> bool:
@@ -219,6 +162,9 @@ def add_key(settings: dict[str, Any]) -> bool:
         return False
     if _running(settings):
         status, reply = _service_call(settings, "POST", "/v1/agent/setup/key", {"key": key})
+        if status == 404:
+            print(paint("  This Chaser is an older version, so the key is saved here and used when it next starts.", "dim"))
+            return _save_key_here(key)
         if status == 200:
             check = reply.get("check") or {}
             credits = f", {check['credits']:,.0f} credits left" if check.get("credits") is not None else ""
@@ -227,6 +173,10 @@ def add_key(settings: dict[str, Any]) -> bool:
         message = (reply.get("error") or {}).get("message") if isinstance(reply, dict) else None
         print(f"  {paint('✗', 'fail')} {message or 'Chaser could not save the key.'}")
         return False
+    return _save_key_here(key)
+
+
+def _save_key_here(key: str) -> bool:
     print("  Checking it with ChaseOS Cloud…")
     result = cloud_key.check(key)
     if result.get("refused"):
@@ -261,6 +211,12 @@ def show_shortcuts(settings: dict[str, Any]) -> None:
         print(f"  {item['title']:<36} {keys:<24} {words[item['state']]}")
     print(paint("  Take over also happens the moment you move the mouse or type. Only you can resume.", "dim"))
     print(paint("  Chaser holds these keys once it can use the mouse and keyboard. Change them: chaser shortcuts set", "dim"))
+
+
+def _offer_chaseos(found: dict[str, Any]) -> bool:
+    print(f"  This computer already has a ChaseOS setup for Chaser ({found['source']}):")
+    print(paint(f"    folder {found['data_dir']}\n    port {found['port']}, {len(found['packs'])} pack(s)", "dim"))
+    return confirm("Use it, so Chaser keeps its existing work and receipts?")
 
 
 def step_start(settings: dict[str, Any], *, open_hud: bool = True) -> bool:
@@ -304,6 +260,10 @@ def run_onboard(args: argparse.Namespace) -> int:
     show_rows(setup_checks.run(settings)["rows"])
 
     heading(f"Step 2 of {total} · Where Chaser keeps its work")
+    found = chaser_home.detect_chaseos()
+    if found and found["data_dir"] != settings["data_dir"] and (args.use_chaseos or (interactive and not args.non_interactive and _offer_chaseos(found))):
+        settings = chaser_home.save({key: found[key] for key in ("data_dir", "port", "packs", "memory_limit_mb")})
+        print(f"  {paint('✓', 'ok')} Using this computer's ChaseOS setup for Chaser")
     if interactive and advanced:
         folder = ask("Folder", settings["data_dir"])
         port = ask("Port", str(settings["port"]))
@@ -340,20 +300,42 @@ def run_onboard(args: argparse.Namespace) -> int:
 
     settings = chaser_home.save({"onboarded_at": datetime.now(UTC).isoformat(timespec="seconds")})
     heading("Done. Try:")
-    print(f"  {paint('chaser ask', 'teal')} \"What's waiting on me today?\"\n"
+    print(f"  {paint('chaser', 'teal')}           the home menu\n"
+          f"  {paint('chaser chat', 'teal')}      talk to Chaser and watch it work\n"
           f"  {paint('chaser open', 'teal')}      the HUD{'' if started else ' (start Chaser first: chaser gateway)'}\n"
-          f"  {paint('chaser setup', 'teal')}     change any of this\n"
-          f"  {paint('chaser doctor', 'teal')}    check everything again")
+          f"  {paint('chaser gateway install', 'teal')}  keep Chaser running whenever you're signed in")
     return 0
 
 
 def run_gateway(args: argparse.Namespace) -> int:
     settings = chaser_home.load()
     action = args.action
-    if action == "start" and args.foreground:
-        from chaser_agent import cli
-
-        return cli.main(gateway_command(settings)[5:])
+    if action == "run" or (action == "start" and args.foreground):
+        if setup_checks.gateway_health(int(settings["port"])):
+            print(f"Chaser is already running on port {settings['port']}.")
+            return 0
+        print(f"Chaser is running on http://127.0.0.1:{settings['port']}/ and restarts itself if it stops. Ctrl+C to stop.")
+        try:
+            gateway_service.supervise(settings)
+        except KeyboardInterrupt:
+            pass
+        return 0
+    if action == "install":
+        try:
+            command = gateway_service.install()
+        except OSError as exc:
+            print(f"{MARK['fail']} {exc}")
+            return 1
+        print(f"{MARK['ok']} Chaser now starts whenever you sign in to Windows, and restarts itself if it stops.")
+        print(paint(f"  Runs: {command}", "dim"))
+        print(paint("  Turn it off with: chaser gateway uninstall", "dim"))
+        ok, message = gateway_start(settings)
+        print(message)
+        return 0 if ok else 1
+    if action == "uninstall":
+        print(f"{MARK['ok']} Chaser no longer starts at sign-in." if gateway_service.uninstall() else "Chaser wasn't set to start at sign-in.")
+        print(paint("  It's still running now if it was. Stop it with: chaser gateway stop", "dim"))
+        return 0
     if action in {"start", "restart"}:
         if action == "restart":
             ok, message = gateway_stop(settings)
@@ -384,9 +366,17 @@ def run_gateway(args: argparse.Namespace) -> int:
                     state = "ready" if route.get("available") and route.get("connected", True) is not False else (route.get("reason") or "not available")
                     print(f"  {route.get('label')}: {state}")
                 print(f"  Sessions: {reply.get('sessions', 0)}, running {len(reply.get('active_sessions') or [])}, waiting for you {len(reply.get('waiting_for_operator') or [])}")
+        print(f"  Starts at sign-in: {'yes' if gateway_service.installed() else 'no (chaser gateway install)'}")
         return 0
     if action == "logs":
         log = Path(settings["data_dir"]) / "service.log"
+        if args.follow:
+            print(paint(f"Following {log} and its error log. Ctrl+C to stop.", "dim"))
+            try:
+                gateway_service.follow([log, Path(str(log) + ".err")], lines=args.lines)
+            except KeyboardInterrupt:
+                pass
+            return 0
         for path in (log, Path(str(log) + ".err")):
             if path.is_file():
                 print(paint(f"— {path.name}", "dim"))
@@ -400,7 +390,7 @@ def run_doctor(args: argparse.Namespace) -> int:
     if args.fix:
         for line in setup_checks.fix(settings):
             print(f"{MARK['ok']} {line}")
-    report = setup_checks.run(settings, online=args.online)
+    report = setup_checks.run(settings, online=args.online, routes=_routes(settings))
     if args.json:
         print(json.dumps(report, indent=1, ensure_ascii=False))
     else:
@@ -464,16 +454,15 @@ def run_setup(args: argparse.Namespace) -> int:
         if not choice:
             found = cloud_key.describe()
             running = _running(settings)
-            heading("Chaser setup" + paint(f"   {'running' if running else 'not running'} on 127.0.0.1:{settings['port']}", "ok" if running else "dim"))
             key_text = {"environment": "from your vault", "saved": "saved", "none": "not added"}[found["source"]]
             stop = shortcuts.label(settings["shortcuts"]["stop"]) if settings["shortcuts"].get("stop") else "not set"
-            for number, title, value in (("1", "ChaseOS Cloud key", key_text), ("2", "Where Chaser keeps its work", settings["data_dir"]),
-                                         ("3", "Your name on approvals", settings.get("reviewer") or "not set"),
-                                         ("4", "Packs", str(len(settings.get("packs") or [])) or "none"), ("5", "Shortcuts", f"Stop {stop}"),
-                                         ("6", "Run the checks", ""), ("7", "Stop Chaser" if running else "Start Chaser", "")):
-                print(f"  {paint(number, 'teal')}  {title:<30} {paint(value, 'dim')}")
-            print(f"  {paint('q', 'teal')}  Done")
-            choice = ask("Choose").lower()
+            items = [terminal_ui.Item("1", "ChaseOS Cloud key", key_text), terminal_ui.Item("2", "Where Chaser keeps its work", settings["data_dir"]),
+                     terminal_ui.Item("3", "Your name on approvals", settings.get("reviewer") or "not set"),
+                     terminal_ui.Item("4", "Packs", f"{len(settings.get('packs') or [])} loaded at start"), terminal_ui.Item("5", "Shortcuts", f"Stop {stop}"),
+                     terminal_ui.Item("6", "Run the checks"), terminal_ui.Item("7", "Stop Chaser" if running else "Start Chaser")]
+            status = paint(f"running on 127.0.0.1:{settings['port']}", "ok") if running else paint("not running", "dim")
+            choice = terminal_ui.select("Chaser · settings", items, header=[status], paint=paint) or "q"
+            print("\033[2J\033[H", end="")
         if choice in {"q", "quit", ""}:
             return 0
         if choice == "1":
@@ -500,7 +489,7 @@ def run_setup(args: argparse.Namespace) -> int:
                 except ValueError as exc:
                     print(f"  {paint('✗', 'fail')} {exc}")
         elif choice == "6":
-            show_rows(setup_checks.run(settings, online=True)["rows"])
+            show_rows(setup_checks.run(settings, online=True, routes=_routes(settings))["rows"])
         elif choice == "7":
             if _running(settings):
                 print("  " + gateway_stop(settings)[1])
@@ -508,7 +497,28 @@ def run_setup(args: argparse.Namespace) -> int:
                 step_start(settings)
         if args.section:
             return 0
+        terminal_ui.pause(paint)
         choice = ""
+
+
+def _status_lines(settings: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
+    """The menu's header: is Chaser running, how it thinks, what's waiting, who signs approvals."""
+    facts: dict[str, Any] = {"running": _running(settings), "waiting": [], "routes": []}
+    if facts["running"]:
+        status, reply = _service_call(settings, "GET", "/v1/agent/status")
+        if status == 200:
+            facts["waiting"] = reply.get("waiting_for_operator") or []
+            facts["routes"] = [r.get("label") for r in (reply.get("reasoners") or {}).get("routes") or []
+                               if r.get("available") and r.get("connected", True) is not False]
+    state = paint(f"● running on 127.0.0.1:{settings['port']}", "ok") if facts["running"] else paint("● not running", "dim")
+    waiting = paint(f"   {len(facts['waiting'])} waiting for you", "warn") if facts["waiting"] else ""
+    always = paint("   starts at sign-in", "dim") if gateway_service.installed() else ""
+    lines = [state + waiting + always]
+    if facts["running"]:
+        lines.append(paint(f"Thinks with: {', '.join(facts['routes']) or 'nothing yet: add a ChaseOS Cloud key'}", "dim"))
+    reviewer = settings.get("reviewer")
+    lines.append(paint(f"Approvals signed \"{reviewer}\"" if reviewer else "Approvals signed local_operator: set your name in Settings", "dim"))
+    return lines, facts
 
 
 def run_home(_: argparse.Namespace) -> int:
@@ -516,14 +526,79 @@ def run_home(_: argparse.Namespace) -> int:
     if not settings.get("onboarded_at"):
         print("Chaser isn't set up on this computer yet.")
         if interactive_terminal() and confirm("Set it up now?"):
-            return run_onboard(argparse.Namespace(reset=False, data_dir=None, port=None, reviewer=None, pack=[], non_interactive=False, no_start=False))
+            return run_onboard(argparse.Namespace(reset=False, data_dir=None, port=None, reviewer=None, pack=[], non_interactive=False,
+                                                  no_start=False, use_chaseos=False))
         print("Run: chaser onboard")
         return 0
-    report = setup_checks.run(settings)
-    heading("Chaser Agent")
-    show_rows([item for item in report["rows"] if item["id"] in {"gateway", "routes", "cloud_key", "reviewer"}])
-    print("\n  " + "   ".join(paint(c, "teal") for c in ("chaser ask \"…\"", "chaser open", "chaser gateway", "chaser setup", "chaser doctor")))
-    return 0
+    if not interactive_terminal():
+        report = setup_checks.run(settings, routes=_routes(settings))
+        heading("Chaser Agent")
+        show_rows([item for item in report["rows"] if item["id"] in {"gateway", "routes", "cloud_key", "reviewer"}])
+        print("\n  " + "   ".join(paint(c, "teal") for c in ("chaser chat", "chaser open", "chaser gateway", "chaser setup", "chaser doctor")))
+        return 0
+    from chaser_agent import agent_cli, chaser_chat
+
+    last = "c"
+    while True:
+        settings = chaser_home.load()
+        header, facts = _status_lines(settings)
+        running = facts["running"]
+        items = [terminal_ui.Item("c", "Chat with Chaser", "" if running else "start Chaser first"),
+                 terminal_ui.Item("w", "What's waiting for you", str(len(facts["waiting"])) if running else ""),
+                 terminal_ui.Item("r", "Recent work"),
+                 terminal_ui.Item("h", "Open the HUD"),
+                 terminal_ui.Item("g", "Stop Chaser" if running else "Start Chaser"),
+                 terminal_ui.Item("a", "Start at sign-in", "on" if gateway_service.installed() else "off"),
+                 terminal_ui.Item("s", "Settings", "key, folder, name, packs, shortcuts"),
+                 terminal_ui.Item("d", "Checks"),
+                 terminal_ui.Item("l", "Logs", "live"),
+                 terminal_ui.Item("q", "Quit", "Chaser keeps running")]
+        choice = terminal_ui.select("Chaser Agent", items, header=header, paint=paint, start=last)
+        print("\033[2J\033[H", end="")
+        if choice in (None, "q"):
+            return 0
+        last = choice
+        try:
+            if choice in {"c", "w", "r"}:
+                if not running and not step_start(settings, open_hud=False):
+                    terminal_ui.pause(paint)
+                    continue
+                chat = chaser_chat.Chat(settings, paint)
+                if choice == "c":
+                    chat.run()
+                    continue
+                chat.say(paint("  Chaser · " + ("waiting for you" if choice == "w" else "recent work"), "head"))
+                chat.command("/waiting" if choice == "w" else "/sessions")
+                if chat.session:
+                    chat.run()
+                    continue
+            elif choice == "h":
+                if running or step_start(settings, open_hud=False):
+                    agent_cli.run_open(argparse.Namespace(data_dir=str(settings["data_dir"]), port=int(settings["port"])))
+            elif choice == "g":
+                print("  " + (gateway_stop(settings)[1] if running else gateway_start(settings)[1]))
+            elif choice == "a":
+                if gateway_service.installed():
+                    gateway_service.uninstall()
+                    print(f"  {MARK['ok']} Chaser no longer starts at sign-in.")
+                elif confirm("Start Chaser whenever you sign in to Windows, restarting it if it stops?"):
+                    gateway_service.install()
+                    print(f"  {MARK['ok']} Chaser now starts at sign-in.")
+                    if not running:
+                        print("  " + gateway_start(settings)[1])
+            elif choice == "s":
+                run_setup(argparse.Namespace(section=None))
+                continue
+            elif choice == "d":
+                heading("Chaser pre-flight (key checked online)")
+                show_rows(setup_checks.run(settings, online=True, routes=_routes(settings))["rows"])
+            elif choice == "l":
+                log = Path(settings["data_dir"]) / "service.log"
+                print(paint(f"  Following {log}. Ctrl+C to go back.", "dim"))
+                gateway_service.follow([log, Path(str(log) + ".err")], lines=30)
+        except KeyboardInterrupt:
+            print()
+        terminal_ui.pause(paint)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -538,10 +613,17 @@ def build_parser() -> argparse.ArgumentParser:
     onboard.add_argument("--pack", action="append", default=[], help="A pack to load at start. Repeatable.")
     onboard.add_argument("--no-start", action="store_true", help="Don't start Chaser at the end.")
     onboard.add_argument("--reset", action="store_true", help="Start from default settings. Work, receipts and the key are kept.")
+    onboard.add_argument("--use-chaseos", action="store_true", help="Use this computer's ChaseOS setup for Chaser (folder, port, packs) if there is one.")
     onboard.set_defaults(func=run_onboard)
+    chat = sub.add_parser("chat", aliases=["tui"], help="Talk to Chaser and watch it work.")
+    chat.add_argument("message", nargs="*", help="Start with this message.")
+    chat.add_argument("--session", help="Carry on with this session.")
+    chat.add_argument("--route", help="How new work thinks: auto, chaseos-cloud, claude-cli or bridge.")
+    chat.set_defaults(func=lambda args: __import__("chaser_agent.chaser_chat", fromlist=["run"]).run(args, paint))
     gateway = sub.add_parser("gateway", help="Start, stop or check Chaser's service.")
-    gateway.add_argument("action", nargs="?", default="start", choices=["start", "stop", "restart", "status", "logs"])
-    gateway.add_argument("--foreground", action="store_true", help="Run in this terminal instead of the background.")
+    gateway.add_argument("action", nargs="?", default="start", choices=["start", "stop", "restart", "status", "logs", "run", "install", "uninstall"])
+    gateway.add_argument("--foreground", action="store_true", help="Run in this terminal instead of the background (same as run).")
+    gateway.add_argument("-f", "--follow", action="store_true", help="With logs: keep printing new lines.")
     gateway.add_argument("--open", action="store_true", help="Open the HUD once it's running.")
     gateway.add_argument("--lines", type=int, default=40, help="Lines of log to show.")
     gateway.set_defaults(func=run_gateway)
