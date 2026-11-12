@@ -352,67 +352,140 @@ def choose_model(settings: dict[str, Any], *, interactive: bool = True, only: li
     if picked is None:
         return settings
     provider = shown[[i.key for i in items].index(picked)]
-    print(paint(f"  {provider.label}", "head") + paint(f"  {provider.blurb}", "dim"))
-    if provider.kind == "chaseos":
-        cloud_key_step(settings)
-        settings = chaser_home.save({"provider": provider.id, "model": "", "base_url": ""})
-    elif provider.kind == "claude-cli":
-        found = shutil.which("claude")
-        print(f"  {paint('✓', 'ok')} Claude Code is installed." if found else
-              f"  {paint('!', 'warn')} Claude Code isn't installed here. Install it and sign in, then Chaser can use it.")
-        settings = chaser_home.save({"provider": provider.id, "model": "", "base_url": ""})
-    elif provider.kind == "bridge":
-        print(paint("  Another harness answers Chaser's requests over its local API:\n"
-                    "    chaser reasoner next   then   chaser reasoner reply ID --file reply.json", "dim"))
-        settings = chaser_home.save({"provider": provider.id, "model": "", "base_url": ""})
-    else:
-        base_url = provider.base_url
-        if provider.id == "custom":
-            base_url = ask("The endpoint's address, up to /v1", settings.get("base_url") or "").rstrip("/")
-            if not base_url:
-                return settings
-        key = ""
-        if provider.needs_key:
-            existing, source = providers.load_key(provider.id)
-            if source == "environment":
-                print(f"  {paint('✓', 'ok')} Using the key in {provider.key_env} from your environment.")
-                key = existing
-            elif existing and not confirm(f"A {provider.label} key is saved. Replace it?", default=False):
-                key = existing
-            else:
-                if provider.keys_page:
-                    print(paint(f"  Get a key at {provider.keys_page}. It won't show as you paste it.", "dim"))
-                try:
-                    key = cloud_key.validate(secret_input(f"  {provider.label} key: "))
-                except (ValueError, SecretInputUnavailable) as exc:
-                    print(f"  {paint('✗', 'fail')} {exc}")
-                    return settings
-                except (EOFError, KeyboardInterrupt):
-                    print()
-                    return settings
-        print(f"  Checking with {provider.label}…")
-        status, ids = providers.list_models(base_url, key)
-        if status in {401, 403}:
-            print(f"  {paint('✗', 'fail')} {provider.label} refused that key (HTTP {status}). Nothing was saved.")
-            return settings
-        if status == 200:
-            print(f"  {paint('✓', 'ok')} Connected.")
-        else:
-            print(f"  {paint('!', 'warn')} Couldn't list its models ({'no connection' if not status else 'HTTP ' + str(status)}). You can still type one.")
-        model = _pick_model(ids, settings.get("model") if settings.get("provider") == provider.id else provider.model)
-        if key and providers.load_key(provider.id)[1] != "environment":
-            try:
-                providers.save_key(provider.id, key)
-            except cloud_key.KeyStoreUnavailable as exc:
-                print(f"  {paint('✗', 'fail')} {exc}")
-                return settings
-        settings = chaser_home.save({"provider": provider.id, "model": model,
-                                     "base_url": base_url if provider.id == "custom" else ""})
+    entry = set_up_provider(provider, settings, settings.get("model") if settings.get("provider") == provider.id else "")
+    if entry is None:
+        return settings
+    settings = chaser_home.save(entry)
     print(f"  {paint('✓', 'ok')} Chaser thinks with {providers.describe(settings)}.")
     if _running(settings) and confirm("Restart Chaser so it uses this now?"):
         print("  " + gateway_stop(settings)[1])
         print("  " + gateway_start(settings)[1])
     return settings
+
+
+def set_up_provider(provider: Any, settings: dict[str, Any], current_model: str = "") -> dict[str, Any] | None:
+    """Key and model for one provider, used for the main route and for reserves. Saves only the key (encrypted);
+    returns {provider, model, base_url} for the caller to store, or None if it was abandoned."""
+    print(paint(f"  {provider.label}", "head") + paint(f"  {provider.blurb}", "dim"))
+    if provider.kind == "chaseos":
+        cloud_key_step(settings)
+        return {"provider": provider.id, "model": current_model or "", "base_url": ""}
+    if provider.kind == "claude-cli":
+        found = shutil.which("claude")
+        print(f"  {paint('✓', 'ok')} Claude Code is installed." if found else
+              f"  {paint('!', 'warn')} Claude Code isn't installed here. Install it and sign in, then Chaser can use it.")
+        return {"provider": provider.id, "model": "", "base_url": ""}
+    if provider.kind == "bridge":
+        print(paint("  Another harness answers Chaser's requests over its local API:\n"
+                    "    chaser reasoner next   then   chaser reasoner reply ID --file reply.json", "dim"))
+        return {"provider": provider.id, "model": "", "base_url": ""}
+    base_url = provider.base_url
+    if provider.id == "custom":
+        base_url = ask("The endpoint's address, up to /v1", settings.get("base_url") or "").rstrip("/")
+        if not base_url:
+            return None
+    key = ""
+    if provider.needs_key:
+        existing, source = providers.load_key(provider.id)
+        if source == "environment":
+            print(f"  {paint('✓', 'ok')} Using the key in {provider.key_env} from your environment.")
+            key = existing
+        elif existing and not confirm(f"A {provider.label} key is saved. Replace it?", default=False):
+            key = existing
+        else:
+            if provider.keys_page:
+                print(paint(f"  Get a key at {provider.keys_page}. It won't show as you paste it.", "dim"))
+            try:
+                key = cloud_key.validate(secret_input(f"  {provider.label} key: "))
+            except (ValueError, SecretInputUnavailable) as exc:
+                print(f"  {paint('✗', 'fail')} {exc}")
+                return None
+            except (EOFError, KeyboardInterrupt):
+                print()
+                return None
+    print(f"  Checking with {provider.label}…")
+    status, ids = providers.list_models(base_url, key)
+    if status in {401, 403}:
+        print(f"  {paint('✗', 'fail')} {provider.label} refused that key (HTTP {status}). Nothing was saved.")
+        return None
+    if status == 200:
+        print(f"  {paint('✓', 'ok')} Connected.")
+    else:
+        print(f"  {paint('!', 'warn')} Couldn't list its models ({'no connection' if not status else 'HTTP ' + str(status)}). You can still type one.")
+    model = _pick_model(ids, current_model or provider.model)
+    if key and providers.load_key(provider.id)[1] != "environment":
+        try:
+            providers.save_key(provider.id, key)
+        except cloud_key.KeyStoreUnavailable as exc:
+            print(f"  {paint('✗', 'fail')} {exc}")
+            return None
+    return {"provider": provider.id, "model": model, "base_url": base_url if provider.id == "custom" else ""}
+
+
+def reserve_lines(settings: dict[str, Any]) -> list[str]:
+    reserves = settings.get("reserves") or []
+    if not reserves:
+        return [paint("  No reserves. If the main key or provider fails, the task stops and says why.", "dim"),
+                paint("  Add up to four: chaser model reserve add", "dim")]
+    out = []
+    for number, entry in enumerate(reserves, 1):
+        provider = providers.get(entry.get("provider"))
+        key = providers.load_key(provider.id)[1] if provider.needs_key and provider.kind == "openai" else ("saved" if provider.kind != "chaseos" else cloud_key.describe()["source"])
+        model = f" · {entry['model']}" if entry.get("model") else ""
+        out.append(f"  {paint(str(number), 'key')}  {provider.label}{model}  {paint('key ' + key, 'ok' if key in {'saved', 'environment'} else 'warn') if provider.needs_key else paint('no key needed', 'dim')}")
+    return out
+
+
+def run_reserve(args: argparse.Namespace) -> int:
+    """`chaser model reserve`: up to four providers tried in order when the main key or provider fails."""
+    settings = chaser_home.load()
+    reserves = list(settings.get("reserves") or [])
+    action = args.provider or "list"
+    if action == "list":
+        heading("Reserve providers (tried in order if the main one fails)")
+        print(f"  {paint('main', 'dim')}  {providers.describe(settings) if settings.get('provider') else 'auto'}")
+        for line in reserve_lines(settings):
+            print(line)
+        return 0
+    if action == "clear":
+        chaser_home.save({"reserves": []})
+        print(f"{MARK['ok']} Reserves cleared. Saved keys are kept; remove one with chaser model and Replace.")
+        return 0
+    if action == "remove":
+        number = int(args.extra) if (getattr(args, "extra", None) or "").isdecimal() else 0
+        if not 1 <= number <= len(reserves):
+            print(f"chaser model reserve remove N   (1 to {len(reserves)}; see chaser model reserve)")
+            return 2
+        gone = reserves.pop(number - 1)
+        chaser_home.save({"reserves": reserves})
+        print(f"{MARK['ok']} Removed reserve {number}: {providers.get(gone.get('provider')).label}. Restart Chaser to use the change.")
+        return 0
+    if action == "add":
+        if len(reserves) >= 4:
+            print("Four reserves is the most. Remove one first: chaser model reserve remove N")
+            return 2
+        if not interactive_terminal():
+            print("chaser model reserve add needs a terminal.")
+            return 2
+        taken = {settings.get("provider") or providers.DEFAULT, *(r.get("provider") for r in reserves)}
+        offered = [p for p in sorted(providers.CATALOGUE, key=lambda p: providers.GROUPS.index(providers.group(p)))
+                   if p.kind != "bridge" and p.id not in taken]
+        items = [terminal_ui.Item("123456789abcdefghijklmnop"[i], p.label, p.blurb, providers.group(p)) for i, p in enumerate(offered)]
+        picked = terminal_ui.select("", items, header=[paint(f"Add reserve {len(reserves) + 1} of 4", "head"),
+                                                      paint("Tried in order if the main key or provider fails. Its key is saved encrypted, never in settings.", "dim")],
+                                    paint=paint, interactive=True)
+        print("\033[2J\033[H", end="")
+        if picked is None:
+            return 0
+        entry = set_up_provider(offered[[i.key for i in items].index(picked)], settings)
+        if entry is None:
+            return 1
+        reserves.append(entry)
+        settings = chaser_home.save({"reserves": reserves})
+        print(f"  {paint('✓', 'ok')} Reserve {len(reserves)}: {providers.describe(entry)}. Restart Chaser to use it: chaser gateway restart")
+        return 0
+    print("chaser model reserve [list|add|remove N|clear]")
+    return 2
 
 
 def step_power(settings: dict[str, Any]) -> dict[str, Any]:
@@ -619,6 +692,8 @@ def run_gateway(args: argparse.Namespace) -> int:
                 for route in (reply.get("reasoners") or {}).get("routes") or []:
                     state = "ready" if route.get("available") and route.get("connected", True) is not False else (route.get("reason") or "not available")
                     print(f"  {route.get('label')}: {state}")
+                    for number, reserve in enumerate(route.get("reserves") or [], 1):
+                        print(f"    reserve {number}: {reserve.get('label')}: {'ready' if reserve.get('available') else reserve.get('reason') or 'not available'}")
                 print(f"  Sessions: {reply.get('sessions', 0)}, running {len(reply.get('active_sessions') or [])}, waiting for you {len(reply.get('waiting_for_operator') or [])}")
         print(f"  Starts at sign-in: {'yes' if gateway_service.installed() else 'no (chaser gateway install)'}")
         return 0
@@ -806,6 +881,9 @@ def _status_lines(settings: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
     waits = paint(f"{waiting} for you", "warn") if waiting else paint("nothing for you", "dim")
     reviewer = settings.get("reviewer")
     signs = paint(reviewer, "text") if reviewer else paint("no name yet", "warn") + paint("  · Settings", "dim")
+    if settings.get("reserves"):
+        count = len(settings["reserves"])
+        model += paint(f"  · {count} reserve{'s' if count > 1 else ''}", "dim")
     rows = [("Chaser", state), ("Model", model), ("Waiting", waits), ("Signs as", signs)]
     return [paint(f"{label:<10}", "dim") + value for label, value in rows], facts
 
@@ -934,7 +1012,7 @@ HELP = (
               ("chaser stop", "stop every task now; the kill switch"),
               ("chaser approve [SESSION]", "say yes, signed with your name"), ("chaser reject [SESSION]", "say no, signed with your name"),
               ("chaser receipt [SESSION]", "check the hash chain; who approved what; what it wrote"))),
-    ("Set up", (("chaser model", "choose the AI provider and model"), ("chaser channels", "Telegram, Discord, Slack, email; owner-only (add, test, remove)"), ("chaser voice", "speak to Chaser, offline"), ("chaser key", "the ChaseOS Cloud key"),
+    ("Set up", (("chaser model", "choose the AI provider and model"), ("chaser model reserve", "up to 4 backups if the main key fails"), ("chaser channels", "Telegram, Discord, Slack, email; owner-only (add, test, remove)"), ("chaser voice", "speak to Chaser, offline"), ("chaser key", "the ChaseOS Cloud key"),
                 ("chaser setup [section]", "every setting from a menu"), ("chaser shortcuts", "the stop and take-over keys"),
                 ("chaser doctor [--online] [--fix]", "pre-flight checks"))),
     ("Help", (("chaser help [command]", "this, or one command's options"), ("chaser version", "the installed version"))),
@@ -963,6 +1041,8 @@ def print_help(command: str | None = None) -> int:
 
 
 def run_model(args: argparse.Namespace) -> int:
+    if args.action == "reserve":
+        return run_reserve(args)
     settings = chaser_home.load()
     if args.action == "list":
         for provider in providers.CATALOGUE:
@@ -1343,9 +1423,11 @@ def build_parser() -> argparse.ArgumentParser:
     keys.add_argument("chord", nargs="?", help="For example Ctrl+Alt+Shift+X")
     keys.set_defaults(func=run_shortcuts)
     model = sub.add_parser("model", help="Choose the AI provider and model Chaser thinks with.")
-    model.add_argument("action", nargs="?", default="choose", choices=["choose", "show", "list", "set"])
-    model.add_argument("provider", nargs="?", choices=sorted(providers.BY_ID))
+    model.add_argument("action", nargs="?", default="choose", choices=["choose", "show", "list", "set", "reserve"])
+    model.add_argument("provider", nargs="?", choices=sorted(providers.BY_ID) + ["list", "add", "remove", "clear"],
+                       help="A provider for set; for reserve: list, add, remove N or clear.")
     model.add_argument("--model")
+    model.add_argument("extra", nargs="?", help=argparse.SUPPRESS)
     model.add_argument("--base-url")
     model.set_defaults(func=run_model)
     status = sub.add_parser("status", help="Is Chaser running, how it thinks, what's waiting.")

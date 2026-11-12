@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from chaser_agent.agent.builtin import register_builtin_tools
-from chaser_agent.agent.reasoners import BridgeReasoner, ChaseOSCloudReasoner, ClaudeCliReasoner, OpenAICompatibleReasoner
+from chaser_agent.agent.reasoners import BridgeReasoner, ChaseOSCloudReasoner, ClaudeCliReasoner, OpenAICompatibleReasoner, ReserveChain
 from chaser_agent.agent.runtime import AgentRuntime
 from chaser_agent.agent.tooling import Toolbox
 from chaser_agent.agent.workflow import WorkflowSpec
@@ -59,12 +59,32 @@ def ordered_routes(claude_model: str = "sonnet", settings: dict | None = None) -
     provider = providers.get(settings.get("provider"))
     cloud, claude, bridge = ChaseOSCloudReasoner.from_environment(), ClaudeCliReasoner(model=claude_model), BridgeReasoner()
     if provider.kind == "openai":
-        return [OpenAICompatibleReasoner.from_settings(settings), cloud, claude, bridge]
+        routes = [OpenAICompatibleReasoner.from_settings(settings), cloud, claude, bridge]
+    elif provider.kind == "claude-cli":
+        routes = [claude, cloud, bridge]
+    else:
+        if provider.id == "chaseos-cloud" and settings.get("model"):
+            cloud.model = settings["model"]
+        routes = [cloud, claude, bridge]
+    reserves = [r for r in (_reserve(entry, cloud, claude) for entry in (settings.get("reserves") or [])[:4]) if r is not None]
+    if reserves:
+        routes[0] = ReserveChain(routes[0], reserves)
+    return routes
+
+
+def _reserve(entry: dict, cloud: ChaseOSCloudReasoner, claude: ClaudeCliReasoner):
+    """One reserve from settings: its provider and model; its key comes from the encrypted store, never the settings."""
+    from chaser_agent import model_providers as providers
+
+    provider = providers.BY_ID.get(str(entry.get("provider") or ""))
+    if provider is None or provider.kind == "bridge":
+        return None
+    if provider.kind == "chaseos":
+        return ChaseOSCloudReasoner(cloud._key, model=entry.get("model") or provider.model, base_url=cloud.base_url,
+                                    key_source=cloud.key_source, fallback=cloud.fallback)
     if provider.kind == "claude-cli":
-        return [claude, cloud, bridge]
-    if provider.id == "chaseos-cloud" and settings.get("model"):
-        cloud.model = settings["model"]
-    return [cloud, claude, bridge]
+        return claude
+    return OpenAICompatibleReasoner.from_settings({"provider": provider.id, "model": entry.get("model") or "", "base_url": entry.get("base_url") or ""})
 
 
 def build_runtime(data_dir: Path, *, packs: tuple[Path, ...] = (), claude_model: str = "sonnet") -> AgentRuntime:

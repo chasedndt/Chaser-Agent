@@ -51,6 +51,8 @@ class ReasonerReply:
     credits: int | None = None
     # Tokens, pricing profile and the model that actually served it, where the route reports them. Metadata only.
     usage: dict[str, Any] | None = None
+    # Routes tried before this one answered, with why each failed: set when a reserve answered.
+    fallbacks: tuple[str, ...] | None = None
 
 
 class Reasoner(Protocol):
@@ -436,6 +438,70 @@ class OpenAICompatibleReasoner(ChaseOSCloudReasoner):
             missing.append("No model chosen. Run: chaser model")
         return {"id": self.reasoner_id, "label": self.label, "available": not missing, "model": self.model,
                 "reason": missing[0] if missing else None}
+
+
+MAX_RESERVES = 4
+
+
+class ReserveChain:
+    """The main route, then up to four reserve providers the person listed, tried in order when the one before fails.
+
+    A refused or dead key, an empty balance, a plan refusal, a gateway error, no connection or a timeout moves on;
+    a cancel never does. It's the person's own list, chosen in `chaser model reserve`, so moving on is not a silent
+    switch: the reply records which route answered and why the earlier ones didn't, and the receipt keeps both.
+    """
+
+    def __init__(self, main: Any, reserves: list[Any]) -> None:
+        self.main, self.reserves = main, list(reserves)[:MAX_RESERVES]
+        self.reasoner_id, self.label = main.reasoner_id, main.label
+        members = [main, *self.reserves]
+        self.max_context_chars = min(getattr(r, "max_context_chars", 120_000) for r in members)
+        self.sees_images = any(getattr(r, "sees_images", False) for r in members)
+
+    def status(self) -> dict[str, Any]:
+        state = dict(self.main.status())
+        rows = []
+        for reserve in self.reserves:
+            try:
+                row = reserve.status()
+            except Exception as exc:  # a reserve that can't even report must not hide the main route
+                row = {"label": reserve.label, "available": False, "reason": type(exc).__name__}
+            rows.append({"label": row.get("label", reserve.label), "model": row.get("model"), "available": bool(row.get("available")),
+                         "reason": row.get("reason")})
+        state["reserves"] = rows
+        if not state.get("available") and any(r["available"] for r in rows):
+            first = next(r for r in rows if r["available"])
+            state.update(available=True, reason=f"{self.main.label}: {state.get('reason')}. Reserve {first['label']} will answer.")
+        return state
+
+    def complete(self, system: str, transcript: str, *, timeout: float, cancel: Event, images: list[Path] | None = None) -> ReasonerReply:
+        tried: list[str] = []
+        last: ReasonerUnavailable | None = None
+        for route in [self.main, *self.reserves]:
+            if cancel.is_set():
+                raise ReasonerUnavailable("cancelled", "the operator cancelled this turn")
+            try:
+                state = route.status()
+            except Exception:  # noqa: BLE001 - treat as unavailable
+                state = {"available": False, "reason": "couldn't report its state"}
+            if not state.get("available") and route is not self.main:
+                tried.append(f"{route.label}: {state.get('reason') or 'not available'}"[:200])
+                continue
+            extra = {"images": images} if images and getattr(route, "sees_images", False) else {}
+            try:
+                reply = route.complete(system, transcript, timeout=timeout, cancel=cancel, **extra)
+            except ReasonerUnavailable as exc:
+                if exc.code == "cancelled":
+                    raise
+                tried.append(f"{route.label}: {exc.message}"[:200])
+                last = exc
+                continue
+            if tried:
+                from dataclasses import replace
+
+                reply = replace(reply, fallbacks=tuple(tried))
+            return reply
+        raise ReasonerUnavailable(last.code if last else "no_route", "Every route failed. " + " | ".join(tried))
 
 
 def _gateway_said(value: Any) -> str:

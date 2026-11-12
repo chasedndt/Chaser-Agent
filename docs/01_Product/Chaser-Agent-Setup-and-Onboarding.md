@@ -89,6 +89,12 @@ Other harnesses lead their setup with their own service (Hermes recommends Nous 
 
 Every provider keeps the existing rules: the chosen one comes first so "auto" uses it, a refusal or empty balance stops the turn and says so, and nothing switches provider behind the person's back. Keys live in `%LOCALAPPDATA%\ChaserAgent\keys\<provider>.dpapi` (the ChaseOS Cloud key stays in its existing file), and a key in the provider's usual variable (`OPENAI_API_KEY`, `OPENROUTER_API_KEY`...) wins, so a vault still works. The key leaves the service's environment at start, so tools never inherit it. Base addresses were taken from the providers' own documentation; Nous Portal isn't listed because it signs in with OAuth rather than a key, so it's reached through Hermes on the bridge.
 
+## Reserve providers
+
+`chaser model reserve add` adds a backup provider, up to four, each with its own model. Its key goes in the same encrypted store as the main one, never in `settings.json`. If the main route fails, Chaser tries the reserves in order: a refused or dead key, an empty balance, a plan refusal, a gateway error, no connection, a timeout or an empty reply all move on; cancelling never does. ChaseOS Cloud first tries its own other routes (`CHASEOS_CLOUD_FALLBACK`), then the reserves. `chaser model reserve` lists them with each key's state, `remove N` and `clear` change the list, and `chaser status` shows each reserve's readiness. The home screen shows how many there are.
+
+Moving on is the person's own configured choice, so it's never a silent switch. Chat shows "a reserve answered" with the reason, and the receipt's `reasoner_reply` records which route answered and why the earlier ones didn't.
+
 ## Permission modes
 
 Each session has a mode, recorded in its receipt with who set it:

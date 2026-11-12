@@ -82,6 +82,8 @@ class Chat:
 
     def show(self, event: dict[str, Any]) -> None:
         data, kind = event.get("data") or {}, event.get("type")
+        if kind == "reasoner_reply" and data.get("fallbacks"):
+            self.say(f"  {self.paint('↪', 'warn')} {self.paint('a reserve answered: ' + str(data.get('route')) + ', because ' + '; '.join(data['fallbacks'])[:160], 'dim')}")
         if kind == "reasoner_reply" and data.get("thought"):
             thought = " ".join(str(data["thought"]).split())
             self.say(f"  {self.paint('⋯', 'sage')} {self.paint(thought[:240] + ('…' if len(thought) > 240 else ''), 'dim')}")

@@ -33,7 +33,7 @@ Then just `chaser`: a home screen with what's running, which model, what's waiti
 - any OpenAI-compatible endpoint;
 - another agent harness over the local bridge.
 
-Keys are checked for free by listing the provider's models, which you then pick from.
+Keys are checked for free by listing the provider's models, which you then pick from. `chaser model reserve add` adds up to four backup providers, tried in order if the main key or provider stops working; the receipt records which one answered.
 
 ## Talk to it from anywhere you are
 
