@@ -226,3 +226,14 @@ def test_when_retries_run_out_it_keeps_the_best_attempt_not_the_last(tmp_path: P
     assert [c["decision"] for c in checks] == ["retry", "retry", "stop"]
     assert snap["status"] == "finished" and snap["final_answer"] == RIGHT
     assert snap["objective"]["chosen_from_earlier_attempt"] is True and snap["objective"]["met"] is False
+
+
+def test_every_required_source_is_a_gate_even_when_the_score_is_high() -> None:
+    page = objective.Requirement(r"(?i)harbor\s?desk", "web_fetch", r"example\.com", "read the product's own page")
+    calls = [{"tool": "graph_search", "args": {"query": "HarborDesk"}, "status": "ok"},
+             {"tool": "graph_node", "args": {"reference": "apps#business:x"}, "status": "ok"}]
+    turn = [{"role": "observation", "tool": "graph_search", "status": "ok", "text": json.dumps({"results": [{"t": 1}]})},
+            {"role": "observation", "tool": "graph_node", "status": "ok", "text": RIGHT}]
+    verdict = objective.assess("What is HarborDesk?", turn, ending="final", answer=RIGHT, calls=calls, requires=(page, IDENTITY))
+    assert verdict.score >= objective.THRESHOLD and verdict.met is False
+    assert verdict.features["required_missing"] == 0.5

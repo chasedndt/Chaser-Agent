@@ -179,7 +179,9 @@ def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = 
         shortfalls.append("the answer and evidence don't cover: " + ", ".join(missing))
     if features["deferred_early"]:
         shortfalls.append("you are asking the person before trying the tools you have")
-    return Verdict(score, score >= THRESHOLD and not contradicted, features, tuple(shortfalls))
+    # Required sources and contradicted claims are gates, not just weights: with several requirements the
+    # share-of-unmet term alone let a turn skip one and still pass (seen live on 12 Nov 2026 at 0.756).
+    return Verdict(score, score >= THRESHOLD and not unread and not contradicted, features, tuple(shortfalls))
 
 
 def retry_note(verdict: Verdict, attempt: int) -> str:
