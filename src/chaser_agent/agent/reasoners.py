@@ -200,6 +200,13 @@ CLOUD_USER_AGENT = "ChaserAgent/1 (+https://chaseos.ai)"
 # Names this caller so the gateway can price and report it as an agent harness, not a chat window.
 CLOUD_HARNESS = "chaser"
 CLOUD_RETRY_STATUSES = frozenset({502, 503, 504})
+# A route that is down (12 Nov 2026: chaseos/balanced answered 502 and 503 "the upstream provider failed" while
+# chaseos/auto, fast and deep answered) is no reason to fail the owner's task: the next ChaseOS route is tried, still
+# on ChaseOS Cloud and still in JSON mode. A 402 or a refused key never moves on. A 409 that every route gives is an
+# account problem, so it then reads as one (see PLAN_PROBLEM).
+CLOUD_FALLBACK_ENV = "CHASEOS_CLOUD_FALLBACK"
+CLOUD_FALLBACK_DEFAULT = ("chaseos/deep", "chaseos/fast")
+CLOUD_MOVE_ON_STATUSES = CLOUD_RETRY_STATUSES | {0, 409, 429, 500}
 
 
 class ChaseOSCloudReasoner:
@@ -215,11 +222,13 @@ class ChaseOSCloudReasoner:
     max_context_chars = 120_000
     sees_images = True  # OpenAI-style image parts; whether the model reads them depends on the model
 
-    def __init__(self, key: str = "", *, model: str = "chaseos/balanced", base_url: str = "", max_tokens: int = 8000, key_source: str = "") -> None:
+    def __init__(self, key: str = "", *, model: str = "chaseos/balanced", base_url: str = "", max_tokens: int = 8000, key_source: str = "",
+                 fallback: tuple[str, ...] = ()) -> None:
         self._key = key.strip()
         self.key_source = (key_source or "given") if self._key else "none"
         self.refused: str | None = None
         self.model = model
+        self.fallback = tuple(m for m in fallback if m and m != model)
         self.base_url = (base_url or CLOUD_BASE_URL).rstrip("/")
         self.max_tokens = max_tokens
 
@@ -242,7 +251,9 @@ class ChaseOSCloudReasoner:
         base_url = kwargs.pop("base_url", "") or environ.get("CHASEOS_CLOUD_BASE_URL", "")
         # A different model, e.g. a candidate evaluated against an OpenAI-compatible endpoint.
         model = kwargs.pop("model", "") or environ.get("CHASEOS_CLOUD_MODEL", "") or "chaseos/balanced"
-        return cls(key, base_url=base_url, model=model, key_source=source, **kwargs)
+        raw = environ.get(CLOUD_FALLBACK_ENV)
+        fallback = tuple(m.strip() for m in raw.split(",") if m.strip()) if raw is not None else CLOUD_FALLBACK_DEFAULT
+        return cls(key, base_url=base_url, model=model, key_source=source, fallback=kwargs.pop("fallback", fallback), **kwargs)
 
     def set_key(self, key: str, *, source: str = "saved") -> None:
         """Use a key added or removed in Settings from the next step on. Nothing restarts."""
@@ -326,6 +337,12 @@ class ChaseOSCloudReasoner:
             if result["reply"][0] in CLOUD_RETRY_STATUSES | {0} and not cancel.is_set() and deadline - time.monotonic() > 5:
                 time.sleep(1)
                 result["reply"] = self._post(body, max(1.0, deadline - time.monotonic()))
+            # Still down: one try on each fallback route, in order (ChaseOS Cloud only; other providers have none).
+            for model in getattr(self, "fallback", ()):
+                if result["reply"][0] not in CLOUD_MOVE_ON_STATUSES or cancel.is_set() or deadline - time.monotonic() <= 5:
+                    break
+                result["reply"] = self._post(json.dumps({**request, "model": model}, ensure_ascii=False).encode("utf-8"),
+                                             max(1.0, deadline - time.monotonic()))
             # Some providers or models refuse JSON mode outright; ask once more without it. The reply parser still checks the format.
             if result["reply"][0] == 400 and not cancel.is_set() and deadline - time.monotonic() > 5:
                 plain = {k: v for k, v in request.items() if k != "response_format"}
@@ -346,10 +363,11 @@ class ChaseOSCloudReasoner:
             raise self._refuse("out_of_credits", f"{self.label} is out of credits. Top up to keep using it.")
         if status in {401, 403}:
             raise self._refuse("not_authorised", f"{self.label} refused this machine's key (HTTP {status}).")
-        if status == 409 and self.reasoner_id == "chaseos-cloud":
+        if status == 409 and self.reasoner_id == "chaseos-cloud" and _about_the_plan(value):
+            # The gateway also answers 409 when an upstream provider fails, so only its own words about the plan count.
             from chaser_agent.cloud_key import PLAN_PROBLEM
 
-            raise self._refuse("plan", f"{PLAN_PROBLEM} (HTTP 409)")
+            raise self._refuse("plan", f"{PLAN_PROBLEM} (HTTP 409: {_gateway_said(value)[:160]})")
         if status != 200:
             # Keep the gateway's own explanation (e.g. a 409 plan or allowance conflict) instead of only the number.
             error = value.get("error") if isinstance(value, dict) else None
@@ -418,6 +436,18 @@ class OpenAICompatibleReasoner(ChaseOSCloudReasoner):
             missing.append("No model chosen. Run: chaser model")
         return {"id": self.reasoner_id, "label": self.label, "available": not missing, "model": self.model,
                 "reason": missing[0] if missing else None}
+
+
+def _gateway_said(value: Any) -> str:
+    error = value.get("error") if isinstance(value, dict) else None
+    said = (error.get("message") or error.get("code")) if isinstance(error, dict) else error if isinstance(error, str) else None
+    return str(said or (value.get("message") if isinstance(value, dict) else "") or "")
+
+
+def _about_the_plan(value: Any) -> bool:
+    error = value.get("error") if isinstance(value, dict) else None
+    words = " ".join(str(x) for x in ((error or {}).values() if isinstance(error, dict) else [error, value.get("message") if isinstance(value, dict) else ""]))
+    return any(w in words.lower() for w in ("plan", "allowance", "entitlement", "quota", "credit", "subscription", "tier"))
 
 
 def _count(value: Any) -> int | None:

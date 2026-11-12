@@ -137,3 +137,36 @@ def test_model_can_be_chosen_from_the_environment():
     reasoner = ChaseOSCloudReasoner.from_environment({"CHASEOS_CLOUD_KEY": "k", "CHASEOS_CLOUD_MODEL": "@cf/zai-org/glm-5.3"})
     assert reasoner.model == "@cf/zai-org/glm-5.3"
     assert ChaseOSCloudReasoner.from_environment({"CHASEOS_CLOUD_KEY": "k"}).model == "chaseos/balanced"
+
+
+def test_a_route_that_is_down_moves_on_to_the_next_chaseos_route(gateway_factory) -> None:
+    # 12 Nov 2026: chaseos/balanced answered 502 and 503 while chaseos/deep and fast answered.
+    down = {"error": {"code": "provider_temporarily_unavailable", "message": "The upstream provider failed. You were not charged."}}
+    gateway = gateway_factory((503, down), (502, {}), answer('{"thought": "ok", "actions": []}'))
+    reasoner = ChaseOSCloudReasoner("k", base_url=gateway.url, fallback=("chaseos/deep", "chaseos/fast"))
+    reply = reasoner.complete("s", "t", timeout=20, cancel=Event())
+    assert reply.text.startswith("{")
+    assert [r["body"]["model"] for r in gateway.requests] == ["chaseos/balanced", "chaseos/balanced", "chaseos/deep"]
+    assert all(r["body"]["response_format"] == {"type": "json_object"} for r in gateway.requests)
+
+
+def test_every_route_down_says_what_the_gateway_said(gateway_factory) -> None:
+    down = {"error": {"message": "The upstream provider failed. You were not charged."}}
+    gateway = gateway_factory((409, down), (409, down), (409, down))
+    with pytest.raises(ReasonerUnavailable) as caught:
+        ChaseOSCloudReasoner("k", base_url=gateway.url, fallback=("chaseos/deep", "chaseos/fast")).complete("s", "t", timeout=20, cancel=Event())
+    assert caught.value.code == "route_error" and "HTTP 409" in str(caught.value) and "You were not charged" in str(caught.value)
+    assert [r["body"]["model"] for r in gateway.requests] == ["chaseos/balanced", "chaseos/deep", "chaseos/fast"]
+
+
+def test_out_of_credits_never_moves_to_another_route(gateway_factory) -> None:
+    gateway = gateway_factory((402, {"error": {"available": 0}}))
+    with pytest.raises(ReasonerUnavailable) as caught:
+        ChaseOSCloudReasoner("k", base_url=gateway.url, fallback=("chaseos/deep",)).complete("s", "t", timeout=10, cancel=Event())
+    assert caught.value.code == "out_of_credits" and len(gateway.requests) == 1
+
+
+def test_the_fallback_routes_come_from_the_environment_with_a_default():
+    assert ChaseOSCloudReasoner.from_environment({"CHASEOS_CLOUD_KEY": "k"}).fallback == ("chaseos/deep", "chaseos/fast")
+    assert ChaseOSCloudReasoner.from_environment({"CHASEOS_CLOUD_KEY": "k", "CHASEOS_CLOUD_FALLBACK": ""}).fallback == ()
+    assert ChaseOSCloudReasoner.from_environment({"CHASEOS_CLOUD_KEY": "k", "CHASEOS_CLOUD_MODEL": "chaseos/deep"}).fallback == ("chaseos/fast",)

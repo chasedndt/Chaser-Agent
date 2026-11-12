@@ -133,7 +133,7 @@ def test_a_409_reads_as_a_plan_problem_and_the_route_stops_saying_ready() -> Non
 
     assert "plan or allowance" in cloud_key.PLAN_PROBLEM and "chaser key add" in cloud_key.PLAN_PROBLEM
     route = ChaseOSCloudReasoner("k" * 12)
-    route._post = lambda body, timeout: (409, {"error": {"message": "allowance"}})
+    route._post = lambda body, timeout: (409, {"error": {"message": "This key has no allowance left on its plan"}})
     with pytest.raises(ReasonerUnavailable) as caught:
         route.complete("s", "t", timeout=5, cancel=Event())
     assert caught.value.code == "plan" and route.status()["available"] is False and "plan or allowance" in route.status()["reason"]
@@ -145,7 +145,7 @@ def test_a_remembered_refusal_still_lets_a_try_through_and_success_clears_it() -
     from threading import Event
 
     route = ChaseOSCloudReasoner("k" * 12)
-    route._post = lambda body, timeout: (409, {})
+    route._post = lambda body, timeout: (409, {"error": {"code": "plan_allowance_exceeded"}})
     with pytest.raises(Exception):
         route.complete("s", "t", timeout=5, cancel=Event())
     assert route.status()["available"] is False
