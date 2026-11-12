@@ -139,3 +139,18 @@ def test_a_409_reads_as_a_plan_problem_and_the_route_stops_saying_ready() -> Non
     assert caught.value.code == "plan" and route.status()["available"] is False and "plan or allowance" in route.status()["reason"]
     route.set_key("n" * 12)
     assert route.status()["available"] is True
+
+
+def test_a_remembered_refusal_still_lets_a_try_through_and_success_clears_it() -> None:
+    from threading import Event
+
+    route = ChaseOSCloudReasoner("k" * 12)
+    route._post = lambda body, timeout: (409, {})
+    with pytest.raises(Exception):
+        route.complete("s", "t", timeout=5, cancel=Event())
+    assert route.status()["available"] is False
+    route._post = lambda body, timeout: (200, {"choices": [{"message": {"content": "{}"}}]})
+    route.complete("s", "t", timeout=5, cancel=Event())
+    assert route.status()["available"] is True
+    route.refused, route.refused_at = "old", 0.0
+    assert route.status()["available"] is True  # forgotten after ten minutes

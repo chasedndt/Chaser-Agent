@@ -250,14 +250,25 @@ class ChaseOSCloudReasoner:
         self.key_source = source if self._key else "none"
         self.refused = None
 
+    REFUSAL_MEMORY_SECONDS = 600.0
+
     def _refuse(self, code: str, message: str) -> ReasonerUnavailable:
-        """Remember why the key was refused, so status says so instead of 'ready', until the key changes."""
-        self.refused = message
+        """Remember why the key was refused, so status says so instead of 'ready' for a while. A later success,
+        a new key or ten minutes clears it, so topping up the plan doesn't leave the route stuck."""
+        self.refused, self.refused_at = message, time.monotonic()
         return ReasonerUnavailable(code, message)
 
+    def _refusal(self) -> str | None:
+        if getattr(self, "refused", None) and time.monotonic() - getattr(self, "refused_at", 0.0) < self.REFUSAL_MEMORY_SECONDS:
+            return self.refused
+        return None
+
     def status(self) -> dict[str, Any]:
-        if self._key and getattr(self, "refused", None):
-            return {"id": self.reasoner_id, "label": self.label, "available": False, "model": self.model, "reason": self.refused}
+        if self._key and self._refusal():
+            return {"id": self.reasoner_id, "label": self.label, "available": False, "model": self.model, "reason": self._refusal()}
+        return self._base_status()
+
+    def _base_status(self) -> dict[str, Any]:
         return {
             "id": self.reasoner_id, "label": self.label, "available": bool(self._key), "model": self.model,
             "reason": None if self._key else "No ChaseOS Cloud key yet. Add one in Settings, or run: chaser key add",
@@ -288,8 +299,8 @@ class ChaseOSCloudReasoner:
             return 0, {}
 
     def complete(self, system: str, transcript: str, *, timeout: float, cancel: Event, images: list[Path] | None = None) -> ReasonerReply:
-        if not self.status().get("available"):
-            raise ReasonerUnavailable("not_configured", self.status()["reason"])
+        if not self._base_status().get("available"):  # a remembered refusal still lets an explicit try through
+            raise ReasonerUnavailable("not_configured", self._base_status()["reason"])
         started = time.monotonic()
         content: Any = transcript
         if images:
@@ -352,6 +363,7 @@ class ChaseOSCloudReasoner:
             text = ""
         if not isinstance(text, str) or not text.strip():
             raise ReasonerUnavailable("bad_output", f"{self.label} returned no text")
+        self.refused = None
         credits, usage = cloud_usage(value)
         return ReasonerReply(text, self.reasoner_id, str(value.get("model") or self.model), round(time.monotonic() - started, 3), credits, usage)
 
@@ -392,8 +404,11 @@ class OpenAICompatibleReasoner(ChaseOSCloudReasoner):
         return headers
 
     def status(self) -> dict[str, Any]:
-        if getattr(self, "refused", None):
-            return {"id": self.reasoner_id, "label": self.label, "available": False, "model": self.model, "reason": self.refused}
+        if self._refusal():
+            return {"id": self.reasoner_id, "label": self.label, "available": False, "model": self.model, "reason": self._refusal()}
+        return self._base_status()
+
+    def _base_status(self) -> dict[str, Any]:
         missing = []
         if self.needs_key and not self._key:
             missing.append(f"No {self.label} key yet. Run: chaser model")
