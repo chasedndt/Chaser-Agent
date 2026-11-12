@@ -59,7 +59,12 @@ STOP_WORDS = frozenset(
 
 
 def sigmoid(value: float) -> float:
-    return 1.0 / (1.0 + math.exp(-value))
+    """Overflow-free for any finite value, the sign-split form of Lin, Lin and Weng (2007, pp. 5-6). With the
+    current weights z only spans about -9.5 to 3.4, but learned weights may not stay in that range."""
+    if value >= 0:
+        return 1.0 / (1.0 + math.exp(-value))
+    e = math.exp(value)
+    return e / (1.0 + e)
 
 
 def key_terms(goal: str) -> set[str]:
