@@ -429,6 +429,12 @@ def run_key(args: argparse.Namespace) -> int:
         credits = f", {result['credits']:,.0f} credits left" if result.get("credits") is not None else ""
         print(f"{MARK['ok']} ChaseOS Cloud accepts it{credits}." if result["ok"] else f"{MARK['fail']} {result['reason']}")
         return 0 if result["ok"] else 1
+    # Plain `chaser key` with nothing saved (Chase, 12 Nov: "Not added keeps appearing, fix that"): offer to add one
+    # here instead of only reporting it. Only in a real terminal, so scripts still get a plain status line.
+    if args.action is None and found["source"] == "none" and interactive_terminal():
+        if confirm("Add a ChaseOS Cloud key now?"):
+            return 0 if add_key(settings) else 1
+        print("Add one any time: chaser key add")
     return 0
 
 
@@ -656,7 +662,7 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.add_argument("--json", action="store_true")
     doctor.set_defaults(func=run_doctor)
     key = sub.add_parser("key", help="The ChaseOS Cloud key: status, add, check, remove.")
-    key.add_argument("action", nargs="?", default="status", choices=["status", "add", "check", "remove"])
+    key.add_argument("action", nargs="?", default=None, choices=["status", "add", "check", "remove"])  # None: plain `chaser key`
     key.set_defaults(func=run_key)
     keys = sub.add_parser("shortcuts", help="The keys that stop Chaser or take over.")
     keys.add_argument("action", nargs="?", default="show", choices=["show", "set", "reset"])
