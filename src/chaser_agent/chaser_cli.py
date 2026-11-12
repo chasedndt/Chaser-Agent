@@ -7,10 +7,12 @@
                            (stop, restart, status, logs [-f], run, install, uninstall)
     chaser setup           change any setting from a menu
     chaser doctor          pre-flight checks (--online also checks the key, --fix creates the folder)
+    chaser model           choose the AI provider and model (ChaseOS Cloud recommended; any works)
     chaser key             add, check or remove the ChaseOS Cloud key (never shown)
     chaser shortcuts       the keys that stop Chaser or take over
     chaser open            the HUD
     chaser ask "..."       give Chaser a task and follow it
+    chaser help            every command
 
 Everything else `chaser-agent` does still works, and `chaser ask`, `open`, `decide` and `agent-status`
 use the folder and port from your settings, so you never pass them.
@@ -22,26 +24,31 @@ import argparse
 import getpass
 import json
 import os
+import shutil
 import sys
 import time
 from pathlib import Path
 from typing import Any
 
-from chaser_agent import chaser_home, cloud_key, gateway_service, setup_checks, shortcuts, terminal_art, terminal_ui
+from chaser_agent import (channels, chaser_home, chaser_work, cloud_key, gateway_service, model_providers as providers, setup_checks, shortcuts, terminal_art, terminal_theme,
+                          terminal_ui)
 
 PASS_THROUGH = {"ask", "open", "decide", "agent-status", "reasoner"}
+# The one line under the greeting on the home screen.
+INTRO = ("Your agent on this computer.", "Every step gets a receipt; nothing leaves without your yes.")
 MARK = {"ok": "✓", "warn": "!", "fail": "✗", "info": "·"}
-COLOUR = {"ok": "32", "warn": "33", "fail": "31", "info": "90", "head": "1", "dim": "90", "teal": "36"}
 _colour = False
+_full = True  # 24-bit colour; False falls back to the 256-colour palette
 
 
 # --- Output -------------------------------------------------------------------
 
 def _setup_terminal() -> None:
-    global _colour
+    global _colour, _full
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     _colour = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
+    _full = terminal_theme.truecolor()
     if _colour and os.name == "nt":
         os.system("")  # turns on colour codes in the Windows console
 
@@ -63,11 +70,17 @@ def interactive_terminal() -> bool:
 
 
 def paint(text: str, tone: str) -> str:
-    return f"\033[{COLOUR[tone]}m{text}\033[0m" if _colour else text
+    return terminal_theme.paint(text, tone, colour=_colour, full=_full)
 
 
 def heading(text: str) -> None:
-    print("\n" + paint(text, "head"))
+    print("\n  " + paint("▍", "teal") + paint(text, "head"))
+
+
+def step(number: int, total: int, text: str) -> None:
+    """An onboarding step: progress dots, then the step's name."""
+    dots = paint("●" * number, "teal") + paint("○" * (total - number), "line")
+    print(f"\n  {dots}  {paint(text, 'head')}  {paint(f'{number} of {total}', 'dim')}")
 
 
 def show_rows(rows: list[dict[str, Any]]) -> None:
@@ -195,6 +208,110 @@ def _save_key_here(key: str) -> bool:
     return True
 
 
+def _pick_model(ids: list[str], default: str) -> str:
+    """Type a model's name or part of it; several matches are listed to narrow down."""
+    if ids:
+        print(paint(f"  {len(ids)} models available. Type part of a name to search, or Enter for the default.", "dim"))
+    while True:
+        typed = ask("Model", default)
+        if not typed:
+            print(f"  {paint('!', 'warn')} Choose a model.")
+            continue
+        if not ids or typed in ids:
+            return typed
+        matches = [i for i in ids if typed.lower() in i.lower()]
+        if len(matches) == 1:
+            return matches[0]
+        if not matches:
+            if confirm(f"{typed} isn't in the provider's list. Use it anyway?", default=False):
+                return typed
+            continue
+        for item in matches[:15]:
+            print("    " + paint(item, "teal"))
+        if len(matches) > 15:
+            print(paint(f"    … and {len(matches) - 15} more; type more of the name", "dim"))
+        default = ""
+
+
+def choose_model(settings: dict[str, Any], *, interactive: bool = True) -> dict[str, Any]:
+    """Pick the provider and model Chaser thinks with. ChaseOS Cloud is first and recommended; any of them works."""
+    current = settings.get("provider") or providers.DEFAULT
+    items = []
+    for index, provider in enumerate(providers.CATALOGUE):
+        key = "123456789abcdefghijklmnop"[index]
+        hint = ("● current · " if provider.id == settings.get("provider") else "") + provider.blurb
+        items.append(terminal_ui.Item(key, provider.label, hint, "Recommended" if provider.id == providers.DEFAULT else "Any other provider"))
+    intro = [paint("Choose how Chaser thinks", "head"),
+             paint("ChaseOS Cloud is built for Chaser, but any provider works and you can change it any time.", "dim")]
+    picked = terminal_ui.select("", items, header=intro, paint=paint, interactive=interactive and interactive_terminal(),
+                                start=next(i.key for i, p in zip(items, providers.CATALOGUE) if p.id == current))
+    print("\033[2J\033[H", end="")
+    if picked is None:
+        return settings
+    provider = providers.CATALOGUE[[i.key for i in items].index(picked)]
+    print(paint(f"  {provider.label}", "head") + paint(f"  {provider.blurb}", "dim"))
+    if provider.kind == "chaseos":
+        step_key(settings, offer=False) if cloud_key.describe()["source"] != "none" else add_key(settings)
+        settings = chaser_home.save({"provider": provider.id, "model": "", "base_url": ""})
+    elif provider.kind == "claude-cli":
+        found = shutil.which("claude")
+        print(f"  {paint('✓', 'ok')} Claude Code is installed." if found else
+              f"  {paint('!', 'warn')} Claude Code isn't installed here. Install it and sign in, then Chaser can use it.")
+        settings = chaser_home.save({"provider": provider.id, "model": "", "base_url": ""})
+    elif provider.kind == "bridge":
+        print(paint("  Another harness answers Chaser's requests over its local API:\n"
+                    "    chaser reasoner next   then   chaser reasoner reply ID --file reply.json", "dim"))
+        settings = chaser_home.save({"provider": provider.id, "model": "", "base_url": ""})
+    else:
+        base_url = provider.base_url
+        if provider.id == "custom":
+            base_url = ask("The endpoint's address, up to /v1", settings.get("base_url") or "").rstrip("/")
+            if not base_url:
+                return settings
+        key = ""
+        if provider.needs_key:
+            existing, source = providers.load_key(provider.id)
+            if source == "environment":
+                print(f"  {paint('✓', 'ok')} Using the key in {provider.key_env} from your environment.")
+                key = existing
+            elif existing and not confirm(f"A {provider.label} key is saved. Replace it?", default=False):
+                key = existing
+            else:
+                if provider.keys_page:
+                    print(paint(f"  Get a key at {provider.keys_page}. It won't show as you paste it.", "dim"))
+                try:
+                    key = cloud_key.validate(getpass.getpass(f"  {provider.label} key: "))
+                except ValueError as exc:
+                    print(f"  {paint('✗', 'fail')} {exc}")
+                    return settings
+                except (EOFError, KeyboardInterrupt):
+                    print()
+                    return settings
+        print(f"  Checking with {provider.label}…")
+        status, ids = providers.list_models(base_url, key)
+        if status in {401, 403}:
+            print(f"  {paint('✗', 'fail')} {provider.label} refused that key (HTTP {status}). Nothing was saved.")
+            return settings
+        if status == 200:
+            print(f"  {paint('✓', 'ok')} Connected.")
+        else:
+            print(f"  {paint('!', 'warn')} Couldn't list its models ({'no connection' if not status else 'HTTP ' + str(status)}). You can still type one.")
+        model = _pick_model(ids, settings.get("model") if settings.get("provider") == provider.id else provider.model)
+        if key and providers.load_key(provider.id)[1] != "environment":
+            try:
+                providers.save_key(provider.id, key)
+            except cloud_key.KeyStoreUnavailable as exc:
+                print(f"  {paint('✗', 'fail')} {exc}")
+                return settings
+        settings = chaser_home.save({"provider": provider.id, "model": model,
+                                     "base_url": base_url if provider.id == "custom" else ""})
+    print(f"  {paint('✓', 'ok')} Chaser thinks with {providers.describe(settings)}.")
+    if _running(settings) and confirm("Restart Chaser so it uses this now?"):
+        print("  " + gateway_stop(settings)[1])
+        print("  " + gateway_start(settings)[1])
+    return settings
+
+
 def step_name(settings: dict[str, Any]) -> dict[str, Any]:
     print(paint("  Every yes or no you give Chaser is signed with this name, so its receipts show who decided.", "dim"))
     name = " ".join(ask("Your name", settings.get("reviewer") or "").split())[:60]
@@ -248,15 +365,20 @@ def run_onboard(args: argparse.Namespace) -> int:
     interactive = not args.non_interactive and interactive_terminal()
     total = 6
     print()
-    for line in terminal_art.beside([paint("Chaser Agent · setup", "head") + paint(f"  v{version()}", "dim"), "",
-                                     "Chaser works on this computer. It keeps a receipt",
-                                     "for every step and asks you before anything leaves it.",
-                                     "This takes a couple of minutes; change any of it",
-                                     "later with " + paint("chaser setup", "teal") + "."], _colour):
-        print(line)
+    words = [paint("Welcome to Chaser.", "head"), *(paint(line, "dim") for line in INTRO), "",
+             "Setup takes a couple of minutes: a check of this computer,",
+             "where Chaser keeps its work, how it thinks, your name on",
+             "approvals and the keys that stop it. Change any of it later",
+             "with " + paint("chaser setup", "teal") + "."]
+    width = min(shutil.get_terminal_size((96, 30)).columns - 4, 92)
+    title = terminal_theme.wordmark(colour=_colour, full=_full) + paint(f" setup · v{version()}", "dim")
+    body = terminal_art.beside(words, _colour) if terminal_art.enabled(_colour) else words
+    for line in (terminal_theme.box(body, width, title=title, colour=_colour, full=_full) if _colour else ["Chaser Agent setup", *words]):
+        print("  " + line)
     advanced = False
     if interactive:
-        print("\n  QuickStart  sensible defaults: asks only for your key and your name\n  Advanced    also choose the folder, port and packs")
+        print(f"\n  {paint('q', 'key')}  {paint('QuickStart', 'head')}  {paint('sensible defaults; asks only how Chaser thinks and your name', 'dim')}"
+              f"\n  {paint('a', 'key')}  {paint('Advanced  ', 'head')}  {paint('also choose the folder, port and packs', 'dim')}")
         advanced = ask("QuickStart or Advanced? [Q/a]").lower().startswith("a")
 
     found = chaser_home.detect_chaseos()
@@ -264,10 +386,10 @@ def run_onboard(args: argparse.Namespace) -> int:
         settings = chaser_home.save({key: found[key] for key in ("data_dir", "port", "packs", "memory_limit_mb")})
         print(f"  {paint('✓', 'ok')} Using this computer's ChaseOS setup for Chaser: its folder, port and packs")
 
-    heading(f"Step 1 of {total} · Checking this computer")
+    step(1, total, "Checking this computer")
     show_rows(setup_checks.run(settings, routes=_routes(settings))["rows"])
 
-    heading(f"Step 2 of {total} · Where Chaser keeps its work")
+    step(2, total, "Where Chaser keeps its work")
     if interactive and advanced:
         folder = ask("Folder", settings["data_dir"])
         port = ask("Port", str(settings["port"]))
@@ -277,25 +399,30 @@ def run_onboard(args: argparse.Namespace) -> int:
     for line in setup_checks.fix(settings) or [f"{settings['data_dir']} is ready"]:
         print(f"  {paint('✓', 'ok')} {line}")
 
-    heading(f"Step 3 of {total} · How Chaser thinks")
-    print(paint("  ChaseOS Cloud runs Chaser's unattended work, metered in credits on your own key.\n"
-                "  Claude Code, if it's installed and signed in, is used next.", "dim"))
+    step(3, total, "How Chaser thinks")
+    print(paint("  We recommend ChaseOS Cloud: it's built for Chaser, with one key and pricing tuned for agent work.\n"
+                "  Any other provider works too: OpenRouter, OpenAI, Gemini, a local Ollama and more.", "dim"))
     if interactive:
-        step_key(settings)
+        if confirm("Choose now?"):
+            settings = choose_model(settings)
+        else:
+            print(f"  {paint('·', 'info')} Skipped. Choose any time: chaser model")
     else:
-        key = next((r for r in setup_checks.run(settings, routes=_routes(settings))["rows"] if r["id"] == "cloud_key"), None)
-        print(f"  {paint(MARK[key['state']], key['state'])} Key: {key['detail']}" if key else f"  {MARK['info']} Key: add one with: chaser key add")
+        if args.provider:
+            settings = chaser_home.save({"provider": providers.get(args.provider).id, "model": args.model or "",
+                                         "base_url": args.base_url or ""})
+        print(f"  {MARK['info']} Thinks with: {providers.describe(settings) if settings.get('provider') else 'not chosen (chaser model)'}")
 
-    heading(f"Step 4 of {total} · Your name on approvals")
+    step(4, total, "Your name on approvals")
     if interactive:
         settings = step_name(settings)
     else:
         print(f"  {MARK['info']} {settings.get('reviewer') or 'Not set'}")
 
-    heading(f"Step 5 of {total} · Keys that stop Chaser")
+    step(5, total, "Keys that stop Chaser")
     show_shortcuts(settings)
 
-    heading(f"Step 6 of {total} · Start Chaser")
+    step(6, total, "Start Chaser")
     started = False
     if not args.no_start and (not interactive or confirm("Start Chaser now and open the HUD?")):
         started = step_start(settings, open_hud=interactive)
@@ -308,10 +435,11 @@ def run_onboard(args: argparse.Namespace) -> int:
 
     settings = chaser_home.save({"onboarded_at": datetime.now(UTC).isoformat(timespec="seconds")})
     heading("Done. Try:")
-    print(f"  {paint('chaser', 'teal')}           the home menu\n"
-          f"  {paint('chaser chat', 'teal')}      talk to Chaser and watch it work\n"
-          f"  {paint('chaser open', 'teal')}      the HUD{'' if started else ' (start Chaser first: chaser gateway)'}\n"
-          f"  {paint('chaser gateway install', 'teal')}  keep Chaser running whenever you're signed in")
+    for command, words in (("chaser", "the home screen"), ("chaser chat", "talk to Chaser and watch it work"),
+                           ("chaser open", "the HUD" + ("" if started else " (start Chaser first: chaser gateway)")),
+                           ("chaser gateway install", "keep Chaser running whenever you're signed in"),
+                           ("chaser help", "every command")):
+        print(f"  {paint(f'{command:<24}', 'teal')}{paint(words, 'dim')}")
     return 0
 
 
@@ -524,24 +652,59 @@ def version() -> str:
         return "dev"
 
 
+def _greeting(settings: dict[str, Any]) -> str:
+    hour = time.localtime().tm_hour
+    part = "morning" if 5 <= hour < 12 else "afternoon" if 12 <= hour < 18 else "evening"
+    name = (settings.get("reviewer") or "").split(" ")[0]
+    return f"Good {part}{', ' + name if name else ''}."
+
+
 def _status_lines(settings: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
-    """The menu's header: is Chaser running, how it thinks, what's waiting, who signs approvals."""
+    """The home screen's facts as label/value rows: running, model, what's waiting, who signs. Only what's real."""
     facts: dict[str, Any] = {"running": _running(settings), "waiting": [], "routes": []}
     if facts["running"]:
         status, reply = _service_call(settings, "GET", "/v1/agent/status")
         if status == 200:
             facts["waiting"] = reply.get("waiting_for_operator") or []
-            facts["routes"] = [r.get("label") for r in (reply.get("reasoners") or {}).get("routes") or []
-                               if r.get("available") and r.get("connected", True) is not False]
-    state = paint(f"● running on 127.0.0.1:{settings['port']}", "ok") if facts["running"] else paint("● not running", "dim")
-    waiting = paint(f"   {len(facts['waiting'])} waiting for you", "warn") if facts["waiting"] else ""
-    always = paint("   starts at sign-in", "dim") if gateway_service.installed() else ""
-    lines = [state + waiting + always]
+            facts["routes"] = (reply.get("reasoners") or {}).get("routes") or []
+    provider = providers.get(settings.get("provider"))
+    route = next((r for r in facts["routes"] if r.get("id") == provider.id), None)
+    working = next((r for r in facts["routes"] if r.get("id") != "bridge" and r.get("available")), None)
+    if not settings.get("provider") and working:
+        shown = f"{working.get('label')} · {working['model']}" if working.get("model") and working.get("id") != "claude-cli" else working.get("label")
+        model = paint(shown, "text") + paint("  · auto", "dim")
+    elif not settings.get("provider"):
+        model = paint("not chosen yet", "warn") + paint("  · press m", "dim")
+    elif route is not None and not (route.get("available") and route.get("connected", True) is not False):
+        model = paint(providers.describe(settings), "text") + paint("  · " + (route.get("reason") or "not available"), "warn")
+    else:
+        model = paint(providers.describe(settings), "text")
     if facts["running"]:
-        lines.append(paint(f"Thinks with: {', '.join(facts['routes']) or 'nothing yet: add a ChaseOS Cloud key'}", "dim"))
+        state = paint("●", "ok") + paint(f" Running", "text") + paint(f"  127.0.0.1:{settings['port']}", "dim")
+        if gateway_service.installed():
+            state += paint("  · starts at sign-in", "dim")
+    else:
+        state = paint("○", "dim") + paint(" Stopped", "text") + paint("  · press g to start", "dim")
+    waiting = len(facts["waiting"])
+    waits = paint(f"{waiting} for you", "warn") if waiting else paint("nothing for you", "dim")
     reviewer = settings.get("reviewer")
-    lines.append(paint(f"Approvals signed \"{reviewer}\"" if reviewer else "Approvals signed local_operator: set your name in Settings", "dim"))
-    return lines, facts
+    signs = paint(reviewer, "text") if reviewer else paint("no name yet", "warn") + paint("  · Settings", "dim")
+    rows = [("Chaser", state), ("Model", model), ("Waiting", waits), ("Signs as", signs)]
+    return [paint(f"{label:<10}", "dim") + value for label, value in rows], facts
+
+
+def home_header(settings: dict[str, Any], status: list[str]) -> list[str]:
+    """The framed card at the top of `chaser`: Chaser on the left, a greeting and the facts on the right."""
+    words = [paint(_greeting(settings), "head"), *(paint(line, "dim") for line in INTRO), "", *status]
+    width = min(shutil.get_terminal_size((96, 30)).columns - 4, 92)
+    title = terminal_theme.wordmark(colour=_colour, full=_full) + paint(f" v{version()}", "dim")
+    if terminal_art.enabled(_colour):
+        inner = terminal_art.beside(words, _colour)
+        roomy = shutil.get_terminal_size((96, 44)).lines >= 40
+        return terminal_theme.box(["", *inner, ""] if roomy else inner, width, title=title, colour=_colour, full=_full)
+    if _colour:
+        return terminal_theme.box(words, width, title=title, colour=_colour, full=_full)
+    return ["Chaser Agent v" + version(), *words]
 
 
 def run_home(_: argparse.Namespace) -> int:
@@ -550,7 +713,7 @@ def run_home(_: argparse.Namespace) -> int:
         print("Chaser isn't set up on this computer yet.")
         if interactive_terminal() and confirm("Set it up now?"):
             return run_onboard(argparse.Namespace(reset=False, data_dir=None, port=None, reviewer=None, pack=[], non_interactive=False,
-                                                  no_start=False, use_chaseos=False))
+                                                  no_start=False, use_chaseos=False, provider=None, model=None, base_url=None))
         print("Run: chaser onboard")
         return 0
     if not interactive_terminal():
@@ -566,25 +729,41 @@ def run_home(_: argparse.Namespace) -> int:
         settings = chaser_home.load()
         status, facts = _status_lines(settings)
         running = facts["running"]
-        art = terminal_art.enabled(_colour)
-        header = terminal_art.beside([paint("Chaser Agent", "head") + paint(f"  v{version()}", "dim"),
-                                      paint("Works on this computer. Asks before anything leaves it.", "dim"), "", *status], _colour) if art else status
-        items = [terminal_ui.Item("c", "Chat with Chaser", "" if running else "start Chaser first"),
-                 terminal_ui.Item("w", "What's waiting for you", str(len(facts["waiting"])) if running else ""),
-                 terminal_ui.Item("r", "Recent work"),
-                 terminal_ui.Item("h", "Open the HUD"),
-                 terminal_ui.Item("g", "Stop Chaser" if running else "Start Chaser"),
-                 terminal_ui.Item("a", "Start at sign-in", "on" if gateway_service.installed() else "off"),
-                 terminal_ui.Item("s", "Settings", "key, folder, name, packs, shortcuts"),
-                 terminal_ui.Item("d", "Checks"),
-                 terminal_ui.Item("l", "Logs", "live"),
-                 terminal_ui.Item("q", "Quit", "Chaser keeps running")]
-        choice = terminal_ui.select("" if art else "Chaser Agent", items, header=header, paint=paint, start=last)
+        header = home_header(settings, status)
+        items = [terminal_ui.Item("c", "Chat with Chaser", "" if running else "starts Chaser first", "Work"),
+                 terminal_ui.Item("w", "Waiting for you", str(len(facts["waiting"])) if facts["waiting"] else "", "Work"),
+                 terminal_ui.Item("r", "Recent work", "", "Work"),
+                 terminal_ui.Item("h", "Open the HUD", "", "Work"),
+                 terminal_ui.Item("g", "Stop Chaser" if running else "Start Chaser", "", "Chaser"),
+                 terminal_ui.Item("a", "Start at sign-in", "on" if gateway_service.installed() else "off", "Chaser"),
+                 terminal_ui.Item("l", "Logs", "live", "Chaser"),
+                 terminal_ui.Item("m", "Model", providers.get(settings.get("provider")).label if settings.get("provider") else "auto", "Set up"),
+                 terminal_ui.Item("t", "Channels", ", ".join(channels.PLATFORMS[c]["label"] for c in channels.configured(settings)) or "not set up", "Set up"),
+                 terminal_ui.Item("s", "Settings", "key · folder · name · packs · shortcuts", "Set up"),
+                 terminal_ui.Item("d", "Checks", "", "Set up"),
+                 terminal_ui.Item("q", "Quit", "Chaser keeps running", "Set up")]
+        choice = terminal_ui.select("", items, header=header, paint=paint, start=last,
+                                    footer="↑↓ move   enter open   a–z jump   ? all commands   q quit")
         print("\033[2J\033[H", end="")
         if choice in (None, "q"):
             return 0
         last = choice
         try:
+            if choice == "?":
+                print_help()
+                terminal_ui.pause(paint)
+                continue
+            if choice == "m":
+                choose_model(settings)
+                terminal_ui.pause(paint)
+                continue
+            if choice == "t":
+                run_channels(argparse.Namespace(action="list", platform=None))
+                pick = ask("Add or change one? telegram, discord (Enter to go back)").lower()
+                if pick in channels.PLATFORMS:
+                    add_channel(pick)
+                terminal_ui.pause(paint)
+                continue
             if choice in {"c", "w", "r"}:
                 if not running and not step_start(settings, open_hud=False):
                     terminal_ui.pause(paint)
@@ -627,8 +806,300 @@ def run_home(_: argparse.Namespace) -> int:
         terminal_ui.pause(paint)
 
 
+HELP = (
+    ("Start", (("chaser", "the home screen"), ("chaser onboard", "first-run setup"),
+               ("chaser chat [message]", "talk to Chaser and watch it work"), ("chaser ask \"task\"", "give Chaser a task and follow it"),
+               ("chaser open", "the HUD"))),
+    ("Run", (("chaser gateway", "start Chaser in the background (stop, restart, run)"),
+             ("chaser gateway install", "start at sign-in (uninstall to stop)"), ("chaser status", "running, model, routes, what's waiting"),
+             ("chaser logs [-f]", "the service log"))),
+    ("Work", (("chaser waiting", "what needs your answer or your yes"), ("chaser sessions", "recent work and where each stands"),
+              ("chaser approve [SESSION]", "say yes, signed with your name"), ("chaser reject [SESSION]", "say no, signed with your name"),
+              ("chaser receipt [SESSION]", "check the hash chain; who approved what; what it wrote"))),
+    ("Set up", (("chaser model", "choose the AI provider and model"), ("chaser channels", "Telegram and Discord, owner-only (add, test, remove)"), ("chaser key", "the ChaseOS Cloud key"),
+                ("chaser setup [section]", "every setting from a menu"), ("chaser shortcuts", "the stop and take-over keys"),
+                ("chaser doctor [--online] [--fix]", "pre-flight checks"))),
+    ("Help", (("chaser help [command]", "this, or one command's options"), ("chaser version", "the installed version"))),
+)
+
+
+def print_help(command: str | None = None) -> int:
+    if command:
+        parser = build_parser()
+        for action in parser._subparsers._group_actions:  # noqa: SLF001 - argparse keeps subcommands here
+            if command in action.choices:
+                action.choices[command].print_help()
+                return 0
+        print(f"No command called {command}. Run: chaser help")
+        return 2
+    print()
+    print("  " + terminal_theme.wordmark(colour=_colour, full=_full) + paint(f"  v{version()}", "dim"))
+    print("  " + paint(" ".join(INTRO), "dim"))
+    width = max(len(command) for _, rows in HELP for command, _ in rows) + 3
+    for group, rows in HELP:
+        print("\n  " + paint(group.upper(), "dim"))
+        for command, words in rows:
+            print(f"    {paint(f'{command:<{width}}', 'teal')}{words}")
+    print("\n  " + paint("Settings live in " + str(chaser_home.settings_path()) + ". NO_COLOR or CHASER_NO_ART turn off colour or art.", "dim"))
+    return 0
+
+
+def run_model(args: argparse.Namespace) -> int:
+    settings = chaser_home.load()
+    if args.action == "list":
+        for provider in providers.CATALOGUE:
+            mark = paint("●", "ok") if provider.id == settings.get("provider") else " "
+            print(f"  {mark} {provider.id:<14} {provider.label:<36} {paint(provider.blurb, 'dim')}")
+        return 0
+    if args.action == "set":
+        if not args.provider:
+            print("chaser model set PROVIDER [--model NAME] [--base-url URL]   (see: chaser model list)")
+            return 2
+        provider = providers.get(args.provider)
+        settings = chaser_home.save({"provider": provider.id, "model": args.model or "", "base_url": args.base_url or ""})
+        print(f"{MARK['ok']} Chaser thinks with {providers.describe(settings)}. Restart to use it: chaser gateway restart")
+        return 0
+    if args.action == "show" or not interactive_terminal():
+        print(f"Thinks with: {providers.describe(settings) if settings.get('provider') else 'not chosen yet'}")
+        provider = providers.get(settings.get("provider"))
+        if provider.needs_key and provider.kind == "openai":
+            print(f"Key: {providers.load_key(provider.id)[1]}")
+        if not interactive_terminal():
+            print("Change it: chaser model (in a terminal), or chaser model set PROVIDER --model NAME")
+        return 0
+    choose_model(settings)
+    return 0
+
+
+# --- The work and its proof -----------------------------------------------------
+
+def _need_running(settings: dict[str, Any]) -> bool:
+    if _running(settings):
+        return True
+    print("Chaser isn't running. Start it with: chaser gateway")
+    return False
+
+
+def _waiting_details(settings: dict[str, Any]) -> list[dict[str, Any]]:
+    _, value = _service_call(settings, "GET", "/v1/agent/sessions")
+    details = []
+    for row in (value or {}).get("sessions") or []:
+        if row.get("status") in chaser_work.WAITING:
+            status, snap = _service_call(settings, "GET", f"/v1/agent/sessions/{row['id']}")
+            if status == 200 and snap.get("pending"):
+                details.append(snap)
+    return details
+
+
+def run_waiting(_: argparse.Namespace) -> int:
+    settings = chaser_home.load()
+    if not _need_running(settings):
+        return 1
+    for line in chaser_work.waiting_lines(_waiting_details(settings), paint):
+        print(line)
+    return 0
+
+
+def run_sessions(args: argparse.Namespace) -> int:
+    settings = chaser_home.load()
+    if not _need_running(settings):
+        return 1
+    _, value = _service_call(settings, "GET", "/v1/agent/sessions")
+    for line in chaser_work.sessions_table((value or {}).get("sessions") or [], paint, limit=args.limit):
+        print(line)
+    return 0
+
+
+def run_decision(args: argparse.Namespace) -> int:
+    """`chaser approve` / `chaser reject`: show the exact request, then sign the decision with your name."""
+    settings = chaser_home.load()
+    if not _need_running(settings):
+        return 1
+    decision = args.decision
+    waiting = [s for s in _waiting_details(settings) if (s.get("pending") or {}).get("kind") == "approval"]
+    if args.session:
+        snap = next((s for s in waiting if s["id"] == args.session or s["id"].startswith(args.session)), None)
+    elif len(waiting) == 1:
+        snap = waiting[0]
+    else:
+        print("Nothing is waiting for your yes." if not waiting else "Several approvals are waiting; name one:")
+        for line in chaser_work.waiting_lines(waiting, paint)[:12]:
+            print(line)
+        return 3 if not waiting else 2
+    if snap is None:
+        print("That session isn't waiting for an approval. See: chaser waiting")
+        return 3
+    pending = snap["pending"]
+    print(paint(f"  {snap.get('title')}", "head"))
+    print(f"  wants to run {paint(str(pending.get('tool')), 'head')} with:")
+    for line in json.dumps(pending.get("args") or {}, ensure_ascii=False, indent=1).splitlines()[:30]:
+        print(paint("    " + line, "dim"))
+    print(paint(f"  digest {pending.get('digest')}", "dim"))
+    reviewer = (settings.get("reviewer") or "").strip()
+    signer = f"{reviewer} (terminal)" if reviewer else "local_operator"
+    word = "Approve" if decision == "approve" else "Reject"
+    if not args.yes and not (interactive_terminal() and confirm(f"{word} this, signed {signer}?", default=decision == "reject")):
+        print("Left waiting. Nothing was decided.")
+        return 0
+    status, value = _service_call(settings, "POST", f"/v1/agent/sessions/{snap['id']}/approvals",
+                                  {"approval_id": pending["id"], "digest": pending["digest"], "decision": decision, "decided_by": signer})
+    if status != 202:
+        print(f"{MARK['fail']} {((value or {}).get('error') or {}).get('message') or 'Chaser did not accept that.'}")
+        return 2
+    print(f"{paint(MARK['ok'], 'ok')} {'Approved' if decision == 'approve' else 'Rejected'}, signed {signer}. It's in the session's receipt.")
+    return 0
+
+
+def run_receipt(args: argparse.Namespace) -> int:
+    settings = chaser_home.load()
+    folder = chaser_work.find_session(Path(settings["data_dir"]), args.session)
+    if folder is None:
+        print("No session found" + (f" matching {args.session}." if args.session else " yet.") + " See: chaser sessions")
+        return 3
+    value = chaser_work.receipt(folder)
+    if args.json:
+        print(json.dumps(value, indent=1, ensure_ascii=False))
+    else:
+        for line in chaser_work.receipt_lines(value, paint):
+            print(line)
+    return 0 if value["chain"].get("verified") else 4
+
+
+# --- Messaging channels ------------------------------------------------------------
+
+def _restart_offer(settings: dict[str, Any]) -> None:
+    if _running(settings) and interactive_terminal() and confirm("Restart Chaser so the channel starts now?"):
+        print("  " + gateway_stop(settings)[1])
+        print("  " + gateway_start(settings)[1])
+    elif not _running(settings):
+        print(paint("  It starts with Chaser: chaser gateway", "dim"))
+
+
+def add_channel(platform: str) -> int:
+    settings = chaser_home.load()
+    info = channels.PLATFORMS[platform]
+    print(paint(f"  {info['label']}", "head") + paint("  only the accounts you allow can talk to Chaser; approvals still need your yes", "dim"))
+    print(paint(f"  {info['where']} The token won't show as you paste it.", "dim"))
+    try:
+        token = cloud_key.validate(getpass.getpass(f"  {info['label']} bot token: "))
+    except ValueError as exc:
+        print(f"  {paint('✗', 'fail')} {exc}")
+        return 2
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return 1
+    if platform == "telegram":
+        bot = channels.Telegram(token)
+        ok, name = bot.whoami()
+        if not ok:
+            print(f"  {paint('✗', 'fail')} {name}")
+            return 2
+        print(f"  {paint('✓', 'ok')} Connected to {name}. Now send it any message from your own Telegram account (waiting up to 2 minutes)…")
+        found = None
+        deadline = time.monotonic() + 120
+        while found is None and time.monotonic() < deadline:
+            found = next(iter(bot.poll(wait=20)), None)
+        if found is None:
+            print(f"  {paint('!', 'warn')} No message arrived. Run chaser channels add telegram again when you're ready.")
+            return 1
+        if not confirm(f"Allow {found.name or 'this account'} (id {found.user}) to talk to Chaser?"):
+            return 1
+        allow = [found.user]
+        greet = lambda: bot.send(found.chat, "Chaser is connected. Only you can talk to it here; it will ask before anything leaves your computer.")  # noqa: E731
+    else:
+        bot = channels.Discord(token, [])
+        ok, name = bot.whoami()
+        if not ok:
+            print(f"  {paint('✗', 'fail')} {name}")
+            return 2
+        print(f"  {paint('✓', 'ok')} Connected as {name}.")
+        print(paint(f"  Invite it to a server you're in, if you haven't: https://discord.com/oauth2/authorize?client_id={bot.me}&scope=bot&permissions=0", "dim"))
+        print(paint("  Your user ID: Discord Settings → Advanced → Developer Mode on, then right-click your name → Copy User ID.", "dim"))
+        user = ask("Your Discord user ID").strip()
+        if not user.isdecimal():
+            print(f"  {paint('✗', 'fail')} That isn't a Discord user ID (it's a long number).")
+            return 2
+        allow = [user]
+        bot.allow = allow
+        greet = lambda: bot.greet(user, "Chaser is connected. Only you can talk to it here; it will ask before anything leaves your computer.")  # noqa: E731
+    try:
+        channels.save_token(platform, token)
+    except cloud_key.KeyStoreUnavailable as exc:
+        print(f"  {paint('✗', 'fail')} {exc}")
+        return 2
+    chosen = dict(settings.get("channels") or {})
+    chosen[platform] = {"enabled": True, "allow": allow}
+    settings = chaser_home.save({"channels": chosen})
+    print(f"  {paint('✓', 'ok')} {info['label']} is set up; the token is saved encrypted for this Windows account."
+          if greet() is not False else f"  {paint('!', 'warn')} Saved, but the hello didn't arrive; check the bot shares a server with you.")
+    _restart_offer(settings)
+    return 0
+
+
+def run_channels(args: argparse.Namespace) -> int:
+    settings = chaser_home.load()
+    chosen = settings.get("channels") or {}
+    if args.action == "list":
+        print()
+        heading("Messaging channels")
+        for platform, info in channels.PLATFORMS.items():
+            value = chosen.get(platform)
+            if value and channels.load_token(platform):
+                state = paint("● connected", "ok") + paint(f"  {len(value.get('allow') or [])} allowed account(s)", "dim")
+            elif value:
+                state = paint("! no token", "warn") + paint(f"  chaser channels add {platform}", "dim")
+            else:
+                state = paint("○ not set up", "dim") + paint(f"  chaser channels add {platform}", "dim")
+            print(f"    {info['label']:<10} {state}")
+        print(paint("\n  Only allowed accounts are heard. Every approval still needs a yes, signed by name into the receipt.", "dim"))
+        print(paint("  More platforms (Slack, email, WhatsApp, Signal, Teams, Matrix) are planned.", "dim"))
+        return 0
+    if not args.platform:
+        print(f"chaser channels {args.action} {'|'.join(channels.PLATFORMS)}")
+        return 2
+    if args.action == "add":
+        if not interactive_terminal():
+            print("chaser channels add needs a terminal.")
+            return 2
+        return add_channel(args.platform)
+    if args.action == "remove":
+        channels.forget_token(args.platform)
+        chosen = {k: v for k, v in chosen.items() if k != args.platform}
+        chaser_home.save({"channels": chosen})
+        print(f"{MARK['ok']} {channels.PLATFORMS[args.platform]['label']} removed; its token is deleted. Restart Chaser to stop it listening.")
+        return 0
+    if args.action == "test":
+        value = chosen.get(args.platform)
+        if not value:
+            print(f"Not set up. Run: chaser channels add {args.platform}")
+            return 3
+        adapter = channels.adapter_for(args.platform, settings, {})
+        ok, name = adapter.whoami()
+        if not ok:
+            print(f"{MARK['fail']} {name}")
+            return 2
+        for user in value.get("allow") or []:
+            if args.platform == "telegram":
+                adapter.send(user, "A test from chaser channels test.")
+            else:
+                adapter.greet(user, "A test from chaser channels test.")
+        print(f"{MARK['ok']} Sent a test to {len(value.get('allow') or [])} account(s) from {name}.")
+        return 0
+    if args.action == "run":
+        if not channels.configured(settings):
+            print("No channels set up. Run: chaser channels add telegram (or discord)")
+            return 3
+        print(paint("Serving the channels in this terminal. Ctrl+C to stop.", "dim"))
+        try:
+            channels.run(settings, channels.service_caller(settings))
+        except KeyboardInterrupt:
+            pass
+        return 0
+    return 2
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="chaser", description="Set up, start and check Chaser Agent.",
+    parser = argparse.ArgumentParser(prog="chaser", description="Set up, start and check Chaser Agent. Run chaser help for every command.",
                                      formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__.split("\n\n")[1])
     sub = parser.add_subparsers(dest="command")
     onboard = sub.add_parser("onboard", help="First-run setup: checks, folder, key, your name, shortcuts, start.")
@@ -640,6 +1111,9 @@ def build_parser() -> argparse.ArgumentParser:
     onboard.add_argument("--no-start", action="store_true", help="Don't start Chaser at the end.")
     onboard.add_argument("--reset", action="store_true", help="Start from default settings. Work, receipts and the key are kept.")
     onboard.add_argument("--use-chaseos", action="store_true", help="Use this computer's ChaseOS setup for Chaser (folder, port, packs) if there is one.")
+    onboard.add_argument("--provider", choices=sorted(providers.BY_ID), help="How Chaser thinks. The key comes from the provider's environment variable.")
+    onboard.add_argument("--model")
+    onboard.add_argument("--base-url", help="With --provider custom: the endpoint's address, up to /v1.")
     onboard.set_defaults(func=run_onboard)
     chat = sub.add_parser("chat", aliases=["tui"], help="Talk to Chaser and watch it work.")
     chat.add_argument("message", nargs="*", help="Start with this message.")
@@ -669,6 +1143,41 @@ def build_parser() -> argparse.ArgumentParser:
     keys.add_argument("name", nargs="?", choices=list(shortcuts.NAMES))
     keys.add_argument("chord", nargs="?", help="For example Ctrl+Alt+Shift+X")
     keys.set_defaults(func=run_shortcuts)
+    model = sub.add_parser("model", help="Choose the AI provider and model Chaser thinks with.")
+    model.add_argument("action", nargs="?", default="choose", choices=["choose", "show", "list", "set"])
+    model.add_argument("provider", nargs="?", choices=sorted(providers.BY_ID))
+    model.add_argument("--model")
+    model.add_argument("--base-url")
+    model.set_defaults(func=run_model)
+    status = sub.add_parser("status", help="Is Chaser running, how it thinks, what's waiting.")
+    status.set_defaults(func=lambda _a: run_gateway(argparse.Namespace(action="status", foreground=False, follow=False, open=False, lines=40)))
+    logs = sub.add_parser("logs", help="The service log.")
+    logs.add_argument("-f", "--follow", action="store_true")
+    logs.add_argument("--lines", type=int, default=40)
+    logs.set_defaults(func=lambda a: run_gateway(argparse.Namespace(action="logs", foreground=False, follow=a.follow, open=False, lines=a.lines)))
+    waiting = sub.add_parser("waiting", help="What needs your answer or your yes, oldest first.")
+    waiting.set_defaults(func=run_waiting)
+    recent = sub.add_parser("sessions", help="Recent work and where each one stands.")
+    recent.add_argument("--limit", type=int, default=15)
+    recent.set_defaults(func=run_sessions)
+    for verb, words in (("approve", "Say yes to a waiting request, signed with your name."), ("reject", "Say no to a waiting request, signed with your name.")):
+        decide = sub.add_parser(verb, help=words)
+        decide.add_argument("session", nargs="?", help="Which session; leave out when only one is waiting.")
+        decide.add_argument("--yes", action="store_true", help="Don't ask to confirm.")
+        decide.set_defaults(func=run_decision, decision="approve" if verb == "approve" else "reject")
+    proof = sub.add_parser("receipt", help="Check a session's hash chain from disk and show who approved what.")
+    proof.add_argument("session", nargs="?", help="A session id or its start; the newest when left out.")
+    proof.add_argument("--json", action="store_true")
+    proof.set_defaults(func=run_receipt)
+    chan = sub.add_parser("channels", help="Talk to Chaser from Telegram or Discord, owner-only and approval-governed.")
+    chan.add_argument("action", nargs="?", default="list", choices=["list", "add", "remove", "test", "run"])
+    chan.add_argument("platform", nargs="?", choices=sorted(channels.PLATFORMS))
+    chan.set_defaults(func=run_channels)
+    helper = sub.add_parser("help", help="Every command, or one command's options.")
+    helper.add_argument("topic", nargs="?")
+    helper.set_defaults(func=lambda a: print_help(a.topic))
+    shown = sub.add_parser("version", help="The installed version.")
+    shown.set_defaults(func=lambda _a: print(f"chaser-agent {version()}") or 0)
     for name in sorted(PASS_THROUGH):
         sub.add_parser(name, help=f"chaser-agent {name}, using your settings' folder and port.", add_help=False)
     return parser

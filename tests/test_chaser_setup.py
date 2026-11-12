@@ -227,7 +227,7 @@ def test_onboarding_without_a_terminal_uses_flags_and_asks_nothing(tmp_path: Pat
     out = capsys.readouterr().out
     saved = chaser_home.load()
     assert code == 0 and saved["reviewer"] == "Sam" and saved["port"] == 8798 and saved["onboarded_at"] and made
-    assert "Step 6 of 6" in out and "Not started" in out
+    assert "6 of 6" in out and "Not started" in out
 
 
 def test_chaser_alone_points_to_onboarding_until_set_up(capsys, monkeypatch: pytest.MonkeyPatch) -> None:

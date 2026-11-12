@@ -65,6 +65,10 @@ def supervise(settings: dict[str, Any], *, max_restarts: int | None = None, slee
     log, stop = folder / "service.log", folder / STOP_FILE
     stop.unlink(missing_ok=True)
     (folder / SUPERVISOR_PID).write_text(str(os.getpid()), encoding="ascii")
+    if command is None:  # the real service, not a test's stand-in: serve any messaging channels beside it
+        from chaser_agent import channels
+
+        channels.start_background(settings, lambda line: _note(log, line))
     restarts, failures = 0, 0
     try:
         while True:

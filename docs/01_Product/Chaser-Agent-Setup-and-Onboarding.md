@@ -24,6 +24,16 @@
 | `chaser key` | `status`, `add` (pasted with no echo), `check` and `remove`. If Chaser is running, it uses a new key at once. |
 | `chaser shortcuts` | Shows the stop and take-over keys and whether each is free. `set stop Ctrl+Alt+Shift+X`, or `reset`. |
 | `chaser ask`, `open`, `decide`, `agent-status` | The existing commands, using the folder and port from settings, so they need no flags. |
+| `chaser model` | Choose how Chaser thinks: a menu of providers with ChaseOS Cloud first and recommended, then Claude (Claude Code sign-in), OpenRouter, OpenAI, Gemini, xAI, DeepSeek, Mistral, Groq, Together, Fireworks, Ollama and LM Studio on this computer, any other OpenAI-compatible endpoint, or another agent harness over the bridge. The key is pasted with no echo and saved encrypted for this Windows account; it's checked for free by listing the provider's models, which are then offered to choose from. `show`, `list`, and `set PROVIDER --model NAME` for scripts. |
+| `chaser waiting` | What needs your answer or your yes, oldest first, each with the command that answers it. |
+| `chaser sessions` | Recent work: title, where it stands, how long ago, its id. |
+| `chaser approve [SESSION]`, `chaser reject [SESSION]` | Shows the exact request and its digest, then signs the decision "Name (terminal)". With one approval waiting, no id is needed. `chaser decide` still works. |
+| `chaser receipt [SESSION]` | Reads the session's event log from disk and re-derives every hash, so it doesn't trust the running service: an edited line shows as "Chain broken at event N". Lists each approval with its signer and whether its digest matches the request, the tools run, and a SHA-256 of every file the session wrote. `--json` for scripts. `/receipt` in chat does the same. |
+| `chaser channels` | Telegram and Discord (below): `add`, `test`, `remove`, `run` in the foreground. |
+| `chaser status` | Running or not, every route's state, sessions, what's waiting, start at sign-in. Same as `chaser gateway status`. |
+| `chaser logs [-f]` | The service log. Same as `chaser gateway logs`. |
+| `chaser help [command]` | Every command, grouped; or one command's options. `?` on the home screen shows the same list. |
+| `chaser version` | The installed version. |
 
 `python -m chaser_agent …` runs the same command before the package is reinstalled with the new `chaser` entry point.
 
@@ -52,6 +62,21 @@
 Chaser is drawn beside the header in half-block pixels (two pixels a character, 24-bit colour), as Claude Code and Hermes show their marks. The pixels are scaled by `scripts/make_terminal_art.py` from the approved canon-core avatar export, with a feature-preserving rule so the face's constellation survives, and `chaser_art.py` records that file's path and hash; nothing is redrawn by hand, as the brand rule requires. The same art opens `chaser chat` and `chaser onboard`. It's left out without colour, in a window under 72 columns, or with `CHASER_NO_ART=1`.
 
 The header is read from the running service each time the menu draws, so it shows the real state. **What's waiting** and **Recent work** list sessions and open the chosen one in chat. **Start at sign-in** asks before turning it on. Quitting the menu never stops Chaser.
+
+## How Chaser thinks
+
+Other harnesses lead their setup with their own service (Hermes recommends Nous Portal, a subscription signed in with OAuth). Chaser does the same with ChaseOS Cloud, and leaves the choice open: step 3 of onboarding and `chaser model` show ChaseOS Cloud first and recommended, then every other provider. Nothing is assumed: until a provider is chosen, the home screen shows the route Chaser picks automatically, marked "auto".
+
+| Provider | How it connects |
+|---|---|
+| ChaseOS Cloud | Its own route, credits on the owner's key (`chaser key`) |
+| Claude | The Claude Code sign-in on this computer; no key in Chaser |
+| OpenRouter, OpenAI, Gemini, xAI, DeepSeek, Mistral, Groq, Together, Fireworks | One general route for OpenAI-style chat APIs, a key per provider |
+| Ollama, LM Studio | The same route to a server on this computer; no key, nothing leaves the machine |
+| Any other OpenAI-compatible endpoint | The same route to the address given (vLLM, LiteLLM, a company gateway) |
+| Another agent harness | The bridge: Hermes or any harness answers over the local API |
+
+Every provider keeps the existing rules: the chosen one comes first so "auto" uses it, a refusal or empty balance stops the turn and says so, and nothing switches provider behind the person's back. Keys live in `%LOCALAPPDATA%\ChaserAgent\keys\<provider>.dpapi` (the ChaseOS Cloud key stays in its existing file), and a key in the provider's usual variable (`OPENAI_API_KEY`, `OPENROUTER_API_KEY`...) wins, so a vault still works. The key leaves the service's environment at start, so tools never inherit it. Base addresses were taken from the providers' own documentation; Nous Portal isn't listed because it signs in with OAuth rather than a key, so it's reached through Hermes on the bridge.
 
 ## Chat
 
@@ -96,15 +121,40 @@ Read on 12 November 2026 from their CLI references (OpenClaw: docs.openclaw.ai/c
 | Background service | `gateway install/start/stop/restart/run` | `gateway install/start/stop/status` | `chaser gateway` with a supervisor, `install`/`uninstall` at sign-in |
 | Logs | `logs --follow` | `logs` | `chaser gateway logs -f` |
 | Terminal chat | `tui`, `chat` | the CLI, `--tui` | `chaser chat` with streamed steps, inline approvals, slash commands |
-| Model choice | provider config | `model`, `/model` | `/route` in chat; the route scorecard recommends one |
+| Model choice | provider config | `model` (Nous Portal recommended, 40+ providers) | `chaser model` (ChaseOS Cloud recommended, 14 choices plus any OpenAI-compatible endpoint), `/route` in chat |
 | Dashboard | `dashboard` | web UI (community) | `chaser open`: the HUD |
-| Messaging channels | Telegram, Discord, WhatsApp and more | Telegram, Discord and more | none (see below) |
+| Messaging channels | Telegram, Discord, WhatsApp and more | 20+: Telegram, Discord, Slack, WhatsApp, Signal and more | Telegram and Discord as governed doors; Slack, email, WhatsApp, Signal, Teams, Matrix planned |
 | Schedules | cron | `cron` | none (see below) |
 | Named approvals bound to the exact request | no | no | yes: digest-checked, signed by name in HUD and terminal |
 | Hash-chained receipt for every step | no | no | yes |
 | Outcome ledger and route scorecard | no | no | yes, in ChaseOS |
 
-Chaser now matches both on setup, health, the background service, logs and terminal chat. It deliberately has no messaging channels or schedules yet: each is a way for work to start or results to leave without the person at the computer, which is exactly what Chaser governs. They come only behind the same approvals and receipts, and schedules only through ChaseOS's existing ingestion owner rather than a second scheduler.
+Chaser now matches both on setup, model choice, health, the background service, logs and terminal chat. Messaging channels start with Telegram and Discord, as governed doors (below); schedules come only through ChaseOS's existing ingestion owner rather than a second scheduler.
+
+## Messaging channels
+
+**Built: Telegram and Discord.** `chaser channels add telegram` takes the BotFather token (no echo), checks it, then asks you to message the bot from your own account and allowlists exactly that account. `chaser channels add discord` takes the bot token and your Discord user ID and says hello in a direct message. Tokens are saved encrypted for this Windows account (`keys\channel-<platform>.dpapi`, or `TELEGRAM_BOT_TOKEN` / `DISCORD_BOT_TOKEN` from a vault). The gateway's supervisor serves the channels beside the service, so they run whenever Chaser does.
+
+- Only allowlisted accounts are heard; anyone else is ignored and noted in the service log.
+- A message starts or continues that chat's session through the same local API as the terminal; `/new`, `/waiting` and `/stop` work there too.
+- Steps arrive briefly ("Working: mail_search, read_document"), then the answer.
+- An approval arrives with the tool, its arguments and the digest's first characters. Telegram shows Yes and No buttons carrying the approval id and digest prefix; Discord takes a typed yes or no. Before deciding, Chaser checks the answer refers to the request that is waiting now, then signs it "Name (Telegram)" or "Name (Discord)" into the receipt.
+- Neither needs a public address: Telegram is long-polled; Discord is read from the bot's direct message with each allowlisted person over its REST API.
+
+### The rest of the plan
+
+Hermes reaches people on Telegram, Discord, Slack, WhatsApp, Signal, SMS, email, Matrix, Mattermost, Teams, LINE and more; OpenClaw has a similar list. Chaser will have them, built as governed doors rather than plain chat bridges.
+
+**Moat check.** An agent could build a Discord or Telegram adapter in an afternoon, and Hermes and OpenClaw already do it for free, so the adapters themselves are no moat. What stays hard to copy is what happens at the door: a message starts a session that still stops at every approval; the approval reaches the person in the same app with the exact request and its digest; only allowlisted people can answer; the decision is signed by name ("Chase (Discord)") into the session's hash-chained receipt; and anything the reply would send out counts as leaving the computer, so it needs that same yes. Neither harness binds a channel approval to the request digest or writes it into a receipt.
+
+**Order, by reach and effort:**
+
+1. Discord and Telegram: built (above).
+2. Slack (Socket Mode, so no public address) and email (IMAP in, SMTP out, through the existing mail tools' approvals).
+3. WhatsApp, Signal (through signal-cli), Microsoft Teams, Matrix.
+4. Others on request: Mattermost, Google Chat, SMS, LINE, ntfy for notifications only.
+
+**Shape.** Each new platform is one adapter class with `poll`, `send` and `acknowledge`; the door (allowlist, approvals bound to the digest, signing) is shared and already tested. Schedules still go only through ChaseOS's existing ingestion owner.
 
 ## Tuning toward the moat
 

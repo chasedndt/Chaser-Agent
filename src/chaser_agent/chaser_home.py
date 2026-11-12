@@ -17,7 +17,7 @@ SETTINGS_FILE = "settings.json"
 DEFAULT_PORT = 8765
 DEFAULT_MEMORY_LIMIT_MB = 1500
 DEFAULT_SHORTCUTS = {"stop": "Ctrl+Alt+Pause", "stop_fallback": "Ctrl+Alt+Shift+S", "take_over": "Ctrl+Alt+Shift+T"}
-FIELDS = {"data_dir", "port", "packs", "reviewer", "memory_limit_mb", "shortcuts", "onboarded_at"}
+FIELDS = {"data_dir", "port", "packs", "reviewer", "memory_limit_mb", "shortcuts", "onboarded_at", "provider", "model", "base_url", "channels"}
 
 
 def home() -> Path:
@@ -31,7 +31,8 @@ def home() -> Path:
 
 def defaults() -> dict[str, Any]:
     return {"data_dir": str(home() / "data"), "port": DEFAULT_PORT, "packs": [], "reviewer": "",
-            "memory_limit_mb": DEFAULT_MEMORY_LIMIT_MB, "shortcuts": dict(DEFAULT_SHORTCUTS), "onboarded_at": None}
+            "memory_limit_mb": DEFAULT_MEMORY_LIMIT_MB, "shortcuts": dict(DEFAULT_SHORTCUTS), "onboarded_at": None,
+            "provider": "", "model": "", "base_url": "", "channels": {}}
 
 
 def settings_path() -> Path:

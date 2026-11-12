@@ -1,6 +1,6 @@
 """Make the terminal pixel art of Chaser from the approved avatar export, never a redrawing of it.
 
-    python scripts/make_terminal_art.py [--size 24] [--colours 12]
+    python scripts/make_terminal_art.py [--colours 32] [--source EXPORT] [--size N] [--top 0.7]
 
 The brand rule (brand/chaser-agent/README.md) is to consume an explicitly versioned approved export.
 So this scales the canon-core avatar down, keeps its own colours (reduced to a small palette so it
@@ -17,17 +17,27 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/avatar/chaser-agent_avatar-transparent_1024x1024.png"
+AVATARS = ROOT / "brand/chaser-agent/exports/canon-core/v1.0.0-rc.1/avatar"
+SOURCE = AVATARS / "chaser-agent_avatar-transparent_32x32.png"
 TARGET = ROOT / "src/chaser_agent/chaser_art.py"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--size", type=int, default=24, help="pixels across; the art is this many columns and half as many rows")
+    parser.add_argument("--size", type=int, default=0, help="pixels across to scale to; 0 keeps the export's own pixels (the default)")
+    parser.add_argument("--source", type=Path, default=SOURCE, help="an approved avatar export; the 32x32 one is made for small sizes")
     parser.add_argument("--colours", type=int, default=12)
+    parser.add_argument("--top", type=float, default=1.0, help="keep this share of the mascot's height from the top: 0.7 is head and shoulders")
+    parser.add_argument("--out", type=Path, default=TARGET)
     args = parser.parse_args()
-    image = Image.open(SOURCE).convert("RGBA")
+    source = args.source.resolve()
+    image = Image.open(source).convert("RGBA")
     image = image.crop(image.getbbox())  # the mascot, without the empty margin
+    if args.top < 1:
+        image = image.crop((0, 0, image.width, round(image.height * args.top)))  # a crop of the export, still not a redraw
+    if not args.size:
+        write(args, source, image.convert("RGB"), image.getchannel("A"), *image.size)
+        return
     side = max(image.size)
     square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     square.paste(image, ((side - image.width) // 2, side - image.height))  # sits on the bottom edge, as in the export
@@ -45,30 +55,34 @@ def main() -> None:
                              if pixels[i, j][3] > 200), key=sum, default=(0, 0, 0))
             if sum(brightest) / 3 > 200:
                 rgb.putpixel((x, y), brightest)
-    alpha = small.getchannel("A")
+    write(args, source, rgb, small.getchannel("A"), args.size, args.size)
+
+
+def write(args: argparse.Namespace, source: Path, rgb: Image.Image, alpha: Image.Image, width: int, height: int) -> None:
     solid = rgb.quantize(colors=args.colours, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
     palette = solid.getpalette()[: args.colours * 3]
     colours = [f"{palette[i]:02x}{palette[i + 1]:02x}{palette[i + 2]:02x}" for i in range(0, len(palette), 3)]
     rows = []
-    for y in range(args.size):
+    for y in range(height):
         line = ""
-        for x in range(args.size):
+        for x in range(width):
             line += "." if alpha.getpixel((x, y)) < 128 else "0123456789abcdefghijklmnopqrstuvwxyz"[solid.getpixel((x, y))]
         rows.append(line)
-    digest = hashlib.sha256(SOURCE.read_bytes()).hexdigest()
+    digest = hashlib.sha256(source.read_bytes()).hexdigest()
     body = [
         '"""Chaser in terminal pixels, scaled from the approved avatar export. Made by scripts/make_terminal_art.py; don\'t edit by hand."""',
         "",
-        f'SOURCE = "{SOURCE.relative_to(ROOT).as_posix()}"',
+        f'SOURCE = "{source.relative_to(ROOT).as_posix()}"',
         f'SOURCE_SHA256 = "{digest}"',
+        f"CROP_TOP = {args.top}",
         f"PALETTE = {colours!r}",
         "PIXELS = (",
         *[f'    "{row}",' for row in rows],
         ")",
         "",
     ]
-    TARGET.write_text("\n".join(body), encoding="utf-8", newline="\n")
-    print(f"Wrote {TARGET.relative_to(ROOT)}: {args.size}x{args.size} pixels, {len(colours)} colours, from {SOURCE.name}")
+    args.out.write_text("\n".join(body), encoding="utf-8", newline="\n")
+    print(f"Wrote {args.out}: {width}x{height} pixels, {len(colours)} colours, from {source.name}")
 
 
 if __name__ == "__main__":

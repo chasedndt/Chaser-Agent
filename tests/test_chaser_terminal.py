@@ -18,7 +18,7 @@ from chaser_agent.chaser_chat import Chat
 def test_the_menu_marks_the_chosen_item_and_never_waits_without_a_console() -> None:
     items = [terminal_ui.Item("c", "Chat with Chaser"), terminal_ui.Item("s", "Settings", "key, folder")]
     text = terminal_ui.render("Chaser Agent", items, 1, ["● running"], lambda t, _tone: t)
-    assert "› s  Settings" in text and "  c  Chat with Chaser" in text and "key, folder" in text and "● running" in text
+    assert "▸ s  Settings" in text and "  c  Chat with Chaser" in text and "key, folder" in text and "● running" in text
     assert terminal_ui.select("Chaser Agent", items, interactive=False) is None
 
 

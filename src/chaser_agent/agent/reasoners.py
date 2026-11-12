@@ -253,15 +253,18 @@ class ChaseOSCloudReasoner:
             "reason": None if self._key else "No ChaseOS Cloud key yet. Add one in Settings, or run: chaser key add",
         }
 
+    def _endpoint(self) -> str:
+        return f"{self.base_url}/v1/chat/completions"
+
+    def _headers(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self._key}", "Content-Type": "application/json", "User-Agent": CLOUD_USER_AGENT,
+                "X-ChaseOS-Agent-Harness": CLOUD_HARNESS}
+
     def _post(self, body: bytes, timeout: float) -> tuple[int, dict[str, Any]]:
         import urllib.error
         import urllib.request
 
-        request = urllib.request.Request(
-            f"{self.base_url}/v1/chat/completions", data=body, method="POST",
-            headers={"Authorization": f"Bearer {self._key}", "Content-Type": "application/json", "User-Agent": CLOUD_USER_AGENT,
-                     "X-ChaseOS-Agent-Harness": CLOUD_HARNESS},
-        )
+        request = urllib.request.Request(self._endpoint(), data=body, method="POST", headers=self._headers())
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - the owner's gateway
                 return response.status, json.loads(response.read().decode("utf-8"))
@@ -275,15 +278,16 @@ class ChaseOSCloudReasoner:
             return 0, {}
 
     def complete(self, system: str, transcript: str, *, timeout: float, cancel: Event) -> ReasonerReply:
-        if not self._key:
+        if not self.status().get("available"):
             raise ReasonerUnavailable("not_configured", self.status()["reason"])
         started = time.monotonic()
-        body = json.dumps({
+        request = {
             "model": self.model, "stream": False, "max_completion_tokens": self.max_tokens,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": transcript}],
             # Every reply must be one JSON object; without JSON mode the open models broke the format on about a third of steps.
             "response_format": {"type": "json_object"},
-        }, ensure_ascii=False).encode("utf-8")
+        }
+        body = json.dumps(request, ensure_ascii=False).encode("utf-8")
         result: dict[str, Any] = {}
 
         def call() -> None:
@@ -293,6 +297,10 @@ class ChaseOSCloudReasoner:
             if result["reply"][0] in CLOUD_RETRY_STATUSES | {0} and not cancel.is_set() and deadline - time.monotonic() > 5:
                 time.sleep(1)
                 result["reply"] = self._post(body, max(1.0, deadline - time.monotonic()))
+            # Some providers or models refuse JSON mode outright; ask once more without it. The reply parser still checks the format.
+            if result["reply"][0] == 400 and not cancel.is_set() and deadline - time.monotonic() > 5:
+                plain = {k: v for k, v in request.items() if k != "response_format"}
+                result["reply"] = self._post(json.dumps(plain, ensure_ascii=False).encode("utf-8"), max(1.0, deadline - time.monotonic()))
 
         worker = threading.Thread(target=call, daemon=True)
         worker.start()
@@ -304,20 +312,67 @@ class ChaseOSCloudReasoner:
                 raise ReasonerUnavailable("timeout", f"no reply within {int(timeout)} seconds")
         status, value = result["reply"]
         if status == 402:
-            raise ReasonerUnavailable("out_of_credits", "ChaseOS Cloud is out of credits. Top up to keep using it.")
+            raise ReasonerUnavailable("out_of_credits", f"{self.label} is out of credits. Top up to keep using it.")
         if status in {401, 403}:
-            raise ReasonerUnavailable("not_authorised", f"ChaseOS Cloud refused this machine's key (HTTP {status}).")
+            raise ReasonerUnavailable("not_authorised", f"{self.label} refused this machine's key (HTTP {status}).")
         if status != 200:
-            raise ReasonerUnavailable("route_error", f"ChaseOS Cloud did not answer (HTTP {status or 'no connection'}).")
+            raise ReasonerUnavailable("route_error", f"{self.label} did not answer (HTTP {status or 'no connection'}).")
         try:
             choice = value["choices"][0]["message"]
             text = choice.get("content") or ""
         except (KeyError, IndexError, TypeError, AttributeError):
             text = ""
         if not isinstance(text, str) or not text.strip():
-            raise ReasonerUnavailable("bad_output", "ChaseOS Cloud returned no text")
+            raise ReasonerUnavailable("bad_output", f"{self.label} returned no text")
         credits, usage = cloud_usage(value)
         return ReasonerReply(text, self.reasoner_id, str(value.get("model") or self.model), round(time.monotonic() - started, 3), credits, usage)
+
+
+class OpenAICompatibleReasoner(ChaseOSCloudReasoner):
+    """Any provider with an OpenAI-style chat API, chosen in `chaser model`: OpenRouter, OpenAI, Gemini, a local Ollama...
+
+    Same loop, same JSON-mode request and the same rule as ChaseOS Cloud: a refusal or an empty balance stops the
+    turn and says so; nothing switches provider behind the person's back. The key leaves the environment at start.
+    """
+
+    def __init__(self, provider_id: str, label: str, *, base_url: str, model: str, key: str = "", key_source: str = "",
+                 needs_key: bool = True, max_tokens: int = 8000) -> None:
+        super().__init__(key, model=model, base_url=base_url or "", max_tokens=max_tokens, key_source=key_source)
+        self.base_url = (base_url or "").rstrip("/")
+        self.reasoner_id = provider_id
+        self.label = label
+        self.needs_key = needs_key
+
+    @classmethod
+    def from_settings(cls, settings: dict[str, Any], environ: dict[str, str] | None = None) -> "OpenAICompatibleReasoner":
+        from chaser_agent import model_providers as providers
+
+        provider, model, base_url = providers.chosen(settings)
+        environ = os.environ if environ is None else environ
+        key, source = providers.load_key(provider.id, environ)
+        if provider.key_env:
+            environ.pop(provider.key_env, None)
+        return cls(provider.id, provider.label, base_url=base_url, model=model, key=key, key_source=source, needs_key=provider.needs_key)
+
+    def _endpoint(self) -> str:
+        return f"{self.base_url}/chat/completions"
+
+    def _headers(self) -> dict[str, str]:
+        headers = {"Content-Type": "application/json", "User-Agent": CLOUD_USER_AGENT}
+        if self._key:
+            headers["Authorization"] = f"Bearer {self._key}"
+        return headers
+
+    def status(self) -> dict[str, Any]:
+        missing = []
+        if self.needs_key and not self._key:
+            missing.append(f"No {self.label} key yet. Run: chaser model")
+        if not self.base_url:
+            missing.append("No address set for this endpoint. Run: chaser model")
+        if not self.model:
+            missing.append("No model chosen. Run: chaser model")
+        return {"id": self.reasoner_id, "label": self.label, "available": not missing, "model": self.model,
+                "reason": missing[0] if missing else None}
 
 
 def _count(value: Any) -> int | None:

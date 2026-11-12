@@ -7,6 +7,7 @@ caller prints plain text instead, so scripts and pipes never hang on a menu.
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 from dataclasses import dataclass
 
@@ -15,9 +16,10 @@ UP, DOWN, ENTER, BACK = "up", "down", "enter", "back"
 
 @dataclass(frozen=True)
 class Item:
-    key: str        # one letter or digit that picks it straight away
+    key: str         # one letter or digit that picks it straight away
     label: str
-    hint: str = ""  # shown dim on the right, e.g. the current value
+    hint: str = ""   # shown dim on the right, e.g. the current value
+    group: str = ""  # a heading shown above the first item of each group
 
 
 def read_key() -> str:
@@ -51,27 +53,49 @@ def read_key() -> str:
     return ch
 
 
-def render(title: str, items: list[Item], chosen: int, header: list[str], paint) -> str:
+def render(title: str, items: list[Item], chosen: int, header: list[str], paint, *, footer: str = "") -> str:
     lines = ([paint(f"  {title}", "head")] if title else []) + [f"  {line}" for line in header] + [""]
     width = max(len(item.label) for item in items)
+    hints = max((len(item.hint) for item in items), default=0)
+    row_width = 4 + 1 + 2 + width + (2 + hints if hints else 0) + 2
+    group = None
+    headings = shutil.get_terminal_size((96, 44)).lines >= len(header) + len(items) + 12
     for index, item in enumerate(items):
-        pointer = paint("›", "teal") if index == chosen else " "
-        label = paint(f"{item.label:<{width}}", "head") if index == chosen else f"{item.label:<{width}}"
-        hint = f"  {paint(item.hint, 'dim')}" if item.hint else ""
-        lines.append(f"  {pointer} {paint(item.key, 'teal')}  {label}{hint}")
-    lines += ["", paint("  ↑↓ move · Enter or a letter to choose · Esc to go back", "dim")]
+        if headings and item.group and item.group != group:
+            if group is not None:
+                lines.append("")
+            lines.append("    " + paint(item.group.upper(), "dim"))
+            group = item.group
+        hint = f"  {item.hint}" if item.hint else ""
+        if index == chosen:
+            row = (paint(" ▸ ", "selected_key") + paint(f"{item.key} ", "selected_key") + paint(f" {item.label:<{width}}", "selected")
+                   + paint(f"{hint:<{row_width - 7 - width}}", "selected_dim"))
+            lines.append("  " + row)
+        else:
+            lines.append(f"     {paint(item.key, 'key')}  {paint(f'{item.label:<{width}}', 'text')}{paint(hint, 'dim')}")
+    keys = footer or "↑↓ move   enter open   a–z jump   esc back"
+    lines += ["", "  " + _keys(keys, paint)]
     return "\n".join(lines)
 
 
+def _keys(text: str, paint) -> str:
+    """Footer hints with the keys picked out: 'enter open' shows enter in teal and open dim."""
+    out = []
+    for part in text.split("   "):
+        key, _, words = part.partition(" ")
+        out.append(paint(key, "teal") + (" " + paint(words, "dim") if words else ""))
+    return "   ".join(out)
+
+
 def select(title: str, items: list[Item], *, header: list[str] | None = None, paint=lambda text, _tone: text,
-           interactive: bool = True, start: str | None = None) -> str | None:
+           interactive: bool = True, start: str | None = None, footer: str = "") -> str | None:
     """The chosen item's key, or None for Esc/q or when there's no console to ask."""
     if not interactive or not items:
         return None
     chosen = next((i for i, item in enumerate(items) if item.key == start), 0)
     keys = {item.key.lower(): item.key for item in items}
     while True:
-        sys.stdout.write("\033[2J\033[H" + render(title, items, chosen, header or [], paint) + "\n")
+        sys.stdout.write("\033[2J\033[H" + render(title, items, chosen, header or [], paint, footer=footer) + "\n")
         sys.stdout.flush()
         key = read_key()
         if key == UP:
@@ -80,6 +104,8 @@ def select(title: str, items: list[Item], *, header: list[str] | None = None, pa
             chosen = (chosen + 1) % len(items)
         elif key == ENTER:
             return items[chosen].key
+        elif key == "?" and "?" not in keys:
+            return "?"
         elif key == BACK or (key.lower() == "q" and "q" not in keys):
             return None
         elif key.lower() in keys:

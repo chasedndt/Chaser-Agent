@@ -15,7 +15,7 @@ import sys
 import time
 from typing import Any, Callable
 
-from chaser_agent import chaser_home, setup_checks
+from chaser_agent import chaser_home, setup_checks, terminal_theme
 
 ACTIVE = {"queued", "reasoning", "running_tool"}
 WAITING = {"awaiting_human", "awaiting_approval"}
@@ -27,7 +27,8 @@ HELP = [
     ("/waiting", "what's waiting for your answer"),
     ("/open", "open the HUD"),
     ("/status", "Chaser's service and how it thinks"),
-    ("/route [name]", "how Chaser thinks for new work: auto, chaseos-cloud, claude-cli or bridge"),
+    ("/route [name]", "how new work thinks: auto or one of the routes /status lists"),
+    ("/receipt [id]", "check this session's hash chain and who approved what"),
     ("/stop", "stop the current task"),
     ("/checks", "run the pre-flight checks"),
     ("/quit", "leave the chat; Chaser keeps running"),
@@ -54,17 +55,33 @@ class Chat:
         self.out.write((self.paint(text, tone) if tone else text) + "\n")
         self.out.flush()
 
+    @property
+    def colour(self) -> bool:
+        return self.paint("x", "dim") != "x"
+
+    def card(self, lines: list[str], *, title: str = "", tone: str = "line") -> None:
+        """A framed block: the banner, a question or an approval."""
+        import shutil
+
+        width = min(shutil.get_terminal_size((96, 30)).columns - 4, 92)
+        if not self.colour:
+            for line in ([title] if title else []) + lines:
+                self.say("  " + line)
+            return
+        for line in terminal_theme.box(lines, width, title=title, colour=True, full=terminal_theme.truecolor(), tone=tone):
+            self.say("  " + line)
+
     # --- Showing events ---------------------------------------------------------------------
 
     def show(self, event: dict[str, Any]) -> None:
         data, kind = event.get("data") or {}, event.get("type")
         if kind == "reasoner_reply" and data.get("thought"):
             thought = " ".join(str(data["thought"]).split())
-            self.say(f"  {thought[:240]}{'…' if len(thought) > 240 else ''}", "dim")
+            self.say(f"  {self.paint('⋯', 'sage')} {self.paint(thought[:240] + ('…' if len(thought) > 240 else ''), 'dim')}")
         elif kind == "tool_started" and data.get("tool") != "update_plan":
             args = data.get("args") or {}
             hint = next((str(args[k]) for k in ("query", "path", "url", "name", "title", "id") if k in args), "")
-            self.say(f"  {self.paint('›', 'teal')} {data.get('tool')}{self.paint('  ' + hint[:80], 'dim') if hint else ''}")
+            self.say(f"  {self.paint('●', 'teal')} {self.paint(str(data.get('tool')), 'text')}{self.paint('  ' + hint[:80], 'dim') if hint else ''}")
         elif kind == "tool_finished" and data.get("status") not in (None, "ok", "succeeded", "done"):
             self.say(f"  {self.paint('✗', 'fail')} {data.get('tool')}: {data.get('status')}")
         elif kind == "tool_denied":
@@ -72,12 +89,14 @@ class Chat:
         elif kind == "reply_rejected":
             self.say(f"  {self.paint('✗', 'fail')} A reply outside the rules ({data.get('reason')}). Nothing ran.")
         elif kind == "approval_decided":
-            self.say(f"  {self.paint('you: yes' if data.get('decision') == 'approve' else 'you: no', 'warn')}  signed {data.get('decided_by') or 'local_operator'}")
+            said = self.paint("✓ yes", "ok") if data.get("decision") == "approve" else self.paint("✗ no", "fail")
+            self.say(f"  {said}  {self.paint('signed ' + str(data.get('decided_by') or 'local_operator') + ' · in the receipt', 'dim')}")
         elif kind == "turn_finished":
             if data.get("answer"):
                 self.say("")
+                self.say(f"  {self.paint('Chaser', 'key')}")
                 for line in str(data["answer"]).splitlines() or [""]:
-                    self.say(f"  {line}", "teal")
+                    self.say(f"  {line}", "text")
             elif data.get("error"):
                 self.say(f"  {data['error']}", "fail")
 
@@ -98,7 +117,9 @@ class Chat:
                     return state
                 continue
             if state in DONE and not page.get("events"):
-                self.say(self.paint(f"  {STATUS_WORDS.get(state, state)}", "ok" if state == "finished" else "warn"))
+                mark = "✓" if state == "finished" else "!"
+                self.say(self.paint(f"  {mark} {STATUS_WORDS.get(state, state)}", "ok" if state == "finished" else "warn")
+                         + self.paint(f"  · /receipt shows the proof", "dim"))
                 return state
             self.sleep(self.poll)
 
@@ -106,11 +127,10 @@ class Chat:
         """Answer a question or approval inline. False if you'd rather leave it for later."""
         if pending.get("kind") == "question":
             self.say("")
-            self.say(f"  Chaser asks: {pending.get('question')}", "warn")
             options = pending.get("options") or []
-            for number, option in enumerate(options, 1):
-                self.say(f"    {number}. {option}")
-            reply = self.ask(self.paint("  your answer (Enter to leave it for later) › ", "warn")).strip()
+            self.card([self.paint(str(pending.get("question")), "head"), *(f"{self.paint(str(n), 'key')}  {o}" for n, o in enumerate(options, 1))],
+                      title=self.paint("Chaser asks", "warn"), tone="warn")
+            reply = self.ask(self.paint("  ❯ ", "warn") + self.paint("your answer, a number, or Enter for later  ", "dim")).strip()
             if not reply:
                 return False
             if reply.isdecimal() and 1 <= int(reply) <= len(options):
@@ -118,15 +138,15 @@ class Chat:
             status, value = self.call("POST", f"/v1/agent/sessions/{self.session}/answers", {"question_id": pending["id"], "answer": reply})
         else:
             self.say("")
-            self.say(f"  Chaser needs your yes for this exact action: {pending.get('tool')}", "warn")
             args = json.dumps(pending.get("args") or {}, ensure_ascii=False, indent=1).splitlines()
-            for line in args[:24]:
-                self.say(f"    {line}", "dim")
-            if len(args) > 24:
-                self.say(f"    … {len(args) - 24} more lines in the HUD", "dim")
-            self.say(f"    digest {str(pending.get('digest'))[:16]}…", "dim")
-            signed = self.decided_by or "local_operator (set your name with chaser setup)"
-            reply = self.ask(self.paint(f"  Say yes? [y/n, Enter to leave it]  signed {signed} › ", "warn")).strip().lower()
+            body = [f"wants to run {self.paint(str(pending.get('tool')), 'head')} with exactly this:", *(self.paint("  " + line[:84], "dim") for line in args[:20])]
+            if len(args) > 20:
+                body.append(self.paint(f"  … {len(args) - 20} more lines in the HUD", "dim"))
+            signed = self.decided_by or "local_operator (set your name: chaser setup name)"
+            body += ["", self.paint(f"digest {str(pending.get('digest'))[:24]}…   signed {signed}", "dim")]
+            self.card(body, title=self.paint("Needs your yes", "warn"), tone="warn")
+            reply = self.ask(self.paint("  ❯ ", "warn") + self.paint("y", "key") + self.paint(" yes   ", "dim") + self.paint("n", "key")
+                             + self.paint(" no   ", "dim") + self.paint("enter", "key") + self.paint(" later  ", "dim")).strip().lower()
             if reply not in {"y", "yes", "n", "no"}:
                 return False
             body = {"approval_id": pending["id"], "digest": pending["digest"], "decision": "approve" if reply.startswith("y") else "reject"}
@@ -194,7 +214,7 @@ class Chat:
             return False
         if name in {"help", "?"}:
             for command, text in HELP:
-                self.say(f"  {self.paint(f'{command:<15}', 'teal')} {text}")
+                self.say(f"  {self.paint(f'{command:<16}', 'teal')} {text}")
         elif name == "new":
             self.session, self.seen = None, 0
             self.say("  Fresh conversation. Say what you need.", "dim")
@@ -221,7 +241,22 @@ class Chat:
             choice = rest.strip()
             if choice:
                 self.route = choice
-            self.say(f"  New work thinks with: {self.route}" + ("" if choice else ". Choose with /route auto, chaseos-cloud, claude-cli or bridge"), "dim")
+            if not choice:
+                _, value = self.call("GET", "/v1/agent/status")
+                names = [r.get("id") for r in ((value or {}).get("reasoners") or {}).get("routes") or [] if r.get("id")]
+                self.say(f"  New work thinks with: {self.route}. Choose with /route " + ", ".join(["auto", *names]), "dim")
+            else:
+                self.say(f"  New work thinks with: {self.route}", "dim")
+        elif name == "receipt":
+            from chaser_agent import chaser_work
+            from pathlib import Path
+
+            folder = chaser_work.find_session(Path(self.settings["data_dir"]), rest.strip() or self.session)
+            if folder is None:
+                self.say("  No session yet. Ask Chaser something first, or name one: /receipt as-…", "dim")
+            else:
+                for line in chaser_work.receipt_lines(chaser_work.receipt(folder), self.paint):
+                    self.say(line)
         elif name == "stop":
             self.stop()
         elif name in {"checks", "doctor"}:
@@ -234,22 +269,23 @@ class Chat:
     def run(self, first: str | None = None) -> int:
         from chaser_agent import terminal_art
 
-        colour = self.paint("x", "dim") != "x"
-        words = [self.paint("Chaser · chat", "head"), self.paint("/help for commands", "dim"),
-                 self.paint("Ctrl+C stops the current task", "dim"), self.paint("/quit to leave; Chaser keeps running", "dim")]
-        if terminal_art.enabled(colour):
-            for line in terminal_art.beside(words, colour):
-                self.say("  " + line)
-        else:
-            self.say(self.paint("  Chaser · chat", "head") + self.paint("   /help for commands · Ctrl+C stops the current task · /quit to leave", "dim"))
+        from chaser_agent import model_providers
+
+        thinks = model_providers.describe(self.settings) if self.settings.get("provider") else "picked automatically"
+        words = [terminal_theme.wordmark(colour=self.colour, full=terminal_theme.truecolor()) + self.paint("  chat", "dim"), "",
+                 self.paint(f"{'Thinks with':<12}", "dim") + self.paint(thinks, "text"),
+                 self.paint(f"{'Signs as':<12}", "dim") + self.paint(self.decided_by or "local_operator", "text"), "",
+                 self.paint("/help", "teal") + self.paint(" commands   ", "dim") + self.paint("ctrl+c", "teal") + self.paint(" stops the task   ", "dim")
+                 + self.paint("/quit", "teal") + self.paint(" leaves", "dim")]
+        self.card(terminal_art.beside(words, self.colour) if terminal_art.enabled(self.colour) else words)
         if not self.decided_by:
             self.say("  Approvals will be signed local_operator. Set your name with: chaser setup name", "dim")
         if first:
-            self.say(f"{self.paint('you ›', 'teal')} {first}")
+            self.say(f"{self.paint('❯', 'teal')} {first}")
             self.send(first)
         while True:
             try:
-                line = self.ask(self.paint("\nyou › ", "teal")).strip()
+                line = self.ask("\n" + self.paint("❯ ", "teal")).strip()
             except (EOFError, KeyboardInterrupt):
                 self.say("")
                 return 0

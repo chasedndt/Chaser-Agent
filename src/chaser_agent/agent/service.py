@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from chaser_agent.agent.builtin import register_builtin_tools
-from chaser_agent.agent.reasoners import BridgeReasoner, ChaseOSCloudReasoner, ClaudeCliReasoner
+from chaser_agent.agent.reasoners import BridgeReasoner, ChaseOSCloudReasoner, ClaudeCliReasoner, OpenAICompatibleReasoner
 from chaser_agent.agent.runtime import AgentRuntime
 from chaser_agent.agent.tooling import Toolbox
 from chaser_agent.agent.workflow import WorkflowSpec
@@ -47,11 +47,30 @@ def load_pack(path: Path, runtime: AgentRuntime) -> dict[str, Any]:
     return {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
 
 
+def ordered_routes(claude_model: str = "sonnet", settings: dict | None = None) -> list:
+    """The provider chosen in `chaser model` comes first, so "auto" uses it; the others stay as named routes.
+
+    With nothing chosen, ChaseOS Cloud leads: it is the route allowed to run unattended work.
+    """
+    from chaser_agent import chaser_home
+    from chaser_agent import model_providers as providers
+
+    settings = chaser_home.load() if settings is None else settings
+    provider = providers.get(settings.get("provider"))
+    cloud, claude, bridge = ChaseOSCloudReasoner.from_environment(), ClaudeCliReasoner(model=claude_model), BridgeReasoner()
+    if provider.kind == "openai":
+        return [OpenAICompatibleReasoner.from_settings(settings), cloud, claude, bridge]
+    if provider.kind == "claude-cli":
+        return [claude, cloud, bridge]
+    if provider.id == "chaseos-cloud" and settings.get("model"):
+        cloud.model = settings["model"]
+    return [cloud, claude, bridge]
+
+
 def build_runtime(data_dir: Path, *, packs: tuple[Path, ...] = (), claude_model: str = "sonnet") -> AgentRuntime:
     toolbox = Toolbox()
     register_builtin_tools(toolbox, memory_database=data_dir / "agent" / "memory.db")
-    # ChaseOS Cloud comes first: it is the route allowed to run unattended work. Consumer logins come after it.
-    reasoners = [ChaseOSCloudReasoner.from_environment(), ClaudeCliReasoner(model=claude_model), BridgeReasoner()]
+    reasoners = ordered_routes(claude_model)
     runtime = AgentRuntime(data_dir, toolbox=toolbox, reasoners=reasoners)
     runtime.add_workflow(GENERAL)
     runtime.loaded_packs = [load_pack(path, runtime) for path in packs]
