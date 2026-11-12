@@ -232,7 +232,16 @@ class Chat:
         return True
 
     def run(self, first: str | None = None) -> int:
-        self.say(self.paint("  Chaser · chat", "head") + self.paint("   /help for commands · Ctrl+C stops the current task · /quit to leave", "dim"))
+        from chaser_agent import terminal_art
+
+        colour = self.paint("x", "dim") != "x"
+        words = [self.paint("Chaser · chat", "head"), self.paint("/help for commands", "dim"),
+                 self.paint("Ctrl+C stops the current task", "dim"), self.paint("/quit to leave; Chaser keeps running", "dim")]
+        if terminal_art.enabled(colour):
+            for line in terminal_art.beside(words, colour):
+                self.say("  " + line)
+        else:
+            self.say(self.paint("  Chaser · chat", "head") + self.paint("   /help for commands · Ctrl+C stops the current task · /quit to leave", "dim"))
         if not self.decided_by:
             self.say("  Approvals will be signed local_operator. Set your name with: chaser setup name", "dim")
         if first:

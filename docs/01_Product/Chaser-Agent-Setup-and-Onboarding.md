@@ -49,6 +49,8 @@
     q  Quit                      Chaser keeps running
 ```
 
+Chaser is drawn beside the header in half-block pixels (two pixels a character, 24-bit colour), as Claude Code and Hermes show their marks. The pixels are scaled by `scripts/make_terminal_art.py` from the approved canon-core avatar export, with a feature-preserving rule so the face's constellation survives, and `chaser_art.py` records that file's path and hash; nothing is redrawn by hand, as the brand rule requires. The same art opens `chaser chat` and `chaser onboard`. It's left out without colour, in a window under 72 columns, or with `CHASER_NO_ART=1`.
+
 The header is read from the running service each time the menu draws, so it shows the real state. **What's waiting** and **Recent work** list sessions and open the chosen one in chat. **Start at sign-in** asks before turning it on. Quitting the menu never stops Chaser.
 
 ## Chat

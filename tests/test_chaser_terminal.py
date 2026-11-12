@@ -201,3 +201,32 @@ def test_a_key_held_by_the_running_service_counts_as_added() -> None:
     rows = {r["id"]: r for r in setup_checks.run(chaser_home.load(), environ={}, routes=routes)["rows"]}
     assert rows["cloud_key"]["state"] == "ok" and rows["cloud_key"]["detail"] == "In use by the running Chaser"
     assert rows["routes"]["detail"] == "ChaseOS Cloud"
+
+
+# --- Chaser in pixels -----------------------------------------------------------
+
+def test_the_pixel_art_comes_from_the_approved_avatar_export() -> None:
+    import hashlib
+
+    from chaser_agent import chaser_art
+
+    source = Path(__file__).resolve().parents[1] / chaser_art.SOURCE
+    assert "canon-core" in chaser_art.SOURCE and hashlib.sha256(source.read_bytes()).hexdigest() == chaser_art.SOURCE_SHA256
+    assert len({len(row) for row in chaser_art.PIXELS}) == 1 and all(c == "." or int(c, 36) < len(chaser_art.PALETTE) for row in chaser_art.PIXELS for c in row)
+
+
+def test_the_art_draws_two_pixels_a_character_and_steps_aside_without_colour(monkeypatch: pytest.MonkeyPatch) -> None:
+    import re
+
+    from chaser_agent import chaser_art, terminal_art
+
+    lines = terminal_art.mascot()
+    visible = [re.sub(r"\x1b\[[0-9;]*m", "", line) for line in lines]
+    assert len(lines) == (len(chaser_art.PIXELS) + 1) // 2 and {len(v) for v in visible} == {terminal_art.width()}
+    assert "\x1b[38;2;" in "".join(lines) and set("".join(visible)) <= {"▀", "▄", " "}
+    monkeypatch.setattr(terminal_art.shutil, "get_terminal_size", lambda *_: __import__("os").terminal_size((120, 40)))
+    beside = terminal_art.beside(["Chaser Agent", "status"], colour=True)
+    assert len(beside) == len(lines) and any("Chaser Agent" in line for line in beside)
+    assert terminal_art.beside(["Chaser Agent"], colour=False) == ["Chaser Agent"]
+    monkeypatch.setenv("CHASER_NO_ART", "1")
+    assert terminal_art.beside(["Chaser Agent"], colour=True) == ["Chaser Agent"]

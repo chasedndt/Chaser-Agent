@@ -27,7 +27,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from chaser_agent import chaser_home, cloud_key, gateway_service, setup_checks, shortcuts, terminal_ui
+from chaser_agent import chaser_home, cloud_key, gateway_service, setup_checks, shortcuts, terminal_art, terminal_ui
 
 PASS_THROUGH = {"ask", "open", "decide", "agent-status", "reasoner"}
 MARK = {"ok": "✓", "warn": "!", "fail": "✗", "info": "·"}
@@ -247,10 +247,13 @@ def run_onboard(args: argparse.Namespace) -> int:
         settings = chaser_home.save(changes)
     interactive = not args.non_interactive and interactive_terminal()
     total = 6
-    print(paint("\nChaser Agent · setup", "head"))
-    print("Chaser works on this computer. It keeps a receipt for every step and asks you\n"
-          "before anything leaves it. This takes a couple of minutes; change any of it later\n"
-          "with " + paint("chaser setup", "teal") + ".")
+    print()
+    for line in terminal_art.beside([paint("Chaser Agent · setup", "head") + paint(f"  v{version()}", "dim"), "",
+                                     "Chaser works on this computer. It keeps a receipt",
+                                     "for every step and asks you before anything leaves it.",
+                                     "This takes a couple of minutes; change any of it",
+                                     "later with " + paint("chaser setup", "teal") + "."], _colour):
+        print(line)
     advanced = False
     if interactive:
         print("\n  QuickStart  sensible defaults: asks only for your key and your name\n  Advanced    also choose the folder, port and packs")
@@ -506,6 +509,15 @@ def run_setup(args: argparse.Namespace) -> int:
         choice = ""
 
 
+def version() -> str:
+    try:
+        from importlib.metadata import version as installed
+
+        return installed("chaser-agent")
+    except Exception:  # running from a checkout that isn't installed
+        return "dev"
+
+
 def _status_lines(settings: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
     """The menu's header: is Chaser running, how it thinks, what's waiting, who signs approvals."""
     facts: dict[str, Any] = {"running": _running(settings), "waiting": [], "routes": []}
@@ -546,8 +558,11 @@ def run_home(_: argparse.Namespace) -> int:
     last = "c"
     while True:
         settings = chaser_home.load()
-        header, facts = _status_lines(settings)
+        status, facts = _status_lines(settings)
         running = facts["running"]
+        art = terminal_art.enabled(_colour)
+        header = terminal_art.beside([paint("Chaser Agent", "head") + paint(f"  v{version()}", "dim"),
+                                      paint("Works on this computer. Asks before anything leaves it.", "dim"), "", *status], _colour) if art else status
         items = [terminal_ui.Item("c", "Chat with Chaser", "" if running else "start Chaser first"),
                  terminal_ui.Item("w", "What's waiting for you", str(len(facts["waiting"])) if running else ""),
                  terminal_ui.Item("r", "Recent work"),
@@ -558,7 +573,7 @@ def run_home(_: argparse.Namespace) -> int:
                  terminal_ui.Item("d", "Checks"),
                  terminal_ui.Item("l", "Logs", "live"),
                  terminal_ui.Item("q", "Quit", "Chaser keeps running")]
-        choice = terminal_ui.select("Chaser Agent", items, header=header, paint=paint, start=last)
+        choice = terminal_ui.select("" if art else "Chaser Agent", items, header=header, paint=paint, start=last)
         print("\033[2J\033[H", end="")
         if choice in (None, "q"):
             return 0

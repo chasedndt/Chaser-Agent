@@ -52,7 +52,7 @@ def read_key() -> str:
 
 
 def render(title: str, items: list[Item], chosen: int, header: list[str], paint) -> str:
-    lines = [paint(f"  {title}", "head")] + [f"  {line}" for line in header] + [""]
+    lines = ([paint(f"  {title}", "head")] if title else []) + [f"  {line}" for line in header] + [""]
     width = max(len(item.label) for item in items)
     for index, item in enumerate(items):
         pointer = paint("›", "teal") if index == chosen else " "
