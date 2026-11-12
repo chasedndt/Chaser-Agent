@@ -112,3 +112,44 @@ def test_route_text_keeps_attached_context_from_choosing_the_workflow(tmp_path: 
     assert rt.route_workflow(message).workflow_id == "reviews"
     snap = rt.create_session(message, route_text="What is this business?", start=False)
     assert snap["workflow"] == "general"
+
+
+PAGE = objective.Requirement(r"(?i)harbor\s?desk", "web_fetch", r"example\.com", "read the product's own page")
+
+
+def runtime_with_page(data_dir: Path, replies: list[str]) -> AgentRuntime:
+    rt = runtime(data_dir, replies)
+    fetched: list[str] = []
+
+    def fetch(args: dict, _context: object) -> dict:
+        fetched.append(args["url"])
+        return {"url": args["url"], "text": "HarborDesk is the go-between for readers and independent writers."}
+
+    rt.toolbox.register(AgentTool("web_fetch", "Fetch.", {"properties": {"url": {"type": "string"}}, "required": ["url"]}, "read_only", fetch))
+    rt.add_workflow(WorkflowSpec("general", "Knowledge", "Help.", frozenset({"graph_search", "graph_node", "web_fetch"}), max_steps=10,
+                                 objective_check=True, objective_requires=(PAGE,)))
+    return rt
+
+
+def test_a_required_source_must_be_read_before_the_turn_can_stop(tmp_path: Path) -> None:
+    rt = runtime_with_page(tmp_path, [
+        reply("Search.", tool("graph_search", query="HarborDesk")),
+        reply("Read.", tool("graph_node", reference="apps#harbordesk")),
+        reply("Done.", final("HarborDesk is Example Co's go-between between readers and writers.")),
+        reply("Read its page.", tool("web_fetch", url="https://example.com/harbordesk/")),
+        reply("Done.", final("HarborDesk is Example Co's go-between between readers and independent writers.")),
+    ])
+    snap = run(rt, "What is HarborDesk?")
+    checks = [e["data"] for e in rt.events(snap["id"]) if e["type"] == "objective_checked"]
+    assert [c["decision"] for c in checks] == ["retry", "stop"]
+    assert "product's own page" in checks[0]["shortfalls"][0]
+    assert checks[0]["features"]["required_missing"] == 1.0 and checks[0]["score"] < objective.THRESHOLD
+    assert snap["objective"]["met"] is True and snap["objective"]["features"]["required_missing"] == 0.0
+
+
+def test_a_requirement_only_applies_to_requests_it_names(tmp_path: Path) -> None:
+    verdict = objective.assess("What is the weather?", [], ending="final", answer="x", requires=(PAGE,))
+    assert verdict.features["required_missing"] == 0.0
+    missing = objective.assess("What is HarborDesk?", [], ending="final", answer="x", requires=(PAGE,), calls=[
+        {"tool": "web_fetch", "args": {"url": "https://other.example.org/"}, "status": "ok"}])
+    assert missing.features["required_missing"] == 1.0

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -17,6 +18,8 @@ class WorkflowSpec:
     max_seconds: int = 3_600
     # Score each turn before it may stop (agent/objective.py); off unless a workflow asks for it.
     objective_check: bool = False
+    # Sources a matching request must have read before it may stop (objective.Requirement).
+    objective_requires: tuple[Any, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.workflow_id.strip() or not self.instructions.strip():

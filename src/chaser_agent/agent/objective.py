@@ -36,6 +36,7 @@ WEIGHTS: dict[str, float] = {
     "empty_searches": -0.9,   # searches that came back empty, scaled to at most three
     "failures": -0.8,         # tool calls that failed or were refused, scaled to at most three
     "deferred_early": -2.2,   # asking the person after fewer than three tool calls
+    "required_missing": -4.0, # share of the workflow's required sources for this request not read
 }
 BIAS = -1.6
 SEARCH = re.compile(r"search|find|scan|list")
@@ -87,7 +88,25 @@ class Verdict:
                 "features": {k: round(v, 3) for k, v in self.features.items()}, "shortfalls": list(self.shortfalls)}
 
 
-def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = "") -> Verdict:
+@dataclass(frozen=True)
+class Requirement:
+    """When a request matches `when`, the turn must include a successful `tool` call whose
+    arguments match `args` before it may stop: for example, reading a product's own page."""
+    when: str
+    tool: str
+    args: str
+    describe: str
+
+    def applies(self, goal: str) -> bool:
+        return bool(re.search(self.when, goal))
+
+    def satisfied(self, calls: list[dict[str, Any]]) -> bool:
+        return any(call.get("tool") == self.tool and call.get("status") == "ok"
+                   and re.search(self.args, json.dumps(call.get("args") or {}, ensure_ascii=False)) for call in calls)
+
+
+def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = "",
+           calls: list[dict[str, Any]] | None = None, requires: tuple[Requirement, ...] = ()) -> Verdict:
     """Score one turn. `turn` is the transcript since the person's last message; `ending` is
     'final' or 'ask'."""
     observations = [row for row in turn if row.get("role") == "observation"]
@@ -108,9 +127,14 @@ def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = 
         "empty_searches": min(empty, 3) / 3,
         "failures": min(failed, 3) / 3,
         "deferred_early": 1.0 if ending == "ask" and len(observations) < 3 else 0.0,
+        "required_missing": 0.0,
     }
+    applicable = [req for req in requires if req.applies(goal)]
+    unmet = [req for req in applicable if not req.satisfied(calls or [])]
+    if applicable:
+        features["required_missing"] = len(unmet) / len(applicable)
     score = sigmoid(BIAS + sum(WEIGHTS[name] * value for name, value in features.items()))
-    shortfalls = []
+    shortfalls = [f"required for this request and not done yet: {req.describe}" for req in unmet]
     if not found and searches:
         shortfalls.append("every search came back empty: search again without a namespace, with other spellings or the words split apart")
     if not searches and not reads:

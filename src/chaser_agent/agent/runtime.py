@@ -598,6 +598,19 @@ class AgentRuntime:
             self._execute(session, tool, action.args, call_id)
         return False
 
+    def _turn_calls(self, session_id: str) -> list[dict[str, Any]]:
+        """Tool calls since the person's last message, with their arguments and how they ended."""
+        rows = self._logs[session_id].after(0, 100_000)
+        start = max((i for i, row in enumerate(rows) if row["type"] in ("session_created", "message", "question_answered")), default=0)
+        calls: dict[str, dict[str, Any]] = {}
+        for row in rows[start:]:
+            data = row.get("data") or {}
+            if row["type"] == "tool_started":
+                calls[data.get("call_id")] = {"tool": data.get("tool"), "args": data.get("args") or {}, "status": None}
+            elif row["type"] == "tool_finished" and data.get("call_id") in calls:
+                calls[data["call_id"]]["status"] = data.get("status")
+        return list(calls.values())
+
     def _objective_allows_stop(self, session: dict[str, Any], action: Any) -> bool:
         """Score the turn before it ends. Too low, with retries and steps left: keep working."""
         workflow = self._workflow(session)
@@ -607,7 +620,8 @@ class AgentRuntime:
         start = max((i for i, row in enumerate(transcript) if row.get("role") in ("user", "human_answer")), default=0)
         ending = "final" if isinstance(action, Finish) else "ask"
         verdict = objective.assess(session["goal"], transcript[start + 1:], ending=ending,
-                                   answer=action.answer if ending == "final" else action.question)
+                                   answer=action.answer if ending == "final" else action.question,
+                                   calls=self._turn_calls(session["id"]), requires=workflow.objective_requires)
         retries = int(session.get("objective_retries") or 0)
         room = session["steps_used"] < workflow.max_steps - 1
         retry = not verdict.met and retries < objective.MAX_RETRIES and room
