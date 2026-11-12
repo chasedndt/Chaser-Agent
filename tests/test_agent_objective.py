@@ -339,3 +339,23 @@ def test_the_subject_gate_ignores_questions_back_to_the_person() -> None:
     verdict = objective.assess(DISTRACTOR_GOAL, turn, ending="ask", answer="Which part do you mean?", calls=calls,
                                requires=(OWN_RECORD, ATTACHED))
     assert not any("never names" in s for s in verdict.shortfalls)
+
+
+# --- A boundary the source states must be said, not just left unsaid ---
+
+BOUNDARY = objective.Requirement(
+    r"(?i)harbor\s?desk", r"graph_node|web_fetch", r"#business:|example\.com", "read HarborDesk's record or page",
+    source="HarborDesk's record", must_say=r"(?i)\bnever publishes\b|\bdoes(?: not|n't) publish\b",
+    say="that HarborDesk never publishes anything itself")
+
+
+def test_a_correct_sounding_answer_that_leaves_out_the_boundary_cannot_stop() -> None:
+    calls, turn = _reads("apps#business:pd")
+    vague = "HarborDesk is the go-between for readers and independent writers."
+    verdict = objective.assess("What is HarborDesk?", turn, ending="final", answer=vague, calls=calls, requires=(BOUNDARY,))
+    assert verdict.met is False
+    assert any("leaves out that HarborDesk never publishes" in s for s in verdict.shortfalls)
+    full = vague + " It never publishes anything itself."
+    assert objective.assess("What is HarborDesk?", turn, ending="final", answer=full, calls=calls, requires=(BOUNDARY,)).met is True
+    asked = objective.assess("What is HarborDesk?", turn, ending="ask", answer="Which one?", calls=calls, requires=(BOUNDARY,))
+    assert not any("leaves out" in s for s in asked.shortfalls)

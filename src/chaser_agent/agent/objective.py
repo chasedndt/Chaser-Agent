@@ -130,6 +130,11 @@ class Requirement:
     # `each`: `when` captures references (group 1) and every one must be read, not just any call matching `args`,
     # so a record attached by reference alone is read before the answer rather than some other record.
     each: bool = False
+    # `must_say`: a pattern a final answer must contain when this requirement applies, for a boundary the source
+    # states that a correct-sounding answer can still leave out (what a product never does, for example). `say` is
+    # how the shortfall describes it. Like `names`, it checks presence only, not that the rest is right.
+    must_say: str = ""
+    say: str = ""
 
     def applies(self, goal: str) -> bool:
         return bool(re.search(self.when, goal))
@@ -145,6 +150,9 @@ class Requirement:
 
     def off_subject(self, answer: str) -> bool:
         return bool(self.names) and bool(answer) and not re.search(self.names, answer)
+
+    def omits(self, answer: str) -> bool:
+        return bool(self.must_say) and bool(answer) and not re.search(self.must_say, answer)
 
     def satisfied(self, calls: list[dict[str, Any]]) -> bool:
         return any(re.fullmatch(self.tool, str(call.get("tool") or "")) and call.get("status") == "ok"
@@ -191,7 +199,9 @@ def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = 
         if said:
             contradicted.append((req, said))
     off_subject = [req for req in applicable if req.off_subject(final_answer)]
-    failing = {id(req) for req, _ in unread} | {id(req) for req, _ in contradicted} | {id(req) for req in off_subject}
+    omitted = [req for req in applicable if req.omits(final_answer)]
+    failing = ({id(req) for req, _ in unread} | {id(req) for req, _ in contradicted} | {id(req) for req in off_subject}
+               | {id(req) for req in omitted})
     if applicable:
         features["required_missing"] = len(failing) / len(applicable)
     score = sigmoid(BIAS + sum(WEIGHTS[name] * value for name, value in features.items()))
@@ -200,6 +210,8 @@ def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = 
                    for req, said in contradicted]
     shortfalls += [f"the answer never names {req.subject or 'the subject the request is about'}: answer about it, "
                    "not about another record you read" for req in off_subject]
+    shortfalls += [f"the answer leaves out {req.say or 'something the source requires it to say'}, which "
+                   f"{req.source} states: say it plainly" for req in omitted]
     if not found and searches:
         shortfalls.append("every search came back empty: search again without a namespace, with other spellings or the words split apart")
     if not searches and not reads:
@@ -213,7 +225,7 @@ def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = 
         shortfalls.append("you are asking the person before trying the tools you have")
     # Required sources and contradicted claims are gates, not just weights: with several requirements the
     # share-of-unmet term alone let a turn skip one and still pass (seen live on 12 Nov 2026 at 0.756).
-    return Verdict(score, score >= THRESHOLD and not unread and not contradicted and not off_subject, features,
+    return Verdict(score, score >= THRESHOLD and not unread and not contradicted and not off_subject and not omitted, features,
                    tuple(shortfalls))
 
 
