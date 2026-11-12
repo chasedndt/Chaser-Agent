@@ -217,7 +217,7 @@ class AgentRuntime:
                 raise Conflict("This session is busy or waiting for an answer")
             session["transcript"].append({"role": "user", "text": message})
             session.update(goal=message, turn=session["turn"] + 1, steps_used=0, active_seconds=0.0, status="queued", final_answer=None, error=None, mood=None,
-                           objective=None, objective_retries=0)
+                           objective=None, objective_retries=0, objective_best=None)
             self._logs[session_id].append("message", text=message, turn=session["turn"])
             self._save(session)
         self._start(session_id)
@@ -234,7 +234,7 @@ class AgentRuntime:
             row = {"answer_id": answer_id, "question_id": question_id, "question": pending["question"], "text": text, "at": utc_now()}
             session["answers"].append(row)
             session["transcript"].append({"role": "human_answer", "answer_id": answer_id, "question_id": question_id, "text": text})
-            session.update(pending=None, status="queued", objective=None, objective_retries=0)
+            session.update(pending=None, status="queued", objective=None, objective_retries=0, objective_best=None)
             self._logs[session_id].append("question_answered", question_id=question_id, answer_id=answer_id, text=text)
             self._save(session)
         self._start(session_id)
@@ -554,8 +554,10 @@ class AgentRuntime:
         """Returns True when the thread should stop: finished or waiting for a person."""
         session_id = session["id"]
         for index, action in enumerate(actions):
-            if isinstance(action, (Finish, AskHuman)) and not self._objective_allows_stop(session, action):
-                return False
+            if isinstance(action, (Finish, AskHuman)):
+                action = self._objective_allows_stop(session, action)
+                if action is None:
+                    return False
             if isinstance(action, Finish):
                 self._finish(session, "finished", answer=action.answer)
                 return True
@@ -611,11 +613,14 @@ class AgentRuntime:
                 calls[data["call_id"]]["status"] = data.get("status")
         return list(calls.values())
 
-    def _objective_allows_stop(self, session: dict[str, Any], action: Any) -> bool:
-        """Score the turn before it ends. Too low, with retries and steps left: keep working."""
+    def _objective_allows_stop(self, session: dict[str, Any], action: Any) -> Any:
+        """Score the turn before it ends. Too low, with retries and steps left: keep working (None).
+
+        When it does stop, it ends on the best-scoring answer of the turn rather than simply the last,
+        as Self-Refine selects its best round (Madaan et al. 2023), so a retry can't make it worse."""
         workflow = self._workflow(session)
         if not workflow.objective_check:
-            return True
+            return action
         transcript = session["transcript"]
         start = max((i for i, row in enumerate(transcript) if row.get("role") in ("user", "human_answer")), default=0)
         ending = "final" if isinstance(action, Finish) else "ask"
@@ -625,15 +630,24 @@ class AgentRuntime:
         retries = int(session.get("objective_retries") or 0)
         room = session["steps_used"] < workflow.max_steps - 1
         retry = not verdict.met and retries < objective.MAX_RETRIES and room
+        record = verdict.as_record()
+        best = session.get("objective_best")
+        chosen = action
         with self._lock:
-            self._logs[session["id"]].append("objective_checked", ending=ending, decision="retry" if retry else "stop", **verdict.as_record())
+            if ending == "final" and (best is None or verdict.score > best["score"]):
+                session["objective_best"] = best = {"score": verdict.score, "answer": action.answer, "record": record}
+            if not retry and best is not None and best["score"] > verdict.score:
+                chosen, record = Finish(best["answer"]), {**best["record"], "chosen_from_earlier_attempt": True}
+            extra = {"chosen_from_earlier_attempt": True} if chosen is not action else {}
+            self._logs[session["id"]].append("objective_checked", ending=ending, decision="retry" if retry else "stop",
+                                             **verdict.as_record(), **extra)
             if retry:
                 session["objective_retries"] = retries + 1
                 transcript.append({"role": "note", "text": objective.retry_note(verdict, retries + 1)})
             else:
-                session["objective"] = verdict.as_record()
+                session["objective"] = record
             self._save(session)
-        return not retry
+        return None if retry else chosen
 
     def _execute(self, session: dict[str, Any], tool: AgentTool, args: dict[str, Any], call_id: str) -> None:
         session_id = session["id"]

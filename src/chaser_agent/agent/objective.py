@@ -91,25 +91,43 @@ class Verdict:
     shortfalls: tuple[str, ...]
 
     def as_record(self) -> dict[str, Any]:
+        # The score is a process heuristic with hand-set weights. It is not a probability that the
+        # answer is correct: calibration needs held-out human verdicts (Guo et al. 2017, sec. 4), and
+        # a confident-looking self-check can still pass a wrong answer (Kadavath et al. 2022, sec. 6.1).
         return {"score": round(self.score, 3), "met": self.met, "threshold": THRESHOLD,
-                "features": {k: round(v, 3) for k, v in self.features.items()}, "shortfalls": list(self.shortfalls)}
+                "features": {k: round(v, 3) for k, v in self.features.items()}, "shortfalls": list(self.shortfalls),
+                "basis": "process heuristic, hand-set weights", "calibrated": False}
 
 
 @dataclass(frozen=True)
 class Requirement:
-    """When a request matches `when`, the turn must include a successful `tool` call whose
-    arguments match `args` before it may stop: for example, reading a product's own page."""
+    """When a request matches `when`, the turn must include a successful call to a tool matching
+    `tool` (a regular expression over the tool name) whose arguments match `args` before it may stop:
+    for example, reading a product's own record or page.
+
+    `contradicts`, when set, is a claim the authoritative source denies. An answer that makes it
+    cannot stop, whatever its score. This is a narrow, source-backed claim check in the spirit of
+    CRITIC (Gou et al. 2023): verification against an external source rather than the model's own
+    critique, which that paper found adds little on its own. It catches only the claims written into it."""
     when: str
     tool: str
     args: str
     describe: str
+    contradicts: str = ""
+    source: str = "the authoritative source"
 
     def applies(self, goal: str) -> bool:
         return bool(re.search(self.when, goal))
 
     def satisfied(self, calls: list[dict[str, Any]]) -> bool:
-        return any(call.get("tool") == self.tool and call.get("status") == "ok"
+        return any(re.fullmatch(self.tool, str(call.get("tool") or "")) and call.get("status") == "ok"
                    and re.search(self.args, json.dumps(call.get("args") or {}, ensure_ascii=False)) for call in calls)
+
+    def contradiction(self, answer: str) -> str | None:
+        if not self.contradicts:
+            return None
+        match = re.search(self.contradicts, answer or "")
+        return match.group(0) if match else None
 
 
 def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = "",
@@ -137,11 +155,19 @@ def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = 
         "required_missing": 0.0,
     }
     applicable = [req for req in requires if req.applies(goal)]
-    unmet = [req for req in applicable if not req.satisfied(calls or [])]
+    unread = [req for req in applicable if not req.satisfied(calls or [])]
+    contradicted = []
+    for req in applicable:
+        said = req.contradiction(answer if ending == "final" else "")
+        if said:
+            contradicted.append((req, said))
+    failing = {id(req) for req in unread} | {id(req) for req, _ in contradicted}
     if applicable:
-        features["required_missing"] = len(unmet) / len(applicable)
+        features["required_missing"] = len(failing) / len(applicable)
     score = sigmoid(BIAS + sum(WEIGHTS[name] * value for name, value in features.items()))
-    shortfalls = [f"required for this request and not done yet: {req.describe}" for req in unmet]
+    shortfalls = [f"required for this request and not done yet: {req.describe}" for req in unread]
+    shortfalls += [f'the answer contradicts {req.source}: it says "{said}". Check that claim against the source and correct it'
+                   for req, said in contradicted]
     if not found and searches:
         shortfalls.append("every search came back empty: search again without a namespace, with other spellings or the words split apart")
     if not searches and not reads:
@@ -153,7 +179,7 @@ def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = 
         shortfalls.append("the answer and evidence don't cover: " + ", ".join(missing))
     if features["deferred_early"]:
         shortfalls.append("you are asking the person before trying the tools you have")
-    return Verdict(score, score >= THRESHOLD, features, tuple(shortfalls))
+    return Verdict(score, score >= THRESHOLD and not contradicted, features, tuple(shortfalls))
 
 
 def retry_note(verdict: Verdict, attempt: int) -> str:

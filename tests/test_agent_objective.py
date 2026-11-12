@@ -153,3 +153,76 @@ def test_a_requirement_only_applies_to_requests_it_names(tmp_path: Path) -> None
     missing = objective.assess("What is HarborDesk?", [], ending="final", answer="x", requires=(PAGE,), calls=[
         {"tool": "web_fetch", "args": {"url": "https://other.example.org/"}, "status": "ok"}])
     assert missing.features["required_missing"] == 1.0
+
+
+# --- Claim check against the authoritative source, and the best attempt ---
+
+IDENTITY = objective.Requirement(
+    r"(?i)harbor\s?desk", r"graph_node|web_fetch", r"#business:|example\.com",
+    "read HarborDesk's business record or page",
+    contradicts=r"(?i)shipping orders|\bHarborDesk (?:publishes|sells|submits work)\b",
+    source="HarborDesk's business record (a go-between for readers and independent writers that never publishes)",
+)
+WRONG = "HarborDesk is a project that manages shipping orders and a desk queue."
+RIGHT = "HarborDesk is the go-between for readers and independent writers; it never publishes."
+
+
+def identity_runtime(data_dir: Path, replies: list[str]) -> AgentRuntime:
+    rt = runtime(data_dir, replies)
+    rt.toolbox.register(AgentTool("web_fetch", "Fetch.", {"properties": {"url": {"type": "string"}}, "required": ["url"]}, "read_only",
+                                  lambda args, _c: {"url": args["url"], "text": RIGHT}))
+    rt.add_workflow(WorkflowSpec("general", "Knowledge", "Help.", frozenset({"graph_search", "graph_node", "web_fetch"}), max_steps=12,
+                                 objective_check=True, objective_requires=(IDENTITY,)))
+    return rt
+
+
+def test_the_harbordesk_failure_cannot_stop_until_the_claim_is_corrected(tmp_path: Path) -> None:
+    rt = identity_runtime(tmp_path, [
+        reply("Search.", tool("graph_search", query="HarborDesk")),
+        reply("Read.", tool("graph_node", reference="apps#business:harbordesk")),
+        reply("Answer.", final(WRONG)),
+        reply("Correct it.", final(RIGHT)),
+    ])
+    snap = run(rt, "What is HarborDesk?")
+    checks = [e["data"] for e in rt.events(snap["id"]) if e["type"] == "objective_checked"]
+    assert [c["decision"] for c in checks] == ["retry", "stop"]
+    assert checks[0]["met"] is False and "shipping orders" in checks[0]["shortfalls"][0]
+    assert snap["final_answer"] == RIGHT and snap["objective"]["met"] is True
+
+
+def test_a_contradiction_still_fails_the_turn_when_retries_run_out(tmp_path: Path) -> None:
+    rt = identity_runtime(tmp_path, [
+        reply("Search.", tool("graph_search", query="HarborDesk")),
+        reply("Read.", tool("graph_node", reference="apps#business:harbordesk")),
+    ] + [reply("Answer.", final(WRONG)) for _ in range(3)])
+    snap = run(rt, "What is HarborDesk?")
+    assert snap["status"] == "finished" and snap["objective"]["met"] is False
+    assert snap["objective"]["calibrated"] is False and snap["objective"]["basis"].startswith("process heuristic")
+
+
+def test_the_business_record_or_the_page_both_count_as_the_source(tmp_path: Path) -> None:
+    by_record = objective.assess("What is HarborDesk?", [], ending="final", answer=RIGHT, requires=(IDENTITY,),
+                                 calls=[{"tool": "graph_node", "args": {"reference": "apps#business:x"}, "status": "ok"}])
+    by_page = objective.assess("What is HarborDesk?", [], ending="final", answer=RIGHT, requires=(IDENTITY,),
+                               calls=[{"tool": "web_fetch", "args": {"url": "https://example.com/harbordesk/"}, "status": "ok"}])
+    build_only = objective.assess("What is HarborDesk?", [], ending="final", answer=RIGHT, requires=(IDENTITY,),
+                                  calls=[{"tool": "graph_node", "args": {"reference": "apps#implementation:x"}, "status": "ok"}])
+    assert by_record.features["required_missing"] == 0.0 == by_page.features["required_missing"]
+    assert build_only.features["required_missing"] == 1.0
+
+
+def test_when_retries_run_out_it_keeps_the_best_attempt_not_the_last(tmp_path: Path) -> None:
+    # The product's record is never read, so every attempt fails the identity requirement. The first,
+    # a finished answer, scores about 0.35; the two later questions, asked early, score far lower.
+    rt = identity_runtime(tmp_path, [
+        reply("Search.", tool("graph_search", query="HarborDesk")),
+        reply("Read a build record.", tool("graph_node", reference="apps#implementation:harbordesk")),
+        reply("Answer.", final(RIGHT)),
+        reply("Ask.", ask("What do you mean?")),
+        reply("Ask.", ask("Which one?")),
+    ])
+    snap = run(rt, "What is HarborDesk?")
+    checks = [e["data"] for e in rt.events(snap["id"]) if e["type"] == "objective_checked"]
+    assert [c["decision"] for c in checks] == ["retry", "retry", "stop"]
+    assert snap["status"] == "finished" and snap["final_answer"] == RIGHT
+    assert snap["objective"]["chosen_from_earlier_attempt"] is True and snap["objective"]["met"] is False
