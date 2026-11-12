@@ -161,10 +161,74 @@ def step_key(settings: dict[str, Any], *, offer: bool = True) -> None:
     add_key(settings)
 
 
+class SecretInputUnavailable(RuntimeError):
+    """This terminal can't take a secret without showing it, so none is read."""
+
+
+def secret_input(prompt: str) -> str:
+    """Read a secret with one dot per character on screen, so a paste visibly lands, and never the characters.
+
+    Python's getpass quietly falls back to echoing (with only a warning) when it decides stdin isn't the console;
+    Chase saw his key printed while pasting it on 12 Nov 2026. This reads the console directly on Windows and
+    refuses rather than echo when there is no console to read.
+    """
+    if not sys.stdin or not sys.stdin.isatty():
+        raise SecretInputUnavailable("This window can't hide what you type, so the key wasn't read. Open PowerShell or Windows Terminal and run: chaser key add")
+    if os.name != "nt":
+        return getpass.getpass(prompt)
+    import msvcrt
+    sys.stdout.write(prompt)
+    sys.stdout.flush()
+    chars: list[str] = []
+    while True:
+        ch = msvcrt.getwch()
+        if ch in ("\r", "\n"):
+            break
+        if ch == "\x03":                      # Ctrl+C
+            sys.stdout.write("\n")
+            raise KeyboardInterrupt
+        if ch in ("\x00", "\xe0"):            # arrow and function keys arrive as two characters: ignore both
+            msvcrt.getwch()
+            continue
+        if ch in ("\b", "\x7f"):
+            if chars:
+                chars.pop()
+                sys.stdout.write("\b \b")
+                sys.stdout.flush()
+            continue
+        if ch == "\x15":                      # Ctrl+U clears the line
+            sys.stdout.write("\b \b" * len(chars))
+            chars.clear()
+            sys.stdout.flush()
+            continue
+        if ch < " ":
+            continue
+        chars.append(ch)
+        sys.stdout.write("•")
+        sys.stdout.flush()
+    sys.stdout.write(f"  ({len(chars)} characters)\n" if chars else "\n")
+    sys.stdout.flush()
+    return "".join(chars)
+
+
+def _say_check(result: dict[str, Any], *, saved: bool) -> None:
+    """Always say plainly whether ChaseOS Cloud accepted the key."""
+    if result.get("ok"):
+        credits = f", {result['credits']:,.0f} credits left" if result.get("credits") is not None else ""
+        print(f"  {paint('✓', 'ok')} Valid: ChaseOS Cloud accepts this key{credits}.")
+    elif result.get("refused"):
+        print(f"  {paint('✗', 'fail')} Not valid: {result.get('reason')}" + (" It was saved anyway; add the right one with: chaser key add" if saved else ""))
+    else:
+        print(f"  {paint('!', 'warn')} Not confirmed yet: {result.get('reason') or 'ChaseOS Cloud did not say.'} Check again with: chaser key check")
+
+
 def add_key(settings: dict[str, Any]) -> bool:
-    print(paint("  Get a key from your ChaseOS account page. It won't show as you paste it.", "dim"))
+    print(paint("  Get a key from your ChaseOS account page. Each character shows as a dot, never the key itself.", "dim"))
     try:
-        key = getpass.getpass("  ChaseOS Cloud key: ")
+        key = secret_input("  ChaseOS Cloud key: ")
+    except SecretInputUnavailable as exc:
+        print(f"  {paint('✗', 'fail')} {exc}")
+        return False
     except (EOFError, KeyboardInterrupt):
         print()
         return False
@@ -179,10 +243,10 @@ def add_key(settings: dict[str, Any]) -> bool:
             print(paint("  This Chaser is an older version, so the key is saved here and used when it next starts.", "dim"))
             return _save_key_here(key)
         if status == 200:
-            check = reply.get("check") or {}
-            credits = f", {check['credits']:,.0f} credits left" if check.get("credits") is not None else ""
-            print(f"  {paint('✓', 'ok')} Saved for this Windows account only, and Chaser is using it now{credits}.")
-            return True
+            check = reply.get("check") or cloud_key.check(key)
+            print(f"  {paint('✓', 'ok')} Saved for this Windows account only, and Chaser is using it now.")
+            _say_check(check, saved=True)
+            return not check.get("refused")
         message = (reply.get("error") or {}).get("message") if isinstance(reply, dict) else None
         print(f"  {paint('✗', 'fail')} {message or 'Chaser could not save the key.'}")
         return False
@@ -193,18 +257,16 @@ def _save_key_here(key: str) -> bool:
     print("  Checking it with ChaseOS Cloud…")
     result = cloud_key.check(key)
     if result.get("refused"):
-        print(f"  {paint('✗', 'fail')} {result['reason']}")
+        _say_check(result, saved=False)
+        print("  Nothing was saved.")
         return False
     try:
         cloud_key.save(key)
     except cloud_key.KeyStoreUnavailable as exc:
         print(f"  {paint('✗', 'fail')} {exc}")
         return False
-    if result["ok"]:
-        credits = f", {result['credits']:,.0f} credits left" if result.get("credits") is not None else ""
-        print(f"  {paint('✓', 'ok')} Accepted{credits}. Saved for this Windows account only.")
-    else:
-        print(f"  {paint('!', 'warn')} Saved. {result['reason']} Chaser will try it when it needs it.")
+    print(f"  {paint('✓', 'ok')} Saved for this Windows account only.")
+    _say_check(result, saved=True)
     return True
 
 
@@ -280,8 +342,8 @@ def choose_model(settings: dict[str, Any], *, interactive: bool = True) -> dict[
                 if provider.keys_page:
                     print(paint(f"  Get a key at {provider.keys_page}. It won't show as you paste it.", "dim"))
                 try:
-                    key = cloud_key.validate(getpass.getpass(f"  {provider.label} key: "))
-                except ValueError as exc:
+                    key = cloud_key.validate(secret_input(f"  {provider.label} key: "))
+                except (ValueError, SecretInputUnavailable) as exc:
                     print(f"  {paint('✗', 'fail')} {exc}")
                     return settings
                 except (EOFError, KeyboardInterrupt):
@@ -552,10 +614,9 @@ def run_key(args: argparse.Namespace) -> int:
     found = cloud_key.describe()
     words = {"environment": "Given by your vault for this session", "saved": "Saved for this Windows account only", "none": "Not added"}
     print(f"ChaseOS Cloud key: {words[found['source']]}" + (" (saved, but this account can't decrypt it)" if found["saved"] and not found["readable"] else ""))
-    if args.action == "check" and found["source"] != "none":
+    if args.action in ("check", None) and found["source"] != "none":   # plain `chaser key` checks too: it is free
         result = cloud_key.check(os.environ.get("CHASEOS_CLOUD_KEY") or cloud_key.load())
-        credits = f", {result['credits']:,.0f} credits left" if result.get("credits") is not None else ""
-        print(f"{MARK['ok']} ChaseOS Cloud accepts it{credits}." if result["ok"] else f"{MARK['fail']} {result['reason']}")
+        _say_check(result, saved=False)
         return 0 if result["ok"] else 1
     # Plain `chaser key` with nothing saved (Chase, 12 Nov: "Not added keeps appearing, fix that"): offer to add one
     # here instead of only reporting it. Only in a real terminal, so scripts still get a plain status line.
@@ -981,8 +1042,8 @@ def add_channel(platform: str) -> int:
     print(paint(f"  {info['label']}", "head") + paint("  only the accounts you allow can talk to Chaser; approvals still need your yes", "dim"))
     print(paint(f"  {info['where']} The token won't show as you paste it.", "dim"))
     try:
-        token = cloud_key.validate(getpass.getpass(f"  {info['label']} bot token: "))
-    except ValueError as exc:
+        token = cloud_key.validate(secret_input(f"  {info['label']} bot token: "))
+    except (ValueError, SecretInputUnavailable) as exc:
         print(f"  {paint('✗', 'fail')} {exc}")
         return 2
     except (EOFError, KeyboardInterrupt):
