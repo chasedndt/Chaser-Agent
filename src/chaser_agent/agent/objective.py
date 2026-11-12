@@ -94,6 +94,7 @@ class Verdict:
     met: bool
     features: dict[str, float]
     shortfalls: tuple[str, ...]
+    verified: dict[str, Any] | None = None
 
     def as_record(self) -> dict[str, Any]:
         # The score is a process heuristic with hand-set weights. It is not a probability that the
@@ -101,7 +102,8 @@ class Verdict:
         # a confident-looking self-check can still pass a wrong answer (Kadavath et al. 2022, sec. 6.1).
         return {"score": round(self.score, 3), "met": self.met, "threshold": THRESHOLD,
                 "features": {k: round(v, 3) for k, v in self.features.items()}, "shortfalls": list(self.shortfalls),
-                "basis": "process heuristic, hand-set weights", "calibrated": False}
+                "basis": "process heuristic, hand-set weights", "calibrated": False,
+                **({"verified": self.verified} if self.verified is not None else {})}
 
 
 @dataclass(frozen=True)
@@ -187,6 +189,49 @@ def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = 
     # Required sources and contradicted claims are gates, not just weights: with several requirements the
     # share-of-unmet term alone let a turn skip one and still pass (seen live on 12 Nov 2026 at 0.756).
     return Verdict(score, score >= THRESHOLD and not unread and not contradicted, features, tuple(shortfalls))
+
+
+SOURCE_TOOLS = re.compile(r"^(graph_node|web_fetch|read_document|graph_source_segments)$")
+
+
+def _normal(text: str) -> str:
+    return re.sub(r"\s+", " ", str(text or "")).strip().lower()
+
+
+def verify_claims(verifier: Any, goal: str, answer: str, turn: list[dict[str, Any]], complete: Any) -> tuple[list[dict[str, str]], str]:
+    """Run a workflow's claim verifier on a passing final answer and keep only checkable findings.
+
+    The verifier sees the sources this turn actually read and returns sentences of the answer that the sources
+    contradict, each with a supporting quote. A finding counts only if its sentence is in the answer and its quote
+    is in the sources, so a verifier can't invent an objection or a source (the evidence-quoting guard suggested by
+    Self-RAG's support check, Asai et al. 2023). Contradictions only, not "not mentioned": CRITIC (Gou et al. 2023,
+    Tables 6-7) shows corrections also break correct answers. Returns (findings, error)."""
+    sources = [str(row.get("text") or "")[:12000] for row in turn
+               if row.get("role") == "observation" and row.get("status") == "ok" and SOURCE_TOOLS.match(str(row.get("tool") or ""))]
+    if not sources:
+        return [], ""
+    try:
+        raw = verifier(goal, answer, sources, complete) or []
+    except Exception as exc:  # noqa: BLE001 - a broken verifier must not stop the agent
+        return [], f"{type(exc).__name__}: {exc}"[:200]
+    joined, said = _normal(" ".join(sources)), _normal(answer)
+    kept = []
+    for item in raw[:6]:
+        if not isinstance(item, dict):
+            continue
+        sentence, quote = str(item.get("sentence") or "").strip(), str(item.get("source_quote") or "").strip()
+        if len(_normal(quote)) >= 12 and _normal(sentence) and _normal(sentence) in said and _normal(quote) in joined:
+            kept.append({"sentence": sentence[:300], "source_quote": quote[:300]})
+    return kept, ""
+
+
+def with_contradictions(verdict: Verdict, findings: list[dict[str, str]], error: str = "") -> Verdict:
+    shortfalls = list(verdict.shortfalls) + [
+        f'the sources contradict "{f["sentence"]}": they say "{f["source_quote"]}". Correct that sentence from the source'
+        for f in findings]
+    record_extra = {"checked": True, "contradictions": len(findings), **({"error": error} if error else {})}
+    features = dict(verdict.features)
+    return Verdict(verdict.score, verdict.met and not findings, features, tuple(shortfalls), record_extra)
 
 
 def retry_note(verdict: Verdict, attempt: int) -> str:

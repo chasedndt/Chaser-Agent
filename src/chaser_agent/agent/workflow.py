@@ -20,6 +20,8 @@ class WorkflowSpec:
     objective_check: bool = False
     # Sources a matching request must have read before it may stop (objective.Requirement).
     objective_requires: tuple[Any, ...] = ()
+    # Optional claim verifier (objective.verify_claims): checks a passing final answer against the sources read.
+    objective_verifier: Any = None
 
     def __post_init__(self) -> None:
         if not self.workflow_id.strip() or not self.instructions.strip():

@@ -237,3 +237,62 @@ def test_every_required_source_is_a_gate_even_when_the_score_is_high() -> None:
     verdict = objective.assess("What is HarborDesk?", turn, ending="final", answer=RIGHT, calls=calls, requires=(page, IDENTITY))
     assert verdict.score >= objective.THRESHOLD and verdict.met is False
     assert verdict.features["required_missing"] == 0.5
+
+
+# --- The opt-in claim verifier: sources read this turn, contradictions only, quotes checked ---
+
+RECORD_TEXT = "HarborDesk reviews go to independent writers; it never publishes or sells."
+SLIP = "The review tells the reader whether the draft fits."
+
+
+def verifier_runtime(data_dir: Path, replies: list[str], verifier) -> AgentRuntime:
+    rt = runtime(data_dir, replies)
+    rt.toolbox._tools["graph_node"] = AgentTool("graph_node", "Read.", {"properties": {"reference": {"type": "string"}}, "required": ["reference"]},
+                                                "read_only", lambda args, _c: {"reference": args["reference"], "text": RECORD_TEXT})
+    rt.add_workflow(WorkflowSpec("general", "Knowledge", "Help.", frozenset({"graph_search", "graph_node"}), max_steps=12,
+                                 objective_check=True, objective_verifier=verifier))
+    return rt
+
+
+def finds_slip(goal, answer, sources, complete):
+    if SLIP in answer:
+        return [{"sentence": SLIP, "source_quote": "reviews go to independent writers"}]
+    return []
+
+
+def test_a_contradicted_sentence_sends_the_turn_back_with_the_source_quote(tmp_path: Path) -> None:
+    good = "HarborDesk is the go-between for readers and independent writers; reviews go to the writer."
+    rt = verifier_runtime(tmp_path, [
+        reply("Search.", tool("graph_search", query="HarborDesk")),
+        reply("Read.", tool("graph_node", reference="apps#harbordesk")),
+        reply("Answer.", final("HarborDesk is the go-between. " + SLIP)),
+        reply("Fix.", final(good)),
+    ], finds_slip)
+    snap = run(rt, "What is HarborDesk?")
+    checks = [e["data"] for e in rt.events(snap["id"]) if e["type"] == "objective_checked"]
+    assert [c["decision"] for c in checks] == ["retry", "stop"]
+    assert checks[0]["verified"] == {"checked": True, "contradictions": 1}
+    assert "reviews go to independent writers" in checks[0]["shortfalls"][-1]
+    assert snap["final_answer"] == good and snap["objective"]["verified"]["contradictions"] == 0
+
+
+def test_an_invented_quote_or_sentence_is_ignored() -> None:
+    turn = [{"role": "observation", "tool": "graph_node", "status": "ok", "text": RECORD_TEXT}]
+    made_up = lambda *a: [{"sentence": SLIP, "source_quote": "the review always goes to the reader"},
+                          {"sentence": "A sentence that is not in the answer.", "source_quote": "never publishes or sells"}]
+    findings, error = objective.verify_claims(made_up, "q", SLIP, turn, None)
+    assert findings == [] and error == ""
+
+
+def test_a_broken_verifier_does_not_stop_the_agent() -> None:
+    turn = [{"role": "observation", "tool": "graph_node", "status": "ok", "text": RECORD_TEXT}]
+    def broken(*a):
+        raise TimeoutError("model slow")
+    findings, error = objective.verify_claims(broken, "q", SLIP, turn, None)
+    assert findings == [] and "TimeoutError" in error
+
+
+def test_no_sources_means_no_verification_call() -> None:
+    called = []
+    findings, _ = objective.verify_claims(lambda *a: called.append(1) or [], "q", "answer", [], None)
+    assert findings == [] and called == []

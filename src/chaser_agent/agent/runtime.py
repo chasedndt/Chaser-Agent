@@ -600,6 +600,17 @@ class AgentRuntime:
             self._execute(session, tool, action.args, call_id)
         return False
 
+    def _verifier_completion(self, session: dict[str, Any]) -> Any:
+        """A one-shot model call on the session's own reasoner, for a workflow's claim verifier."""
+        reasoner = self.reasoners.get(session.get("reasoner_used") or "")
+        cancel = self._cancels.get(session["id"]) or Event()
+
+        def complete(system: str, prompt: str) -> str:
+            if reasoner is None:
+                raise RuntimeError("no reasoner for this session")
+            return reasoner.complete(system, prompt, timeout=150, cancel=cancel).text
+        return complete
+
     def _turn_calls(self, session_id: str) -> list[dict[str, Any]]:
         """Tool calls since the person's last message, with their arguments and how they ended."""
         rows = self._logs[session_id].after(0, 100_000)
@@ -627,6 +638,10 @@ class AgentRuntime:
         verdict = objective.assess(session["goal"], transcript[start + 1:], ending=ending,
                                    answer=action.answer if ending == "final" else action.question,
                                    calls=self._turn_calls(session["id"]), requires=workflow.objective_requires)
+        if ending == "final" and verdict.met and workflow.objective_verifier is not None:
+            findings, error = objective.verify_claims(workflow.objective_verifier, session["goal"], action.answer,
+                                                      transcript[start + 1:], self._verifier_completion(session))
+            verdict = objective.with_contradictions(verdict, findings, error)
         retries = int(session.get("objective_retries") or 0)
         room = session["steps_used"] < workflow.max_steps - 1
         retry = not verdict.met and retries < objective.MAX_RETRIES and room
