@@ -534,6 +534,11 @@ class AgentRuntime:
             )
             with self._lock:
                 session["transcript"].append({"role": "assistant", "text": reply.text})
+                if parsed.set_aside_final:
+                    session["transcript"].append({"role": "note", "text": (
+                        "Your final answer was set aside because it shared a step with tool calls and was written before "
+                        "their results. The tools ran; give the final answer in its own step once you have read them.")})
+                    self._logs[session_id].append("final_set_aside", step=step, reply_sha256=reply_sha)
             if self._apply_actions(session, parsed.actions, grants, step):
                 return
             with self._lock:

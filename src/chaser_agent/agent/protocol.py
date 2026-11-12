@@ -57,6 +57,7 @@ class ModelReply:
     thought: str
     actions: tuple[Action, ...]
     had_preamble: bool = False
+    set_aside_final: bool = False
 
 
 def _no_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -152,6 +153,15 @@ def parse_reply(text: str) -> ModelReply:
     if len(actions) > MAX_ACTIONS_PER_STEP:
         raise ReplyRejected("too_many_actions", f"at most {MAX_ACTIONS_PER_STEP} actions per step")
     parsed = tuple(_action(item) for item in actions)
+    set_aside = False
+    # 12 Nov 2026: after the objective check asked for a missing read, a model replied with the tool call and a final
+    # answer in one step, twice, and the turn failed as "outside the protocol".
+    # Tool calls followed by one final at the end have one safe reading: run the tools and set the final aside, because
+    # it was written before the tools' results existed. The model answers again once it has seen them. A final or a
+    # question anywhere else in a multi-action step is still refused.
+    if (len(parsed) > 1 and isinstance(parsed[-1], Finish)
+            and all(isinstance(action, ToolAction) for action in parsed[:-1])):
+        parsed, set_aside = parsed[:-1], True
     if len(parsed) > 1 and not all(isinstance(action, ToolAction) for action in parsed):
         raise ReplyRejected("mixed_actions", "ask_human and final must be the only action in a step")
-    return ModelReply(_text(value["thought"], "thought", MAX_THOUGHT_CHARS), parsed, had_preamble)
+    return ModelReply(_text(value["thought"], "thought", MAX_THOUGHT_CHARS), parsed, had_preamble, set_aside)

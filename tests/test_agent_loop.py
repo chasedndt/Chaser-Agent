@@ -77,10 +77,18 @@ def test_duplicate_keys_are_refused() -> None:
     assert caught.value.reason_code == "duplicate_key"
 
 
-def test_final_cannot_share_a_step_with_tools() -> None:
-    with pytest.raises(ReplyRejected) as caught:
-        parse_reply(reply("x", tool("a"), final()))
-    assert caught.value.reason_code == "mixed_actions"
+def test_a_final_after_tools_is_set_aside_and_the_tools_run() -> None:
+    parsed = parse_reply(reply("x", tool("a"), tool("b"), final()))
+    assert [type(a).__name__ for a in parsed.actions] == ["ToolAction", "ToolAction"]
+    assert parsed.set_aside_final is True
+    assert parse_reply(reply("x", tool("a"))).set_aside_final is False
+
+
+def test_a_final_or_question_anywhere_else_cannot_share_a_step() -> None:
+    for actions in ((final(), tool("a")), (tool("a"), final(), tool("b")), (tool("a"), final(), final())):
+        with pytest.raises(ReplyRejected) as caught:
+            parse_reply(reply("x", *actions))
+        assert caught.value.reason_code == "mixed_actions"
 
 
 def test_fenced_json_and_short_preamble_are_accepted() -> None:
@@ -104,6 +112,16 @@ def test_read_tool_runs_and_its_result_reaches_the_next_step(tmp_path: Path) -> 
     assert snapshot["final_answer"] == "All good."
     assert harness.calls == [{"q": "a"}]
     assert '"recorded": true' in harness.reasoner.requests[1]["transcript"]
+
+
+def test_a_set_aside_final_lets_the_tool_run_and_the_model_answers_after_reading(tmp_path: Path) -> None:
+    harness = Harness(tmp_path, [reply("read and answer", tool("probe_read", q="a"), final("Guessed early.")),
+                                 reply("done", final("Answer from what was read."))])
+    snapshot = harness.run()
+    assert snapshot["status"] == "finished"
+    assert snapshot["final_answer"] == "Answer from what was read."
+    assert harness.calls == [{"q": "a"}]
+    assert "set aside" in harness.reasoner.requests[1]["transcript"]
 
 
 def test_unregistered_tool_is_denied_and_the_loop_continues(tmp_path: Path) -> None:
