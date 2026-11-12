@@ -316,7 +316,11 @@ class ChaseOSCloudReasoner:
         if status in {401, 403}:
             raise ReasonerUnavailable("not_authorised", f"{self.label} refused this machine's key (HTTP {status}).")
         if status != 200:
-            raise ReasonerUnavailable("route_error", f"{self.label} did not answer (HTTP {status or 'no connection'}).")
+            # Keep the gateway's own explanation (e.g. a 409 plan or allowance conflict) instead of only the number.
+            error = value.get("error") if isinstance(value, dict) else None
+            said = (error.get("message") if isinstance(error, dict) else error if isinstance(error, str) else None) or value.get("message")
+            said = f": {str(said)[:240]}" if said else ""
+            raise ReasonerUnavailable("route_error", f"{self.label} did not answer (HTTP {status or 'no connection'}){said}.")
         try:
             choice = value["choices"][0]["message"]
             text = choice.get("content") or ""
