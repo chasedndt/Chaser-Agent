@@ -43,7 +43,10 @@ READ = re.compile(r"node|read|segment|recall|fetch|open")
 STOP_WORDS = frozenset(
     "about after again also and any are ask can could does each for from have how into its just know like "
     "make more most much need only other over please show some such tell than that the their them then there "
-    "these they this those through two use very what when where which while who why will with would you your".split()
+    "these they this those through two use very what when where which while who why will with would you your "
+    # Words about the asking, not the subject: "search my knowledge graph ... in two sentences".
+    "search find look graph knowledge sentence sentences short brief briefly summary summarise explain describe "
+    "give list record records note notes".split()
 )
 
 
