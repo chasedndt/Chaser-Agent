@@ -134,7 +134,11 @@ def _action(item: Any) -> Action:
     # 12 Nov 2026: ChaseOS Cloud's models often name the tool in "type", as {"type": "graph_search", "args": {...}},
     # and repeat it after being refused, so a card failed with "kept replying outside the protocol". That shape has one
     # meaning, so it is read as the tool call; whether the tool may run is still decided by the session's grants.
-    if isinstance(kind, str) and _TOOL_NAME.fullmatch(kind) and set(item) <= {"type", "args"}:
+    # The same models also often send {"type": "graph_search", "tool": "graph_search", "args": {...}}, and each refusal
+    # cost a model turn. The name given twice, the same both times, has the same one meaning; different names in the
+    # two fields are still refused.
+    if (isinstance(kind, str) and _TOOL_NAME.fullmatch(kind) and set(item) <= {"type", "tool", "args"}
+            and item.get("tool", kind) == kind):
         args = item.get("args", {})
         if not isinstance(args, dict):
             raise ReplyRejected("invalid_field", "tool args must be an object")

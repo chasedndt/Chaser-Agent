@@ -23,3 +23,12 @@ def test_anything_else_unknown_is_still_refused_and_the_refusal_shows_the_right_
     with pytest.raises(ReplyRejected) as caught:
         parse_reply('{"thought":"t","actions":[{"type":"Graph Search","args":{}}]}')
     assert '"type": "tool", "tool": "<name>"' in caught.value.message
+
+
+def test_the_tool_named_the_same_in_type_and_tool_is_that_tool_call_but_two_names_are_refused() -> None:
+    # Hosted models send this shape often, and each refusal costs a model turn.
+    same = parse_reply('{"thought":"s","actions":[{"type":"graph_search","tool":"graph_search","args":{"query":"Harbor","limit":5}}]}')
+    assert same.actions == (ToolAction("graph_search", {"query": "Harbor", "limit": 5}),)
+    with pytest.raises(ReplyRejected) as caught:
+        parse_reply('{"thought":"s","actions":[{"type":"graph_search","tool":"web_fetch","args":{}}]}')
+    assert caught.value.reason_code == "invalid_action"
