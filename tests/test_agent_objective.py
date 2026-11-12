@@ -103,3 +103,12 @@ def test_score_rewards_evidence_and_penalises_giving_up() -> None:
     assert done.met and done.score > gave_up.score
     expected = objective.sigmoid(objective.BIAS + sum(objective.WEIGHTS[k] * v for k, v in done.features.items()))
     assert abs(done.score - expected) < 1e-12
+
+
+def test_route_text_keeps_attached_context_from_choosing_the_workflow(tmp_path: Path) -> None:
+    rt = runtime(tmp_path, [reply("Done.", final("ok"))], check=False)
+    rt.add_workflow(WorkflowSpec("reviews", "Reviews", "Review.", frozenset(), triggers=("draft review",)))
+    message = "What is this business?\n\n---\nAttached: draft reviews now follow the page"
+    assert rt.route_workflow(message).workflow_id == "reviews"
+    snap = rt.create_session(message, route_text="What is this business?", start=False)
+    assert snap["workflow"] == "general"

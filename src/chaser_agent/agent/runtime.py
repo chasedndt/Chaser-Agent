@@ -153,9 +153,12 @@ class AgentRuntime:
         title: str | None = None,
         withhold_tools: frozenset[str] = frozenset(),
         start: bool = True,
+        route_text: str | None = None,
     ) -> dict[str, Any]:
         message = self._clean_message(message)
-        workflow = self.workflows.get(workflow_id or "") or self.route_workflow(message)
+        # A caller that attaches context can route on the person's own words only, so a phrase
+        # inside an attached record doesn't pick the workflow.
+        workflow = self.workflows.get(workflow_id or "") or self.route_workflow(route_text or message)
         if workflow_id and workflow.workflow_id != workflow_id:
             raise NotFound(f"workflow {workflow_id}")
         if reasoner_id != "auto" and reasoner_id not in self.reasoners:
