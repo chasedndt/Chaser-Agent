@@ -296,3 +296,46 @@ def test_no_sources_means_no_verification_call() -> None:
     called = []
     findings, _ = objective.verify_claims(lambda *a: called.append(1) or [], "q", "answer", [], None)
     assert findings == [] and called == []
+
+
+# --- Read the attached record, and answer about the subject asked about ---
+
+OWN_RECORD = objective.Requirement(r"(?i)harbor\s?desk", "graph_node", r"#business:pd", "read HarborDesk's record",
+                                   names=r"(?i)harbor\s?desk", subject="HarborDesk")
+ATTACHED = objective.Requirement(r"(?m)^- ([a-z0-9][a-z0-9@._-]*#[a-z_]+:[0-9a-f-]{8,}): ", "graph_node", "",
+                                 "read the attached record {ref} with graph_node", each=True)
+DISTRACTOR_GOAL = ("What is this business, and who is it for?\n\nAttached knowledge-graph records, by title:\n"
+                   "- apps#outcome:0a1b2c3d-0000: Reviews now follow the HarborDesk page's handover")
+
+
+def _reads(*references: str) -> tuple[list[dict], list[dict]]:
+    calls = [{"tool": "graph_node", "args": {"reference": ref}, "status": "ok"} for ref in references]
+    turn = [{"role": "observation", "tool": "graph_node", "status": "ok", "text": "a record"} for _ in references]
+    return calls, turn
+
+
+def test_an_answer_about_another_product_it_read_cannot_stop() -> None:
+    calls, turn = _reads("apps#business:pc", "apps#business:pd", "apps#outcome:0a1b2c3d-0000")
+    wrong = "The business is Tidewatch, a live map of devices."
+    verdict = objective.assess(DISTRACTOR_GOAL, turn, ending="final", answer=wrong, calls=calls, requires=(OWN_RECORD, ATTACHED))
+    assert verdict.met is False
+    assert any("never names HarborDesk" in s for s in verdict.shortfalls)
+    right = "HarborDesk is the go-between for readers and independent writers."
+    assert objective.assess(DISTRACTOR_GOAL, turn, ending="final", answer=right, calls=calls,
+                            requires=(OWN_RECORD, ATTACHED)).met is True
+
+
+def test_every_attached_record_must_itself_be_read() -> None:
+    calls, turn = _reads("apps#business:pd")
+    right = "HarborDesk is the go-between for readers and independent writers."
+    verdict = objective.assess(DISTRACTOR_GOAL, turn, ending="final", answer=right, calls=calls, requires=(OWN_RECORD, ATTACHED))
+    assert verdict.met is False
+    assert "required for this request and not done yet: read the attached record apps#outcome:0a1b2c3d-0000 with graph_node" in verdict.shortfalls
+    assert ATTACHED.applies("What is HarborDesk?") is False
+
+
+def test_the_subject_gate_ignores_questions_back_to_the_person() -> None:
+    calls, turn = _reads("apps#business:pd", "apps#outcome:0a1b2c3d-0000", "apps#x:1")
+    verdict = objective.assess(DISTRACTOR_GOAL, turn, ending="ask", answer="Which part do you mean?", calls=calls,
+                               requires=(OWN_RECORD, ATTACHED))
+    assert not any("never names" in s for s in verdict.shortfalls)

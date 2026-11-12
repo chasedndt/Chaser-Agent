@@ -122,9 +122,29 @@ class Requirement:
     describe: str
     contradicts: str = ""
     source: str = "the authoritative source"
+    # A turn can read every required source and still answer about a different subject it also read. `names` is a
+    # pattern a final answer must contain when this requirement applies, so an answer has to name the subject the
+    # request is about; `subject` is how the shortfall names it.
+    names: str = ""
+    subject: str = ""
+    # `each`: `when` captures references (group 1) and every one must be read, not just any call matching `args`,
+    # so a record attached by reference alone is read before the answer rather than some other record.
+    each: bool = False
 
     def applies(self, goal: str) -> bool:
         return bool(re.search(self.when, goal))
+
+    def unmet(self, goal: str, calls: list[dict[str, Any]]) -> list[str]:
+        """What this requirement still needs for `goal`, as shortfall descriptions; empty when satisfied."""
+        if not self.each:
+            return [] if self.satisfied(calls) else [self.describe]
+        wanted = list(dict.fromkeys(match.group(1) for match in re.finditer(self.when, goal)))
+        done = [json.dumps(call.get("args") or {}, ensure_ascii=False) for call in calls
+                if re.fullmatch(self.tool, str(call.get("tool") or "")) and call.get("status") == "ok"]
+        return [self.describe.format(ref=ref) for ref in wanted if not any(ref in args for args in done)]
+
+    def off_subject(self, answer: str) -> bool:
+        return bool(self.names) and bool(answer) and not re.search(self.names, answer)
 
     def satisfied(self, calls: list[dict[str, Any]]) -> bool:
         return any(re.fullmatch(self.tool, str(call.get("tool") or "")) and call.get("status") == "ok"
@@ -162,19 +182,24 @@ def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = 
         "required_missing": 0.0,
     }
     applicable = [req for req in requires if req.applies(goal)]
-    unread = [req for req in applicable if not req.satisfied(calls or [])]
+    needs = [(req, req.unmet(goal, calls or [])) for req in applicable]
+    unread = [(req, missing) for req, missing in needs if missing]
+    final_answer = answer if ending == "final" else ""
     contradicted = []
     for req in applicable:
-        said = req.contradiction(answer if ending == "final" else "")
+        said = req.contradiction(final_answer)
         if said:
             contradicted.append((req, said))
-    failing = {id(req) for req in unread} | {id(req) for req, _ in contradicted}
+    off_subject = [req for req in applicable if req.off_subject(final_answer)]
+    failing = {id(req) for req, _ in unread} | {id(req) for req, _ in contradicted} | {id(req) for req in off_subject}
     if applicable:
         features["required_missing"] = len(failing) / len(applicable)
     score = sigmoid(BIAS + sum(WEIGHTS[name] * value for name, value in features.items()))
-    shortfalls = [f"required for this request and not done yet: {req.describe}" for req in unread]
+    shortfalls = [f"required for this request and not done yet: {text}" for _, missing in unread for text in missing]
     shortfalls += [f'the answer contradicts {req.source}: it says "{said}". Check that claim against the source and correct it'
                    for req, said in contradicted]
+    shortfalls += [f"the answer never names {req.subject or 'the subject the request is about'}: answer about it, "
+                   "not about another record you read" for req in off_subject]
     if not found and searches:
         shortfalls.append("every search came back empty: search again without a namespace, with other spellings or the words split apart")
     if not searches and not reads:
@@ -188,7 +213,8 @@ def assess(goal: str, turn: list[dict[str, Any]], *, ending: str, answer: str = 
         shortfalls.append("you are asking the person before trying the tools you have")
     # Required sources and contradicted claims are gates, not just weights: with several requirements the
     # share-of-unmet term alone let a turn skip one and still pass (seen live on 12 Nov 2026 at 0.756).
-    return Verdict(score, score >= THRESHOLD and not unread and not contradicted, features, tuple(shortfalls))
+    return Verdict(score, score >= THRESHOLD and not unread and not contradicted and not off_subject, features,
+                   tuple(shortfalls))
 
 
 SOURCE_TOOLS = re.compile(r"^(graph_node|web_fetch|read_document|graph_source_segments)$")
