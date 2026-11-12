@@ -1,0 +1,3 @@
+# Agent activity — 2026-09-27 HUD owner reconnection
+
+Actor: Codex / Axiom-Codex. Scope: isolated E: Chaser Agent engineering worktree. Result: same-process HUD executor reconnection with strict owner/session identity, stale-callback rejection and fresh-event control gate; fake-executor tests and build receipt at [2026-09-27-hud-owner-reconnect](../build/2026-09-27-hud-owner-reconnect.md). No ChaseOS canonical write, runtime ACL/token change, real executor, push or deployment occurred. The ChaseOS runtime profile remains `PARTIAL / CORE FOUNDATION PREVIEW / NOT LIVE`; the full Codex goal remains active.

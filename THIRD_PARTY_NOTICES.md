@@ -22,6 +22,11 @@ Runtime and development dependencies are declared in `pyproject.toml`. Each reta
 its own licence. Generate a full SBOM (e.g. `SBOM.spdx.json`) before any public
 release; this file is a human-readable summary, not a substitute for the SBOM.
 
+The optional local voice-input extra uses `faster-whisper==1.2.1` and
+`sounddevice==0.5.6` in a separate runtime environment. Their transitive
+packages are not bundled in the core repository. Check their installed
+licences and produce the SBOM before packaging a binary distribution.
+
 ## Bundled assets
 
 - Models: see `MODEL_LICENSES.md`.

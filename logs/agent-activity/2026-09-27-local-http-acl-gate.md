@@ -1,0 +1,3 @@
+# Agent activity — 2026-09-27 local HTTP ACL gate
+
+Actor: Codex / Axiom-Codex. Scope: isolated E: Chaser Agent engineering worktree and read-only inspection of the existing local runtime ACL. Result: fail-closed local HTTP storage policy, tests and documentation. The existing broad-ACL runtime was not modified, and no token was read or printed during the direct startup check. No provider call, real computer-use executor, ChaseOS canonical mutation, push or deployment. Source/build receipt: [local HTTP ACL gate](../build/2026-09-27-local-http-acl-gate.md). ChaseOS Chaser Agent profile remains `PARTIAL / CORE FOUNDATION PREVIEW / NOT LIVE`.

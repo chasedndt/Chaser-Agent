@@ -1,8 +1,44 @@
 # Chaser Agent As-Built Map
 
+## Current engineering snapshot — 27 September 2026
+
+The private local runtime is now ACL-repaired, token-rotated and live-loopback tested on port 8765. The [current 18-layer map](Runtime-Architecture.md) and [offline interactive explorer](Runtime-Architecture.html) supersede the older status table below for this engineering worktree. The native HUD and local voice interfaces are built; real computer-use execution, general reasoning and operator voice acceptance remain incomplete.
+
+The following P0.1 account and sequential addenda are historical evidence. Earlier broad-ACL blockers were resolved by the approved [runtime activation](../../logs/build/2026-09-27-runtime-activation.md); they are not current launch blockers.
+
 **Status:** P0.1 IMPLEMENTED AND LOCALLY VERIFIED on `codex/standalone-first-memory-realignment`; not merged, released, or operator-accepted.
 
 This page maps executable repository truth to the 17-layer architecture. The full suite passed 55 tests on 2026-08-11, and all 21 golden plus 6 contract JSONL rows validated. Those results prove deterministic contracts and wiring, not product-quality intelligence.
+
+2026-09-27 engineering addendum: the isolated `codex/2026-09-27-standalone-http-foundation` worktree has a local-only, bearer-protected review API (`local_http.py`; [contract and threat model](../05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md)). It creates pending source-card runs from public/toy text and retrieves their exact source and artifacts. It has no LLM provider, autonomous tool, or public network authority. This addendum does not change the older P0.1 branch's status or claim that HTTP is merged.
+
+The isolated loopback listener now caps simultaneous client handlers at 16 and rejects excess connections with `503`, alongside its separate authenticated POST rate limit. This is bounded local transport hardening, not public-service readiness or a cure for the existing broad-ACL runtime.
+
+A read-only `doctor` CLI now reports runtime-directory/token/run ACL states and whether the configured loopback port can bind at check time. It makes no data, token or permission changes and cannot claim the service launched; the current E: runtime reports three broad-ACL blockers.
+
+Further engineering in the same isolated worktree adds optional local Pocket Alba speech-out jobs with a prewarmed worker, and an executor-gated HUD bridge plus synthetic desktop preview. A second warm reply was measured end-to-end at 4.52 seconds on this machine. The HUD now has tested button-request, pending-state and matching-acknowledgement wiring with a fake executor; the normal CLI attaches no executor. This does **not** supply real computer control, human listening acceptance, or a complete two-way conversational voice mode.
+
+Later on 2026-09-27, the same isolated worktree added an [opt-in offline voice-input CLI](../05_Runtime_Adapters/Chaser-Agent-Local-Voice-Input.md). It locally transcribed a public/toy WAV using a pinned, receipt-verified faster-whisper tiny English model on E:. Interactive microphone code opens only after Enter, but live operator microphone behavior is not verified. A fixed Pocket Alba acknowledgement can be requested separately; it is not a task answer. These additions do not activate a reasoning model, agent actions, computer use or full-duplex voice.
+
+The next security and voice-status slice makes the HUD and optional voice client check private runtime/token ACLs before credential use. `voice-mode --speak-status` can answer only a few exact read-only health/HUD questions with bounded speech text. Its HTTP and playback path is mocked in tests; no live reply or microphone acceptance is claimed. The existing runtime remains refused until operator-approved ACL repair and token rotation.
+
+The `desktop` CLI then combined the loopback API and a visible idle HUD under one foreground lifecycle. A synthetic screenshot shows the port and disabled controls, and a real loopback lifecycle test verifies that the launcher stops only its own server. The actual E: runtime remains ACL-blocked; no real computer-use executor or voice conversation was added.
+
+An optional desktop push-to-talk panel now loads the pinned offline STT model asynchronously, paints the microphone indicator before a click-triggered bounded take, supports cancellation, and shows an unverified in-memory draft. Speak status remains a separate exact read-only action with mocked HTTP/audio proof. The optional E: model loaded successfully without opening the microphone; no operator recording, audible reply, real executor or general conversational model was verified.
+
+The local Pocket Alba job API now accepts a token-protected cancellation request for the exact active take and records a marker that suppresses late audio after restart. The HUD exposes Cancel reply and an explicit Talk next path that waits for reply-worker completion before opening a new microphone take. Fake-worker recovery and deterministic Talk-next UI-state tests pass; actual speech interruption and already-started playback remain unverified on a real device.
+
+The native HUD now also has [fresh Talk-next visual QA](<E:/Visual QA/Chaser Agent Visual QA/Current Reviews/2026-09-27-talk-next-hud/QA.md>): an initial narrow-width capture exposed clipped status and button labels, then a responsive two-row/wrapping correction made the tested labels readable. This is synthetic window evidence, not a live microphone, speaker or accessibility acceptance.
+
+For HUD replies, an optional output-only stream now writes roughly 50 ms PCM16 or IEEE-float32 WAV chunks and aborts pending buffers on cancellation. Mocked output tests and the installed environment's 24 kHz mono/int16 and float32 settings checks pass. Audible output and real stop latency remain unverified; the fixed CLI acknowledgement retains its earlier blocking Windows playback.
+
+The HUD bridge also permits the identical in-process executor to reconnect an uncertain, nonterminal session without discarding pending control state. A different executor object cannot claim it, old report callbacks stay invalid, and controls remain disabled until a fresh higher-sequence event arrives. This is fake-executor lifecycle proof only; no real computer-use adapter or process-crash recovery is present.
+
+The desktop HUD now guards its own control notice against late HTTP responses: a response for an older display revision or different session cannot overwrite a newer executor snapshot or connection-loss warning. The button path still awaits authoritative executor status; fake UI tests cover the race, not real computer-use acceptance.
+
+New local HTTP source-card runs now carry a SHA-256 integrity record checked before authenticated readback; changed artifacts return a conflict, while older pre-record runs are explicitly labelled unverified. This is tamper detection under the private-storage premise, not filesystem immutability or protection against a same-user actor who can rewrite data and digests.
+
+Synthetic layout QA then exposed fixed-size clipping at simulated 200%-style Tk scaling; scale-aware sizing and a scrollable small-screen container corrected the inspected captures. These are rendered local checks, not live high-DPI or accessibility acceptance.
 
 ## Working capabilities
 

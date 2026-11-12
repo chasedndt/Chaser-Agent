@@ -1,0 +1,3 @@
+# Agent activity — 2026-09-27 desktop voice panel
+
+Actor: Codex / Axiom-Codex. Scope: isolated E: Chaser Agent engineering worktree and synthetic visual QA in the exact Chaser Agent E: QA home. Result: optional explicit/cancellable push-to-talk panel, draft-only local STT, exact read-only status-speech button, model-load and test evidence. No real microphone take, audible response, executor, provider, ChaseOS canonical write, permission/token change, push or deployment. See [build receipt](../build/2026-09-27-desktop-voice-panel.md) and [visual QA](<E:/Visual QA/Chaser Agent Visual QA/Current Reviews/2026-09-27-desktop-voice-panel/QA.md>). The ChaseOS profile remains `PARTIAL / CORE FOUNDATION PREVIEW / NOT LIVE`; the full Codex goal remains active.

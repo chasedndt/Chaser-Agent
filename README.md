@@ -1,10 +1,87 @@
 # Chaser Agent
 
+**The agent that shows its work.** Chaser does real multi-step work on your computer, with any AI model you choose. Anything that matters waits for your named yes, and every step lands on a record you can verify.
+
+![Chaser Agent canonical identity](brand/chaser-agent/releases/v1.0.0/public-identity/chaser-agent_github-readme-hero_1600x900.webp)
+
+```bash
+pip install .                 # from a clone of this repository; Python 3.11+ (Windows first)
+chaser onboard                # checks, where it keeps its work, how it thinks, your name, start
+chaser chat                   # talk to it, attach images, approve inline
+```
+
+Then just `chaser`: a home screen with what's running, which model, what's waiting for you, and every action one key away. `chaser help` lists every command.
+
+## How you stay in charge
+
+- **Approvals carry your name and cover one exact action.** Chaser shows the tool and its arguments, and your yes is bound to that request's digest. It works once, and is signed "Sam (terminal)", "Sam (Telegram)" and so on.
+- **Every step is on a tamper-evident record.** `chaser receipt` re-derives the session's hash chain from disk, lists who approved what, and hashes every file it wrote. An edited line shows up as a broken chain.
+- **You choose how much it may do alone,** per session:
+  - `ask`, the default, asks before anything that needs your yes;
+  - `plan` only reads and plans;
+  - `bypass` says yes itself. It must be typed to confirm, is shown in red, and every automatic yes is still in the receipt. Messaging channels can never turn it on.
+  - "Always allow this tool here" covers just the rest of one session.
+- **Hard limits the model can't talk its way past:** a daily model-call cap and optional credit caps that stop work rather than warn, a loop guard, and approvals that turn into a "no" if nobody answers. Secrets are redacted before anything is written to a receipt. `chaser limits` and `chaser doctor --security`.
+- **One command stops everything:** `chaser stop` (or `/stopall` from a channel). Keyboard shortcuts stop Chaser or take over at once.
+- **Local-first.** The service listens only on 127.0.0.1 with a private token. Keys, tokens and passwords are saved encrypted for your Windows account and never shown.
+
+## Choose your model
+
+`chaser model` offers ChaseOS Cloud first, as recommended: it's built for Chaser, with one key and pricing tuned for agent work. Any of these also works:
+- Claude through your Claude Code sign-in;
+- OpenRouter, OpenAI, Google Gemini, xAI, DeepSeek, Mistral, Groq, Together, Fireworks;
+- Ollama or LM Studio on your own computer;
+- any OpenAI-compatible endpoint;
+- another agent harness over the local bridge.
+
+Keys are checked for free by listing the provider's models, which you then pick from. `chaser model reserve add` adds up to four backup providers, tried in order if the main key or provider stops working; the receipt records which one answered.
+
+## Talk to it from anywhere you are
+
+`chaser channels add telegram`, `discord`, `slack`, `email`, `signal` or `matrix`.
+- **Only the accounts you allow are heard.** Email also requires the sender's mail server to vouch for them (DKIM or SPF).
+- **Approvals arrive in the same app:** Telegram buttons, or a typed yes. Each is checked against the waiting request before anything runs.
+- **Photos and screenshots come through as context.**
+- **No public address or webhook needed.**
+
+WhatsApp and Microsoft Teams are next; both need a hosted relay, because their official APIs only deliver to a public address.
+
+## Show it, say it
+
+- **Images:** drag an image into the terminal, `/paste` a screenshot, `/image path`, or `chaser chat --image photo.png`. Each image is saved and hashed into the receipt. Vision-capable models see it; others are told plainly that they can't.
+- **Voice:** `/voice` records one short take, transcribes it on your own computer, and shows you the text before anything is sent. It needs the `voice-input` extra and a local model: `chaser voice set FOLDER`.
+
+## Runs all the time, quietly
+
+`chaser gateway` keeps Chaser running in the background under a supervisor that restarts it if it stops. `chaser gateway install` starts it at sign-in. `chaser doctor` runs pre-flight checks, `chaser status` and `chaser logs -f` show what it's doing, and `chaser open` opens the small always-on-top HUD.
+
+## Honest limits
+
+| | Today |
+|---|---|
+| Channels | Telegram, Discord, Slack, email, Signal, Matrix. WhatsApp and Teams need a hosted relay. |
+| Schedules, recurring briefings | Not yet. |
+| MCP servers | Not yet. |
+| Computer use (mouse and keyboard) | In development behind the HUD's stop and take-over controls. |
+| Outcome scorecard (which model your accepted work favours) | Runs in ChaseOS. Not yet in this build. |
+| Signed installers | Waiting on a code-signing certificate. |
+
+More: [setup and every command](docs/01_Product/Chaser-Agent-Setup-and-Onboarding.md) · [the agent loop](docs/01_Product/Chaser-Agent-Agent-Loop.md) · [security policy](SECURITY.md) · [contributing](CONTRIBUTING.md)
+
+Chaser runs on its own, and works best with [ChaseOS](https://chaseos.ai/chaser-agent).
+
+---
+
+## Engineering detail
+
+The rest of this page is the longer engineering record: the review-first runtime, its maturity notes and verification. Where it describes the earlier P0.1 review-only path (`serve --review-only`), that path still exists. The agent loop above has moved past it: it runs real local tools behind digest-bound approvals.
+
+The lower-level `chaser-agent` commands remain: `doctor` (read-only preflight), `serve` (local API), `desktop` (API plus native HUD), `hud` and `voice-mode`. The default bind is `127.0.0.1:8765`, not a public or LAN endpoint.
+
 **Standalone-first. Local-first. Evidence-linked. Human-governed. ChaseOS-enhanced.**
 
 Chaser Agent is a standalone-first, local-first agent harness for turning goals and sources into evidence-linked, reviewable work. Its MIT-licensed core runs independently, learns from explicit human review, preserves approved local memory, and curates a user-owned provenance map. Optional ChaseOS integration adds shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory.
 
-![Chaser Agent canonical identity](brand/chaser-agent/releases/v1.0.0/public-identity/chaser-agent_github-readme-hero_1600x900.webp)
 
 ## Inside Chaser: explore the engineering
 
@@ -87,6 +164,24 @@ See:
 
 Chaser Agent is a **P0.1 / pre-alpha standalone deterministic harness**. The canonical visual asset release and browser-local one-time run are public consumer surfaces; provider routing, browser authority, autonomous execution and managed hosting remain future engineering lanes.
 
+An isolated engineering worktree now also has a [local HTTP foundation](docs/05_Runtime_Adapters/Chaser-Agent-Local-HTTP.md): a token-protected `127.0.0.1:8765` source-review API that retains the original submitted public text with each pending run. After operator-approved ACL repair and token rotation on 2026-09-27, the private local service passed a live create/read and authorization smoke test. See the [18-layer interactive architecture map](docs/01_Product/Runtime-Architecture.html) and [Mermaid architecture](docs/01_Product/Runtime-Architecture.md). This is a local engineering snapshot, not a released version. An optional Pocket Alba library prewarms locally and generates offline speech-out jobs behind the same token. A separate [opt-in offline voice-input command](docs/05_Runtime_Adapters/Chaser-Agent-Local-Voice-Input.md) transcribes bounded microphone takes as unverified drafts, can play a fixed acknowledgement, and now has a narrowly allowlisted read-only service-status reply. It does not generally reason over the request or dispatch actions. The desktop HUD has a tested, executor-gated control-and-acknowledgement path, but no real computer-use executor is attached. This is local engineering evidence, not a merged release or a complete conversational agent.
+
+New HTTP review runs include a read-time SHA-256 integrity record; changed artifacts are refused, and older runs without that record are labelled unverified. This detects file drift but does not make the local files immutable or replace human review.
+
+A `desktop` CLI now owns the loopback API and a visible idle HUD in one foreground process, shows its fixed port, and stops its owned server when the window closes. The initial broad-ACL blocker was repaired with operator approval on 27 September; later live desktop evidence is recorded in the runtime logs. That historical launch does not prove a listener is running now. This does not automatically start the microphone or enable computer use.
+
+The local HTTP listener now caps simultaneous client handlers at 16 and returns `503` when full, in addition to its authenticated POST rate limit. This bounds one local connection-exhaustion path; it does not make the service safe for public or LAN exposure.
+
+Run `python -m chaser_agent.cli doctor --data-dir <local-runtime-directory>` for a read-only check of the runtime ACLs and fixed loopback port before launching. It never reads the bearer-token value or changes permissions; a clear preflight still does not prove successful startup.
+
+An optional `desktop --model-dir <pinned-local-STT-model>` adds a push-to-talk panel: Talk starts one bounded take, Cancel discards it, and the transcript is shown as an unverified in-memory draft. With an explicitly configured local Pocket Alba library, the operator may separately click Speak status for a few exact read-only questions. No microphone opens on launch, and neither a draft nor a button click grants tool authority. The panel has synthetic visual QA and local-model-load proof, not operator microphone or audible-response acceptance.
+
+During a spoken status reply, an explicit **Talk next** click now requests cancellation and waits for the speech worker to finish before opening the next bounded take. This ordering is tested with fake devices; audible interruption and real microphone behavior remain unverified.
+
+The native HUD now wraps its status text and reflows controls into two rows at narrow window widths. The [local visual-QA receipt](logs/build/2026-09-27-talk-next-hud-qa.md) records readable Talk-next and computer-use labels at the tested width; keyboard, assistive-technology and real-device acceptance remain open.
+
+Pending local speech can now be cancelled from the HUD or its token-protected HTTP route. Cancellation is recorded so late audio is not exposed after restart; a fake-worker recovery test passes. HUD playback now uses short output-only PCM chunks and aborts pending output on cancellation in the optional speech environment. Actual audible quality and stop latency remain unverified.
+
 Verified P0.1 implementation:
 
 - domain-neutral deterministic Source Card Harness with explicit workflow profiles;
@@ -148,7 +243,6 @@ Chaser Agent is not currently:
 - a finished personal AI;
 - a website-design, media-generation, or trading-execution agent;
 - a public FastAPI service or web UI;
-- a live provider router;
 - a semantic RAG/vector system;
 - a live MCP/tool registry;
 - a browser/computer-use runtime;
@@ -162,7 +256,7 @@ Chaser Agent is not currently:
 - Never infer authority from a workflow profile, skill, adapter, provider, or confidence score.
 - Never auto-promote a memory candidate.
 - Never mutate original run artifacts during review or correction.
-- Never activate providers, tools, MCP, browsers, public actions, payments, trading, deployment, or model training in P0.1.
+- In the P0.1 review-only path, never activate providers, tools, MCP, browsers, public actions, payments, trading, deployment or model training. The agent loop runs only registered local tools, behind approvals for anything that changes things.
 - Never mutate ChaseOS canonical state from the standalone core.
 - Keep generated run and research artifacts ignored unless separately reviewed for provenance, privacy, and licensing.
 

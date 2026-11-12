@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chaser</title>
+<link rel="stylesheet" href="/console/app.css">
+<script src="/console/app.js" defer></script>
+</head>
+<body>
+<main class="hud" id="hud" data-tone="idle">
+  <header class="pill">
+    <button type="button" class="face" id="toggle" aria-expanded="false" aria-controls="panel" aria-label="Show what Chaser is doing">
+      <video id="motion" muted loop playsinline disablepictureinpicture disableremoteplayback poster="/assets/motion/dormant.png" src="/assets/motion/dormant.mp4" aria-hidden="true"></video>
+      <img id="motion-still" src="/assets/motion/dormant.png" alt="" hidden>
+    </button>
+    <button type="button" class="status" id="toggle-text" aria-hidden="true" tabindex="-1">
+      <span class="state"><i></i><b id="state-text">Connecting</b><small id="meta"></small></span>
+      <span class="now" id="now" aria-live="polite"></span>
+    </button>
+    <button type="button" class="control" id="stop" hidden>Stop</button>
+    <button type="button" class="chevron" id="chevron" aria-label="Show or hide details"><span aria-hidden="true"></span></button>
+  </header>
+
+  <section class="panel" id="panel" hidden>
+    <div class="goal" id="goal" hidden></div>
+    <div class="progress" id="progress" hidden></div>
+
+    <div class="activity" id="activity">
+      <div class="empty" id="empty">
+        <div class="welcome" id="welcome" hidden>
+          <h3>Welcome to Chaser</h3>
+          <p>Three short steps: your ChaseOS Cloud key, your name on approvals, and the keys that stop Chaser. Then check everything is ready.</p>
+          <button type="button" class="yes" id="welcome-start">Set up Chaser</button>
+        </div>
+        <p>Say what you need in a sentence. Chaser checks its sources, does what it's allowed to, and asks before anything leaves this computer.</p>
+        <div class="suggestions" id="suggestions"></div>
+      </div>
+    </div>
+
+    <div class="pending" id="pending" hidden></div>
+    <p class="route" id="route" hidden></p>
+    <p class="notice" id="notice" role="status"></p>
+
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="Tell Chaser what to do" aria-label="Tell Chaser what to do"></textarea>
+      <button type="button" id="send" aria-label="Send"><span aria-hidden="true">↑</span></button>
+    </div>
+
+    <nav class="foot">
+      <button type="button" class="link" id="recent-button" aria-expanded="false">Earlier work</button>
+      <button type="button" class="link" id="files-button" hidden>Files</button>
+      <button type="button" class="link" id="new-work" hidden>New</button>
+      <button type="button" class="link" id="settings-button">Settings</button>
+      <span class="grow"></span>
+      <a class="link" id="parent" target="_blank" rel="noopener" hidden></a>
+    </nav>
+    <div class="drawer" id="drawer" hidden></div>
+
+    <section class="settings" id="settings" hidden aria-labelledby="settings-title">
+      <div class="settings-head"><strong id="settings-title">Settings</strong><button type="button" class="control" id="settings-close">Close</button></div>
+      <nav class="tabs" id="settings-tabs" role="tablist"></nav>
+      <div class="settings-body" id="settings-body"></div>
+      <div class="settings-foot" id="settings-foot" hidden></div>
+    </section>
+  </section>
+</main>
+
+<dialog id="viewer">
+  <div class="viewer-head"><strong id="viewer-title"></strong><button type="button" id="viewer-close" class="control">Close</button></div>
+  <iframe id="viewer-frame" sandbox title="Saved file" hidden></iframe>
+  <pre id="viewer-text" hidden></pre>
+</dialog>
+</body>
+</html>

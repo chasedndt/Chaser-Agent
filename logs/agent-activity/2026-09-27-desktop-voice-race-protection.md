@@ -1,0 +1,3 @@
+# Agent activity — 2026-09-27 desktop voice race protection
+
+Actor: Codex / Axiom-Codex. Scope: isolated E: Chaser Agent engineering worktree only. Result: per-take IDs and stale-event filtering for the local HUD voice panel, plus cancellation precedence at result delivery. The transcript remains an unverified in-memory draft without action authority. No microphone, provider, executor, permission/token, ChaseOS canonical write, push or deployment was exercised. See [build receipt](../build/2026-09-27-desktop-voice-race-protection.md) and [voice-input guide](../../docs/05_Runtime_Adapters/Chaser-Agent-Local-Voice-Input.md). The ChaseOS profile remains `PARTIAL / CORE FOUNDATION PREVIEW / NOT LIVE`; the full Codex goal remains active.

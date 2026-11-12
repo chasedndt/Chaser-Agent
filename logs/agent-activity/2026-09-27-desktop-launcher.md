@@ -1,0 +1,3 @@
+# Agent activity — 2026-09-27 desktop launcher
+
+Actor: Codex / Axiom-Codex. Scope: isolated E: Chaser Agent engineering worktree; synthetic visual QA in the exact Chaser Agent E: QA home. Result: one-process local API/HUD launcher, visible idle state, lifecycle tests and documentation. The real E: runtime remained ACL-blocked. No permission/token change, provider, executor, microphone session, canonical ChaseOS write, push or deployment. See [build receipt](../build/2026-09-27-desktop-launcher.md) and [synthetic visual QA](<E:/Visual QA/Chaser Agent Visual QA/Current Reviews/2026-09-27-desktop-launcher/QA.md>). The ChaseOS runtime profile remains `PARTIAL / CORE FOUNDATION PREVIEW / NOT LIVE`; the full Codex goal remains active.
