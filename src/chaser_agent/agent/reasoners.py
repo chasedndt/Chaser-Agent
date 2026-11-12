@@ -218,6 +218,7 @@ class ChaseOSCloudReasoner:
     def __init__(self, key: str = "", *, model: str = "chaseos/balanced", base_url: str = "", max_tokens: int = 8000, key_source: str = "") -> None:
         self._key = key.strip()
         self.key_source = (key_source or "given") if self._key else "none"
+        self.refused: str | None = None
         self.model = model
         self.base_url = (base_url or CLOUD_BASE_URL).rstrip("/")
         self.max_tokens = max_tokens
@@ -247,8 +248,16 @@ class ChaseOSCloudReasoner:
         """Use a key added or removed in Settings from the next step on. Nothing restarts."""
         self._key = (key or "").strip()
         self.key_source = source if self._key else "none"
+        self.refused = None
+
+    def _refuse(self, code: str, message: str) -> ReasonerUnavailable:
+        """Remember why the key was refused, so status says so instead of 'ready', until the key changes."""
+        self.refused = message
+        return ReasonerUnavailable(code, message)
 
     def status(self) -> dict[str, Any]:
+        if self._key and getattr(self, "refused", None):
+            return {"id": self.reasoner_id, "label": self.label, "available": False, "model": self.model, "reason": self.refused}
         return {
             "id": self.reasoner_id, "label": self.label, "available": bool(self._key), "model": self.model,
             "reason": None if self._key else "No ChaseOS Cloud key yet. Add one in Settings, or run: chaser key add",
@@ -323,9 +332,13 @@ class ChaseOSCloudReasoner:
         if status == 400 and images:
             raise ReasonerUnavailable("no_vision", f"{self.label} ({self.model}) wouldn't take the attached images. Choose a model that reads images: chaser model")
         if status == 402:
-            raise ReasonerUnavailable("out_of_credits", f"{self.label} is out of credits. Top up to keep using it.")
+            raise self._refuse("out_of_credits", f"{self.label} is out of credits. Top up to keep using it.")
         if status in {401, 403}:
-            raise ReasonerUnavailable("not_authorised", f"{self.label} refused this machine's key (HTTP {status}).")
+            raise self._refuse("not_authorised", f"{self.label} refused this machine's key (HTTP {status}).")
+        if status == 409 and self.reasoner_id == "chaseos-cloud":
+            from chaser_agent.cloud_key import PLAN_PROBLEM
+
+            raise self._refuse("plan", f"{PLAN_PROBLEM} (HTTP 409)")
         if status != 200:
             # Keep the gateway's own explanation (e.g. a 409 plan or allowance conflict) instead of only the number.
             error = value.get("error") if isinstance(value, dict) else None
@@ -379,6 +392,8 @@ class OpenAICompatibleReasoner(ChaseOSCloudReasoner):
         return headers
 
     def status(self) -> dict[str, Any]:
+        if getattr(self, "refused", None):
+            return {"id": self.reasoner_id, "label": self.label, "available": False, "model": self.model, "reason": self.refused}
         missing = []
         if self.needs_key and not self._key:
             missing.append(f"No {self.label} key yet. Run: chaser model")

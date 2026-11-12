@@ -67,6 +67,15 @@ The header is read from the running service each time the menu draws, so it show
 
 ## How Chaser thinks
 
+**At first run** step 3 asks one question, *What will power Chaser?*, with two answers:
+
+1. **ChaseOS Cloud (recommended):** *I already have a key* pastes it, hidden, as `chaser key add` does. *Get a key* opens chaseos.ai/account to sign in or create an account and make a key, then waits for the paste.
+2. **Bring your own key (BYOK):** the API-key providers (OpenRouter, OpenAI, Gemini, xAI, DeepSeek, Mistral, Groq, Together, Fireworks, any OpenAI-compatible endpoint) and **On this computer** (Ollama, LM Studio).
+
+Claude Code sign-in and other harnesses (the bridge) aren't offered at first run. They sit under **Advanced** in `chaser model`, because a subscription sign-in can stop working without warning (seen here: the Claude CLI logged out, a Hermes route timing out) and subscription terms usually aren't meant to power another agent.
+
+If ChaseOS Cloud recognises a key but its plan or allowance doesn't cover the request (HTTP 409, or 402), `chaser key`, the checks and the turn itself say so plainly and point to chaseos.ai/account. The route then shows as unavailable with that reason, instead of "ready", until a different key is added.
+
 Other harnesses lead their setup with their own service (Hermes recommends Nous Portal, a subscription signed in with OAuth). Chaser does the same with ChaseOS Cloud, and leaves the choice open: step 3 of onboarding and `chaser model` show ChaseOS Cloud first and recommended, then every other provider. Nothing is assumed: until a provider is chosen, the home screen shows the route Chaser picks automatically, marked "auto".
 
 | Provider | How it connects |

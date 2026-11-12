@@ -222,8 +222,18 @@ def _say_check(result: dict[str, Any], *, saved: bool) -> None:
         print(f"  {paint('!', 'warn')} Not confirmed yet: {result.get('reason') or 'ChaseOS Cloud did not say.'} Check again with: chaser key check")
 
 
+def link(url: str, text: str | None = None) -> str:
+    """A clickable terminal link (OSC 8: Windows Terminal, VS Code and most modern terminals) that still reads as the
+    plain address where links aren't supported."""
+    if not sys.stdout.isatty() or os.environ.get("NO_COLOR"):
+        return url
+    return f"\x1b]8;;{url}\x1b\\{text or url}\x1b]8;;\x1b\\"
+
+
 def add_key(settings: dict[str, Any]) -> bool:
-    print(paint("  Get a key from your ChaseOS account page. Each character shows as a dot, never the key itself.", "dim"))
+    from chaser_agent.model_providers import KEYS_PAGE
+    print(f"  Get a key at {link(KEYS_PAGE)}  (Ctrl+click to open; sign in or create an account, then make a Cloud key)")
+    print(paint("  Each character shows as a dot, never the key itself.", "dim"))
     try:
         key = secret_input("  ChaseOS Cloud key: ")
     except SecretInputUnavailable as exc:
@@ -240,7 +250,8 @@ def add_key(settings: dict[str, Any]) -> bool:
     if _running(settings):
         status, reply = _service_call(settings, "POST", "/v1/agent/setup/key", {"key": key})
         if status == 404:
-            print(paint("  This Chaser is an older version, so the key is saved here and used when it next starts.", "dim"))
+            print(paint("  The Chaser Agent running now is an older build that can't take a key while it runs (your key is fine).\n"
+                        "  The key is saved here and used when Chaser Agent next starts: chaser gateway restart", "dim"))
             return _save_key_here(key)
         if status == 200:
             check = reply.get("check") or cloud_key.check(key)
@@ -295,25 +306,55 @@ def _pick_model(ids: list[str], default: str) -> str:
         default = ""
 
 
-def choose_model(settings: dict[str, Any], *, interactive: bool = True) -> dict[str, Any]:
-    """Pick the provider and model Chaser thinks with. ChaseOS Cloud is first and recommended; any of them works."""
+def cloud_key_step(settings: dict[str, Any]) -> bool:
+    """ChaseOS Cloud: 'I already have a key' pastes it; 'Get a key' opens the account page first. True once a key is in."""
+    if cloud_key.describe()["source"] != "none":
+        step_key(settings, offer=False)
+        return True
+    items = [terminal_ui.Item("1", "I already have a key", "paste it; it won't show"),
+             terminal_ui.Item("2", "Get a key", "opens chaseos.ai to sign in or create an account and make one")]
+    picked = terminal_ui.select("", items, header=[paint("ChaseOS Cloud", "head"), paint("One key, credits on your account, built for Chaser.", "dim")],
+                                paint=paint, interactive=interactive_terminal())
+    print("\033[2J\033[H", end="")
+    if picked is None:
+        return False
+    if picked == "2":
+        import webbrowser
+
+        opened = webbrowser.open(providers.KEYS_PAGE)
+        print(f"  {paint('→', 'teal')} " + ("Opened " if opened else "Open ") + paint(providers.KEYS_PAGE, "teal")
+              + (" in your browser." if opened else " in your browser."))
+        print(paint("  Sign in or create an account, make a Cloud key and copy it. Then come back here.", "dim"))
+        if not confirm("Got it copied? Paste it now", default=True):
+            print(f"  {paint('·', 'info')} Add it any time: chaser key add")
+            return False
+    return bool(add_key(settings))
+
+
+def choose_model(settings: dict[str, Any], *, interactive: bool = True, only: list[Any] | None = None,
+                 title: str = "Choose how Chaser thinks",
+                 subtitle: str = "ChaseOS Cloud is built for Chaser, but any provider works and you can change it any time.") -> dict[str, Any]:
+    """Pick the provider and model Chaser thinks with. ChaseOS Cloud is first and recommended; any of them works.
+
+    Claude Code sign-in and other harnesses sit under Advanced: subscriptions can stop working without
+    warning and their terms usually aren't meant to power another agent."""
     current = settings.get("provider") or providers.DEFAULT
+    shown = only or sorted(providers.CATALOGUE, key=lambda p: providers.GROUPS.index(providers.group(p)))
     items = []
-    for index, provider in enumerate(providers.CATALOGUE):
+    for index, provider in enumerate(shown):
         key = "123456789abcdefghijklmnop"[index]
         hint = ("● current · " if provider.id == settings.get("provider") else "") + provider.blurb
-        items.append(terminal_ui.Item(key, provider.label, hint, "Recommended" if provider.id == providers.DEFAULT else "Any other provider"))
-    intro = [paint("Choose how Chaser thinks", "head"),
-             paint("ChaseOS Cloud is built for Chaser, but any provider works and you can change it any time.", "dim")]
+        items.append(terminal_ui.Item(key, provider.label, hint, providers.group(provider)))
+    intro = [paint(title, "head"), paint(subtitle, "dim")]
     picked = terminal_ui.select("", items, header=intro, paint=paint, interactive=interactive and interactive_terminal(),
-                                start=next(i.key for i, p in zip(items, providers.CATALOGUE) if p.id == current))
+                                start=next((i.key for i, p in zip(items, shown) if p.id == current), None))
     print("\033[2J\033[H", end="")
     if picked is None:
         return settings
-    provider = providers.CATALOGUE[[i.key for i in items].index(picked)]
+    provider = shown[[i.key for i in items].index(picked)]
     print(paint(f"  {provider.label}", "head") + paint(f"  {provider.blurb}", "dim"))
     if provider.kind == "chaseos":
-        step_key(settings, offer=False) if cloud_key.describe()["source"] != "none" else add_key(settings)
+        cloud_key_step(settings)
         settings = chaser_home.save({"provider": provider.id, "model": "", "base_url": ""})
     elif provider.kind == "claude-cli":
         found = shutil.which("claude")
@@ -372,6 +413,26 @@ def choose_model(settings: dict[str, Any], *, interactive: bool = True) -> dict[
         print("  " + gateway_stop(settings)[1])
         print("  " + gateway_start(settings)[1])
     return settings
+
+
+def step_power(settings: dict[str, Any]) -> dict[str, Any]:
+    """Onboarding's question: what will power Chaser? ChaseOS Cloud (recommended) or your own key."""
+    items = [terminal_ui.Item("1", "ChaseOS Cloud", "recommended · one key, credits, built for Chaser"),
+             terminal_ui.Item("2", "Bring your own key (BYOK)", "OpenRouter, OpenAI, Gemini, DeepSeek… or a model on this computer")]
+    header = [paint("What will power Chaser?", "head"),
+              paint("You can change this any time with chaser model, which also has Claude Code sign-in and other harnesses.", "dim")]
+    picked = terminal_ui.select("", items, header=header, paint=paint, interactive=interactive_terminal())
+    print("\033[2J\033[H", end="")
+    if picked is None:
+        print(f"  {paint('·', 'info')} Skipped. Choose any time: chaser model")
+        return settings
+    if picked == "1":
+        cloud_key_step(settings)
+        settings = chaser_home.save({"provider": providers.DEFAULT, "model": "", "base_url": ""})
+        print(f"  {paint('✓', 'ok')} Chaser thinks with ChaseOS Cloud.")
+        return settings
+    return choose_model(settings, only=providers.byok(), title="Bring your own key",
+                        subtitle="A key from any of these, or a model on this computer. Keys are saved encrypted for this Windows account.")
 
 
 def step_name(settings: dict[str, Any]) -> dict[str, Any]:
@@ -462,13 +523,8 @@ def run_onboard(args: argparse.Namespace) -> int:
         print(f"  {paint('✓', 'ok')} {line}")
 
     step(3, total, "How Chaser thinks")
-    print(paint("  We recommend ChaseOS Cloud: it's built for Chaser, with one key and pricing tuned for agent work.\n"
-                "  Any other provider works too: OpenRouter, OpenAI, Gemini, a local Ollama and more.", "dim"))
     if interactive:
-        if confirm("Choose now?"):
-            settings = choose_model(settings)
-        else:
-            print(f"  {paint('·', 'info')} Skipped. Choose any time: chaser model")
+        settings = step_power(settings)
     else:
         if args.provider:
             settings = chaser_home.save({"provider": providers.get(args.provider).id, "model": args.model or "",

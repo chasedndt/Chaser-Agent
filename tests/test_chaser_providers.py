@@ -91,3 +91,51 @@ def test_groups_show_as_headings_and_the_footer_names_its_keys() -> None:
     items = [terminal_ui.Item("c", "Chat", group="Work"), terminal_ui.Item("m", "Model", "auto", "Set up")]
     text = terminal_ui.render("", items, 0, [], lambda t, _tone: t, footer="? all commands   q quit")
     assert "WORK" in text and "SET UP" in text and "? all commands" in text
+
+
+def test_sign_ins_and_harnesses_sit_under_advanced_and_first_run_offers_keys_only() -> None:
+    groups = {p.id: model_providers.group(p) for p in model_providers.CATALOGUE}
+    assert groups["chaseos-cloud"] == "Recommended" and groups["claude-cli"] == groups["bridge"] == "Advanced"
+    assert groups["ollama"] == "On this computer" and groups["openrouter"] == "Bring your own key"
+    offered = {p.id for p in model_providers.byok()}
+    assert "claude-cli" not in offered and "bridge" not in offered and "chaseos-cloud" not in offered and {"openai", "ollama"} <= offered
+
+
+def test_first_run_asks_what_powers_chaser_with_two_choices(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen = []
+
+    def pick(title, items, **kwargs):
+        seen.append([i.label for i in items])
+        return "2" if len(seen) == 1 else None
+
+    monkeypatch.setattr(terminal_ui, "select", pick)
+    monkeypatch.setattr(chaser_cli, "interactive_terminal", lambda: True)
+    chaser_cli.step_power(chaser_home.defaults())
+    assert seen[0] == ["ChaseOS Cloud", "Bring your own key (BYOK)"]
+    assert "Claude (Claude Code sign-in)" not in seen[1] and "OpenRouter" in seen[1]
+
+
+def test_get_a_key_opens_the_account_page(monkeypatch: pytest.MonkeyPatch) -> None:
+    opened = []
+    monkeypatch.setattr(terminal_ui, "select", lambda *a, **k: "2")
+    monkeypatch.setattr(chaser_cli, "interactive_terminal", lambda: True)
+    monkeypatch.setattr(chaser_cli, "confirm", lambda *a, **k: False)
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr(chaser_cli.cloud_key, "describe", lambda *a, **k: {"source": "none"})
+    assert chaser_cli.cloud_key_step(chaser_home.defaults()) is False and opened == ["https://chaseos.ai/account"]
+
+
+def test_a_409_reads_as_a_plan_problem_and_the_route_stops_saying_ready() -> None:
+    from chaser_agent import cloud_key
+    from threading import Event
+
+    from chaser_agent.agent.reasoners import ReasonerUnavailable
+
+    assert "plan or allowance" in cloud_key.PLAN_PROBLEM and "chaser key add" in cloud_key.PLAN_PROBLEM
+    route = ChaseOSCloudReasoner("k" * 12)
+    route._post = lambda body, timeout: (409, {"error": {"message": "allowance"}})
+    with pytest.raises(ReasonerUnavailable) as caught:
+        route.complete("s", "t", timeout=5, cancel=Event())
+    assert caught.value.code == "plan" and route.status()["available"] is False and "plan or allowance" in route.status()["reason"]
+    route.set_key("n" * 12)
+    assert route.status()["available"] is True

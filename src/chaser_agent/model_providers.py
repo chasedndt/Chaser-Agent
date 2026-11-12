@@ -64,6 +64,24 @@ CATALOGUE: tuple[Provider, ...] = (
 )
 BY_ID = {provider.id: provider for provider in CATALOGUE}
 DEFAULT = "chaseos-cloud"
+KEYS_PAGE = "https://chaseos.ai/account"  # sign in or create an account, then make a Cloud key
+LOCAL = {"ollama", "lmstudio"}
+GROUPS = ["Recommended", "Bring your own key", "On this computer", "Advanced"]
+
+
+def group(provider: Provider) -> str:
+    """Where a provider sits in the menus. Sign-ins and other harnesses are Advanced: a subscription
+    can stop working without warning, and its terms usually aren't meant to power another agent."""
+    if provider.id == DEFAULT:
+        return "Recommended"
+    if provider.kind in {"claude-cli", "bridge"}:
+        return "Advanced"
+    return "On this computer" if provider.id in LOCAL else "Bring your own key"
+
+
+def byok() -> list[Provider]:
+    """Providers offered under Bring your own key at first run: API keys and models on this computer."""
+    return sorted((p for p in CATALOGUE if group(p) in {"Bring your own key", "On this computer"}), key=lambda p: GROUPS.index(group(p)))
 
 
 def get(provider_id: str | None) -> Provider:

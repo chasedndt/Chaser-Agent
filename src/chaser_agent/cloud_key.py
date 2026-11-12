@@ -97,6 +97,10 @@ def describe(environ: dict[str, str] | None = None) -> dict[str, Any]:
     return {"saved": saved, "readable": readable, "source": source, "file": str(path())}
 
 
+PLAN_PROBLEM = ("ChaseOS Cloud recognised the key, but its plan or allowance doesn't cover this right now. "
+                "Check the plan and credits at chaseos.ai/account, or add a different key: chaser key add")
+
+
 def check(key: str, *, base_url: str = "", timeout: float = 15) -> dict[str, Any]:
     """Ask ChaseOS Cloud for this key's balance. Free: it reads the account, it runs no model."""
     import urllib.error
@@ -112,6 +116,8 @@ def check(key: str, *, base_url: str = "", timeout: float = 15) -> dict[str, Any
     except urllib.error.HTTPError as exc:
         if exc.code in {401, 403}:
             return {"ok": False, "refused": True, "reason": "ChaseOS Cloud didn't accept this key. Check it was copied in full."}
+        if exc.code in {402, 409}:
+            return {"ok": False, "plan": True, "reason": PLAN_PROBLEM}
         return {"ok": False, "reason": f"ChaseOS Cloud answered with an error ({exc.code}). Try the check again later."}
     except (urllib.error.URLError, TimeoutError, ConnectionError, OSError, ValueError):
         return {"ok": False, "reason": "Couldn't reach ChaseOS Cloud to check the key."}
