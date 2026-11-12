@@ -17,6 +17,21 @@ from chaser_agent.agent.events import verify_chain
 from chaser_agent.terminal_theme import pad
 
 
+ACTIVE = {"queued", "reasoning", "running_tool"}
+
+
+def stop_everything(call: Callable[..., tuple[int, Any]]) -> list[str]:
+    """The kill switch: cancel every session that is working or waiting. Returns the ids it stopped."""
+    _, value = call("GET", "/v1/agent/sessions", None)
+    stopped = []
+    for row in (value or {}).get("sessions") or []:
+        if row.get("status") in ACTIVE | WAITING:
+            status, _ = call("POST", f"/v1/agent/sessions/{row['id']}/cancel", {})
+            if status == 202:
+                stopped.append(row["id"])
+    return stopped
+
+
 def first_line(text: Any) -> str:
     return (str(text or "").strip().splitlines() or [""])[0]
 

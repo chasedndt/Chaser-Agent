@@ -127,6 +127,22 @@ def _text(request: dict[str, Any], name: str, *, required: bool = True) -> str |
     return value
 
 
+def takes_images(path: str) -> bool:
+    """Only creating a session and sending it a message may carry images, so only they get the larger body limit."""
+    route = urlsplit(path).path
+    match = SESSION_ROUTE.fullmatch(route)
+    return route == "/v1/agent/sessions" or bool(match and match.group(2) == "messages" and not match.group(3))
+
+
+def _images(request: dict[str, Any]) -> list[dict[str, Any]] | None:
+    value = request.get("images")
+    if value is None:
+        return None
+    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
+        raise ValueError("images must be a list of {name, media_type, data}")
+    return value
+
+
 def handle_post(handler: Any, request: dict[str, Any]) -> None:
     runtime = _runtime(handler)
     if runtime is None:
@@ -137,7 +153,7 @@ def handle_post(handler: Any, request: dict[str, Any]) -> None:
         return
     try:
         if route == "/v1/agent/sessions":
-            if set(request) - {"message", "workflow", "reasoner", "title", "withhold_tools"}:
+            if set(request) - {"message", "workflow", "reasoner", "title", "withhold_tools", "images", "permission_mode", "set_by"}:
                 raise ValueError("Unsupported session fields")
             withheld = request.get("withhold_tools", [])
             if not isinstance(withheld, list) or not all(isinstance(item, str) for item in withheld):
@@ -148,6 +164,9 @@ def handle_post(handler: Any, request: dict[str, Any]) -> None:
                 reasoner_id=_text(request, "reasoner", required=False) or "auto",
                 title=_text(request, "title", required=False),
                 withhold_tools=frozenset(withheld),
+                images=_images(request),
+                permission_mode=_text(request, "permission_mode", required=False) or "ask",
+                set_by=(_text(request, "set_by", required=False) or "local_operator")[:120],
             )
             handler._reply(201, snapshot)
             return
@@ -167,12 +186,15 @@ def handle_post(handler: Any, request: dict[str, Any]) -> None:
             return
         session_id, section, _ = match.groups()
         if section == "messages":
-            handler._reply(202, runtime.send_message(session_id, _text(request, "message") or ""))
+            handler._reply(202, runtime.send_message(session_id, _text(request, "message") or "", images=_images(request)))
+        elif section == "mode":
+            handler._reply(202, runtime.set_permission_mode(session_id, _text(request, "mode") or "", (_text(request, "set_by", required=False) or "local_operator")[:120]))
         elif section == "answers":
             handler._reply(202, runtime.answer(session_id, _text(request, "question_id") or "", _text(request, "answer") or ""))
         elif section == "approvals":
             decided_by = (_text(request, "decided_by", required=False) or "local_operator")[:120]
-            handler._reply(202, runtime.decide(session_id, _text(request, "approval_id") or "", _text(request, "digest") or "", _text(request, "decision") or "", decided_by))
+            handler._reply(202, runtime.decide(session_id, _text(request, "approval_id") or "", _text(request, "digest") or "", _text(request, "decision") or "", decided_by,
+                                               remember=request.get("remember") is True))
         elif section == "cancel":
             handler._reply(202, runtime.cancel(session_id))
         else:

@@ -1,12 +1,15 @@
-"""Messaging channels: talk to Chaser from Telegram or Discord, as governed doors rather than open bridges.
+"""Messaging channels: talk to Chaser from Telegram, Discord, Slack or email, as governed doors rather than open bridges.
 
 - Only allowlisted accounts are heard; everyone else is ignored and noted in the log.
 - A message starts or continues a session through the same local API the terminal uses, so every
   approval still stops the work. The approval reaches the person in the same app with the tool, its
   arguments and the first characters of the request's digest; the answer is checked against the
   request that is waiting now and signed "<name> (Telegram)" into the session's hash-chained receipt.
-- Neither needs a public address: Telegram is long-polled, Discord is read from the bot's direct
-  message with the owner over its REST API. Tokens are saved encrypted for this Windows account.
+- None needs a public address: Telegram is long-polled; Discord and Slack are read from the bot's direct
+  message with each allowed person over their web APIs; email is read over IMAP and answered over SMTP.
+  Email counts a sender only when their mail server vouches for them (DKIM or SPF pass), because a From
+  line alone can be forged. Tokens and passwords are saved encrypted for this Windows account.
+- Photos and image attachments come through as context, saved and hashed into the receipt.
 
 Replies go back only to the account that asked, which is the person's own door; anything a tool
 would send anywhere else still needs its own approval.
@@ -31,7 +34,13 @@ PLATFORMS = {
     "telegram": {"label": "Telegram", "env": "TELEGRAM_BOT_TOKEN", "where": "Message @BotFather, send /newbot, copy the token."},
     "discord": {"label": "Discord", "env": "DISCORD_BOT_TOKEN",
                 "where": "discord.com/developers/applications → New Application → Bot → Reset Token. Then invite the bot to a server you're in."},
+    "slack": {"label": "Slack", "env": "SLACK_BOT_TOKEN",
+              "where": "api.slack.com/apps → Create App → OAuth & Permissions: add bot scopes chat:write, im:history, im:write, files:read; install, copy the xoxb- token."},
+    "email": {"label": "Email", "env": "CHASER_EMAIL_PASSWORD",
+              "where": "Use an app password from your mail provider (Gmail, Outlook and iCloud all offer them), not your main password."},
 }
+IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+MAX_IMAGE = 3 * 1024 * 1024
 WAITING = {"awaiting_human", "awaiting_approval"}
 DONE = {"finished", "failed", "cancelled", "budget_stopped", "interrupted"}
 YES, NO = {"yes", "y", "approve", "ok"}, {"no", "n", "reject"}
@@ -101,6 +110,23 @@ class Inbound:
     name: str = ""
     button: str = ""   # Telegram button data, for approvals
     button_id: str = ""
+    images: list[dict[str, Any]] = field(default_factory=list)  # {name, media_type, data (base64)}
+
+
+def _image(name: str, media_type: str, raw: bytes) -> dict[str, Any] | None:
+    import base64
+
+    if media_type not in IMAGE_TYPES or not raw or len(raw) > MAX_IMAGE:
+        return None
+    return {"name": name[:60], "media_type": media_type, "data": base64.b64encode(raw).decode("ascii")}
+
+
+def _download(url: str, headers: dict[str, str] | None = None) -> bytes:
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=headers or {}), timeout=30) as reply:  # noqa: S310
+            return reply.read(MAX_IMAGE + 1)
+    except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
+        return b""
 
 
 class Telegram:
@@ -130,11 +156,20 @@ class Telegram:
                 sender = query.get("from") or {}
                 out.append(Inbound(str(sender.get("id")), str((query.get("message") or {}).get("chat", {}).get("id")), name=sender.get("first_name", ""),
                                    button=query.get("data", ""), button_id=query.get("id", "")))
-            elif "message" in update and update["message"].get("text"):
+            elif "message" in update and (update["message"].get("text") or update["message"].get("photo")):
                 message = update["message"]
                 sender = message.get("from") or {}
-                out.append(Inbound(str(sender.get("id")), str(message["chat"]["id"]), message["text"], sender.get("first_name", "")))
+                images = [i for i in [self._photo(message["photo"][-1])] if i] if message.get("photo") else []
+                text = message.get("text") or message.get("caption") or ("What's in this picture?" if images else "")
+                out.append(Inbound(str(sender.get("id")), str(message["chat"]["id"]), text, sender.get("first_name", ""), images=images))
         return out
+
+    def _photo(self, photo: dict[str, Any]) -> dict[str, Any] | None:
+        status, value = self.request(f"{self.base}/getFile?file_id={urllib.parse.quote(str(photo.get('file_id')))}", timeout=20)
+        path = (value.get("result") or {}).get("file_path") if status == 200 else None
+        if not path:
+            return None
+        return _image(Path(path).name, "image/jpeg", _download(self.base.replace("/bot", "/file/bot", 1) + "/" + path))
 
     def send(self, chat: str, text: str, buttons: list[tuple[str, str]] | None = None) -> None:
         body: dict[str, Any] = {"chat_id": chat, "text": text[:LIMIT]}
@@ -191,8 +226,10 @@ class Discord:
             for row in sorted(rows, key=lambda r: int(r["id"])):
                 self.state["after"][channel] = row["id"]
                 author = row.get("author") or {}
-                if after and str(author.get("id")) != self.me and row.get("content"):
-                    out.append(Inbound(str(author.get("id")), channel, row["content"], author.get("username", "")))
+                images = [i for a in row.get("attachments") or [] if str(a.get("content_type", "")).split(";")[0] in IMAGE_TYPES
+                          for i in [_image(a.get("filename", "image"), a["content_type"].split(";")[0], _download(a["url"]))] if i]
+                if after and str(author.get("id")) != self.me and (row.get("content") or images):
+                    out.append(Inbound(str(author.get("id")), channel, row.get("content") or "What's in this picture?", author.get("username", ""), images=images))
             if not after and not rows:
                 self.state["after"][channel] = "0"
         time.sleep(wait)
@@ -211,6 +248,168 @@ class Discord:
         if channel:
             self.send(channel, text)
         return bool(channel)
+
+
+class Slack:
+    """The bot's direct messages with each allowed person, read with the Web API: no Socket Mode, no public address."""
+
+    platform, label = "slack", "Slack"
+    API = "https://slack.com/api"
+
+    def __init__(self, token: str, allow: list[str], request: Callable[..., tuple[int, Any]] = _request, state: dict[str, Any] | None = None) -> None:
+        self.token, self.allow, self.request = token, allow, request
+        self.headers = {"Authorization": f"Bearer {token}"}
+        self.state = state if state is not None else {}
+        self.me = ""
+
+    def whoami(self) -> tuple[bool, str]:
+        status, value = self.request(f"{self.API}/auth.test", method="POST", body={}, headers=self.headers, timeout=15)
+        if status == 200 and value.get("ok"):
+            self.me = str(value.get("user_id"))
+            return True, f"{value.get('user')} in {value.get('team')}"
+        return False, f"Slack refused the token ({value.get('error') if isinstance(value, dict) else status})."
+
+    def _dm(self, user: str) -> str:
+        channels = self.state.setdefault("dm", {})
+        if user not in channels:
+            status, value = self.request(f"{self.API}/conversations.open", method="POST", body={"users": user}, headers=self.headers, timeout=20)
+            if not (status == 200 and value.get("ok")):
+                return ""
+            channels[user] = str(value["channel"]["id"])
+        return channels[user]
+
+    def poll(self, wait: int = 3) -> list[Inbound]:
+        if not self.me:
+            self.whoami()
+        out = []
+        for user in self.allow:
+            channel = self._dm(user)
+            if not channel:
+                continue
+            oldest = self.state.setdefault("oldest", {}).get(channel)
+            query = urllib.parse.urlencode({"channel": channel, "limit": 20, **({"oldest": oldest} if oldest else {"limit": 1})})
+            status, value = self.request(f"{self.API}/conversations.history?{query}", headers=self.headers, timeout=20)
+            if not (status == 200 and value.get("ok")):
+                continue
+            rows = sorted(value.get("messages") or [], key=lambda m: float(m["ts"]))
+            for row in rows:
+                self.state["oldest"][channel] = row["ts"]
+                if oldest and row.get("user") == user and not row.get("bot_id"):
+                    images = [i for f in row.get("files") or [] if f.get("mimetype") in IMAGE_TYPES
+                              for i in [_image(f.get("name", "image"), f["mimetype"], _download(f["url_private"], self.headers))] if i]
+                    out.append(Inbound(user, channel, row.get("text") or "What's in this picture?", user, images=images))
+            if not oldest and not rows:
+                self.state["oldest"][channel] = f"{time.time():.6f}"
+        time.sleep(wait)
+        return out
+
+    def send(self, chat: str, text: str, buttons: list[tuple[str, str]] | None = None) -> None:
+        if buttons:
+            text += "\n\nReply *yes* or *no*."
+        self.request(f"{self.API}/chat.postMessage", method="POST", body={"channel": chat, "text": text[:LIMIT]}, headers=self.headers, timeout=20)
+
+    def acknowledge(self, button_id: str, text: str) -> None:
+        return None
+
+    def greet(self, user: str, text: str) -> bool:
+        channel = self._dm(user)
+        if channel:
+            self.send(channel, text)
+        return bool(channel)
+
+
+def sender_vouched(message: Any, address: str) -> bool:
+    """True when the receiving server recorded a DKIM or SPF pass for the sender's own domain."""
+    domain = address.rsplit("@", 1)[-1].lower()
+    for header in message.get_all("Authentication-Results") or []:
+        text = " ".join(str(header).lower().split())
+        if (f"dkim=pass" in text and (f"header.d={domain}" in text or f"header.i=@{domain}" in text)) or \
+           ("spf=pass" in text and (f"smtp.mailfrom={address.lower()}" in text or f"smtp.mailfrom={domain}" in text)):
+            return True
+    return False
+
+
+class Email:
+    """An inbox Chaser reads over IMAP and answers over SMTP, both over TLS. Only vouched-for allowed senders count."""
+
+    platform, label = "email", "Email"
+
+    def __init__(self, password: str, config: dict[str, Any], allow: list[str], state: dict[str, Any] | None = None,
+                 imap_factory: Callable[..., Any] | None = None, smtp_factory: Callable[..., Any] | None = None) -> None:
+        import imaplib
+        import smtplib
+
+        self.password, self.config, self.allow = password, config, [a.lower() for a in allow]
+        self.state = state if state is not None else {}
+        self.imap_factory = imap_factory or (lambda: imaplib.IMAP4_SSL(config["imap_host"], int(config.get("imap_port") or 993)))
+        self.smtp_factory = smtp_factory or (lambda: smtplib.SMTP_SSL(config["smtp_host"], int(config.get("smtp_port") or 465), timeout=30))
+        self.threads = self.state.setdefault("threads", {})
+
+    def whoami(self) -> tuple[bool, str]:
+        try:
+            box = self.imap_factory()
+            box.login(self.config["address"], self.password)
+            box.logout()
+            return True, self.config["address"]
+        except Exception as exc:  # imaplib raises its own error types
+            return False, f"Couldn't sign in to {self.config.get('imap_host')}: {type(exc).__name__}"
+
+    def poll(self, wait: int = 30) -> list[Inbound]:
+        import email
+        import email.utils
+
+        out = []
+        try:
+            box = self.imap_factory()
+            box.login(self.config["address"], self.password)
+            box.select("INBOX")
+            _, found = box.search(None, "UNSEEN")
+            for number in (found[0] or b"").split()[:20]:
+                _, parts = box.fetch(number, "(RFC822)")
+                message = email.message_from_bytes(parts[0][1])
+                address = email.utils.parseaddr(message.get("From", ""))[1].lower()
+                if address not in self.allow:
+                    continue  # left unread for the person; not ours to answer
+                if not sender_vouched(message, address):
+                    out.append(Inbound("unverified:" + address, address, ""))
+                    continue
+                text, images = "", []
+                for part in message.walk():
+                    kind = part.get_content_type()
+                    if kind == "text/plain" and not text:
+                        text = (part.get_payload(decode=True) or b"").decode(part.get_content_charset() or "utf-8", errors="replace")
+                    elif kind in IMAGE_TYPES:
+                        image = _image(part.get_filename() or "image", kind, part.get_payload(decode=True) or b"")
+                        if image:
+                            images.append(image)
+                text = "\n".join(line for line in text.splitlines() if not line.startswith(">")).strip()
+                self.threads[address] = {"subject": message.get("Subject", "Chaser"), "id": message.get("Message-ID", "")}
+                out.append(Inbound(address, address, text or "What's in this picture?", address, images=images))
+            box.logout()
+        except Exception as exc:  # a mail hiccup must not stop the loop
+            out.append(Inbound("error", "", f"{type(exc).__name__}"))
+        time.sleep(wait)
+        return [m for m in out if m.user != "error"]
+
+    def send(self, chat: str, text: str, buttons: list[tuple[str, str]] | None = None) -> None:
+        from email.message import EmailMessage
+
+        thread = self.threads.get(chat, {})
+        message = EmailMessage()
+        subject = thread.get("subject") or "Chaser"
+        message["Subject"] = subject if subject.lower().startswith("re:") else f"Re: {subject}"
+        message["From"], message["To"] = self.config["address"], chat
+        if thread.get("id"):
+            message["In-Reply-To"] = message["References"] = thread["id"]
+        if buttons:
+            text += f"\n\nTo decide, reply with yes {buttons[0][1].split(':')[-1][:8]} or no {buttons[0][1].split(':')[-1][:8]}."
+        message.set_content(text)
+        with self.smtp_factory() as server:
+            server.login(self.config["address"], self.password)
+            server.send_message(message)
+
+    def acknowledge(self, button_id: str, text: str) -> None:
+        return None
 
 
 # --- The door ------------------------------------------------------------------------
@@ -234,6 +433,9 @@ class Bridge:
         return self.state.setdefault("chats", {})
 
     def handle(self, message: Inbound) -> None:
+        if message.user.startswith("unverified:"):
+            self.log(f"{self.adapter.label}: ignored mail claiming to be {message.user[11:]}: its server didn't vouch for the sender (no DKIM or SPF pass)")
+            return
         if message.user not in self.allow:
             self.log(f"{self.adapter.label}: ignored a message from {message.user}, who isn't on the allowlist")
             return
@@ -245,7 +447,7 @@ class Bridge:
         lowered = text.lower()
         if lowered in {"/start", "/help"}:
             self.adapter.send(message.chat, "Chaser here. Tell me what you need. /new starts fresh, /waiting shows what needs you, "
-                                            "/stop stops the current task. I'll ask before anything leaves your computer.")
+                                            "/stop stops the current task, /stopall stops everything. Send a photo to show me something. I'll ask before anything leaves your computer.")
             return
         if lowered == "/new":
             chat.update(session=None, seen=0, asked=None)
@@ -255,12 +457,23 @@ class Bridge:
             status, _ = self.call("POST", f"/v1/agent/sessions/{chat['session']}/cancel", {})
             self.adapter.send(message.chat, "Stopped." if status == 202 else "Nothing to stop.")
             return
+        if lowered == "/stopall":
+            from chaser_agent.chaser_work import stop_everything
+
+            stopped = stop_everything(self.call)
+            self.adapter.send(message.chat, f"Stopped {len(stopped)} task(s)." if stopped else "Nothing was running.")
+            return
         if lowered == "/waiting":
             self._waiting(message.chat)
             return
         pending = self._pending(chat)
-        if pending and pending.get("kind") == "approval" and (lowered in YES or lowered in NO):
-            self._decide(message.chat, chat, pending, "approve" if lowered in YES else "reject")
+        first, _, rest = lowered.partition(" ")
+        if pending and pending.get("kind") == "approval" and (first in YES or first in NO):
+            # Email waits longer and threads cross, so there the answer must carry the digest's start.
+            if self.adapter.platform == "email" and not (rest.strip() and str(pending.get("digest", "")).startswith(rest.strip()[:8])):
+                self.adapter.send(message.chat, f"Reply with yes {str(pending.get('digest', ''))[:8]} or no {str(pending.get('digest', ''))[:8]} so I know which request you mean.")
+                return
+            self._decide(message.chat, chat, pending, "approve" if first in YES else "reject")
             return
         if pending and pending.get("kind") == "question":
             options = pending.get("options") or []
@@ -269,13 +482,14 @@ class Bridge:
             if status != 202:
                 self.adapter.send(message.chat, f"That didn't go through: {self._error(value)}")
             return
+        extra = {"images": message.images} if message.images else {}
         if chat["session"]:
-            status, value = self.call("POST", f"/v1/agent/sessions/{chat['session']}/messages", {"message": text})
+            status, value = self.call("POST", f"/v1/agent/sessions/{chat['session']}/messages", {"message": text, **extra})
             if status == 409:
                 self.adapter.send(message.chat, "I'm still on the last task. Answer it, or send /stop.")
                 return
         else:
-            status, value = self.call("POST", "/v1/agent/sessions", {"message": text, "reasoner": "auto"})
+            status, value = self.call("POST", "/v1/agent/sessions", {"message": text, "reasoner": "auto", **extra})
             if status == 201:
                 chat.update(session=value["id"], seen=0, asked=None)
         if status not in {201, 202}:
@@ -353,8 +567,15 @@ class Bridge:
 
 def adapter_for(platform: str, settings: dict[str, Any], state: dict[str, Any]) -> Any:
     token = load_token(platform)
-    allow = [str(x) for x in (settings.get("channels") or {}).get(platform, {}).get("allow") or []]
-    return Telegram(token) if platform == "telegram" else Discord(token, allow, state=state.setdefault("discord", {}))
+    value = (settings.get("channels") or {}).get(platform, {})
+    allow = [str(x) for x in value.get("allow") or []]
+    if platform == "telegram":
+        return Telegram(token)
+    if platform == "slack":
+        return Slack(token, allow, state=state.setdefault("slack_adapter", {}))
+    if platform == "email":
+        return Email(token, value, allow, state=state.setdefault("email_adapter", {}))
+    return Discord(token, allow, state=state.setdefault("discord", {}))
 
 
 def _state_path(settings: dict[str, Any]) -> Path:

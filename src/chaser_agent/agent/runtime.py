@@ -36,6 +36,13 @@ MAX_INVALID_REPLIES = 3
 MAX_MESSAGE_CHARS = 20_000
 ACTIVE_STATES = frozenset({"queued", "reasoning", "running_tool"})
 RESUMABLE_STATES = frozenset({"finished", "failed", "cancelled", "budget_stopped", "interrupted"})
+# How much a session may act without asking. "ask" is the default; "plan" runs only read-only tools;
+# "bypass" says yes to every approval itself, and each of those is still written to the receipt as automatic.
+PERMISSION_MODES = ("ask", "plan", "bypass")
+IMAGE_TYPES = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif"}
+MAX_IMAGES_PER_MESSAGE = 4
+MAX_IMAGE_BYTES = 3 * 1024 * 1024
+IMAGES_SENT_TO_MODEL = 4
 # Which approved 3D motion shows for each state. These illustrate state; they are not evidence of work.
 MOTION_BY_STATE = {
     "queued": "tracking",
@@ -152,8 +159,13 @@ class AgentRuntime:
         title: str | None = None,
         withhold_tools: frozenset[str] = frozenset(),
         start: bool = True,
+        images: list[dict[str, Any]] | None = None,
+        permission_mode: str = "ask",
+        set_by: str = "local_operator",
     ) -> dict[str, Any]:
         message = self._clean_message(message)
+        if permission_mode not in PERMISSION_MODES:
+            raise ValueError(f"permission_mode must be one of {', '.join(PERMISSION_MODES)}")
         workflow = self.workflows.get(workflow_id or "") or self.route_workflow(message)
         if workflow_id and workflow.workflow_id != workflow_id:
             raise NotFound(f"workflow {workflow_id}")
@@ -179,6 +191,8 @@ class AgentRuntime:
             "goal": message,
             "grants": grants,
             "transcript": [{"role": "user", "text": message}],
+            "permission_mode": permission_mode,
+            "always_allow": [],
             "turn": 1,
             "steps_used": 0,
             "steps_total": 0,
@@ -199,19 +213,66 @@ class AgentRuntime:
             self._logs[session_id] = EventLog(folder / "events.jsonl")
             self._logs[session_id].append(
                 "session_created", workflow=workflow.workflow_id, reasoner=reasoner_id, grants=grants, goal=message,
+                permission_mode=permission_mode, set_by=set_by[:120],
             )
+            if images:
+                session["transcript"][-1]["images"] = self._store_images(session, images)
             self._save(session)
         if start:
             self._start(session_id)
         return self.snapshot(session_id)
 
-    def send_message(self, session_id: str, message: str) -> dict[str, Any]:
+    def _store_images(self, session: dict[str, Any], images: list[dict[str, Any]]) -> list[str]:
+        """Save attached images in the session's inputs folder and note each one, with its hash, in the receipt."""
+        import base64
+
+        if len(images) > MAX_IMAGES_PER_MESSAGE:
+            raise ValueError(f"At most {MAX_IMAGES_PER_MESSAGE} images per message")
+        folder = self._folder(session["id"]) / "inputs"
+        folder.mkdir(parents=True, exist_ok=True, mode=0o700)
+        saved = []
+        for image in images:
+            kind = str(image.get("media_type") or "")
+            if kind not in IMAGE_TYPES:
+                raise ValueError("Images must be PNG, JPEG, WebP or GIF")
+            try:
+                data = base64.b64decode(str(image.get("data") or ""), validate=True)
+            except ValueError as exc:
+                raise ValueError("An image wasn't valid base64") from exc
+            if not data or len(data) > MAX_IMAGE_BYTES:
+                raise ValueError("Each image must be under 3 MB")
+            digest = hashlib.sha256(data).hexdigest()
+            name = re.sub(r"[^A-Za-z0-9._-]", "_", str(image.get("name") or "image"))[:60]
+            target = folder / f"{digest[:12]}-{Path(name).stem}.{IMAGE_TYPES[kind]}"
+            target.write_bytes(data)
+            relative = target.relative_to(self._folder(session["id"])).as_posix()
+            self._logs[session["id"]].append("image_attached", path=relative, name=name, media_type=kind, bytes=len(data), sha256=digest)
+            saved.append(relative)
+        return saved
+
+    def _session_images(self, session: dict[str, Any]) -> list[Path]:
+        paths = [self._folder(session["id"]) / p for entry in session["transcript"] for p in entry.get("images") or []]
+        return [p for p in paths if p.is_file()][-IMAGES_SENT_TO_MODEL:]
+
+    def set_permission_mode(self, session_id: str, mode: str, set_by: str = "local_operator") -> dict[str, Any]:
+        if mode not in PERMISSION_MODES:
+            raise ValueError(f"mode must be one of {', '.join(PERMISSION_MODES)}")
+        with self._lock:
+            session = self._get(session_id)
+            session["permission_mode"] = mode
+            self._logs[session_id].append("permission_mode_changed", mode=mode, set_by=set_by[:120])
+            self._save(session)
+        return self.snapshot(session_id)
+
+    def send_message(self, session_id: str, message: str, *, images: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         message = self._clean_message(message)
         with self._lock:
             session = self._get(session_id)
             if session["status"] not in RESUMABLE_STATES or session["pending"]:
                 raise Conflict("This session is busy or waiting for an answer")
             session["transcript"].append({"role": "user", "text": message})
+            if images:
+                session["transcript"][-1]["images"] = self._store_images(session, images)
             session.update(goal=message, turn=session["turn"] + 1, steps_used=0, active_seconds=0.0, status="queued", final_answer=None, error=None, mood=None)
             self._logs[session_id].append("message", text=message, turn=session["turn"])
             self._save(session)
@@ -235,7 +296,8 @@ class AgentRuntime:
         self._start(session_id)
         return self.snapshot(session_id)
 
-    def decide(self, session_id: str, approval_id: str, digest: str, decision: str, decided_by: str = "local_operator") -> dict[str, Any]:
+    def decide(self, session_id: str, approval_id: str, digest: str, decision: str, decided_by: str = "local_operator",
+               *, remember: bool = False) -> dict[str, Any]:
         if decision not in {"approve", "reject"}:
             raise Conflict("Decision must be approve or reject")
         with self._lock:
@@ -249,6 +311,9 @@ class AgentRuntime:
             self._logs[session_id].append(
                 "approval_decided", approval_id=approval_id, digest=digest, decision=decision, decided_by=decided_by,
             )
+            if remember and decision == "approve" and pending["tool"] not in session.setdefault("always_allow", []):
+                session["always_allow"].append(pending["tool"])
+                self._logs[session_id].append("tool_always_allowed", tool=pending["tool"], decided_by=decided_by)
             self._save(session)
         tool = self.toolbox.get(pending["tool"])
         if decision == "approve" and tool is not None:
@@ -308,6 +373,8 @@ class AgentRuntime:
                 "denied_calls": session["denied_calls"],
                 "tool_failures": session["tool_failures"],
                 "pending": pending,
+                "permission_mode": session.get("permission_mode", "ask"),
+                "always_allow": list(session.get("always_allow", [])),
                 "plan": list(session["plan"]),
                 "final_answer": session["final_answer"],
                 "error": session["error"],
@@ -508,8 +575,10 @@ class AgentRuntime:
                 "reasoner_request", step=step, route=reasoner.reasoner_id,
                 prompt_sha256=hashlib.sha256((system + transcript).encode("utf-8")).hexdigest(), prompt_chars=len(system) + len(transcript), elided_observations=elided,
             )
+            images = self._session_images(session)
+            extra = {"images": images} if images and getattr(reasoner, "sees_images", False) else {}
             try:
-                reply = reasoner.complete(system, transcript, timeout=REASONER_TIMEOUT_SECONDS, cancel=cancel)
+                reply = reasoner.complete(system, transcript, timeout=REASONER_TIMEOUT_SECONDS, cancel=cancel, **extra)
             except ReasonerUnavailable as exc:
                 if exc.code == "cancelled":
                     self._finish(session, "cancelled")
@@ -575,8 +644,26 @@ class AgentRuntime:
                 self._logs[session_id].append("tool_denied", call_id=call_id, tool=action.tool, reason=denial.reason_code, message=denial.message)
                 self._observe(session, action.tool, call_id, "denied", f"Refused ({denial.reason_code}): {denial.message}. Nothing ran.", record=False)
                 continue
+            mode = session.get("permission_mode", "ask")
+            if mode == "plan" and tool.side_effect_class != "read_only":
+                with self._lock:
+                    session["denied_calls"] += 1
+                self._logs[session_id].append("tool_denied", call_id=call_id, tool=action.tool, reason="plan_mode",
+                                              message="Plan mode: only read-only tools run")
+                self._observe(session, action.tool, call_id, "denied",
+                              "Refused (plan_mode): this session may only read and plan. Describe what you would do instead.", record=False)
+                continue
             with self._lock:
                 session["tool_counts"][tool.tool_id] = session["tool_counts"].get(tool.tool_id, 0) + 1
+            if tool.requires_approval and (mode == "bypass" or tool.tool_id in session.get("always_allow", [])):
+                digest = args_digest(tool.tool_id, action.args)
+                approval_id = f"ap-{secrets.token_hex(6)}"
+                policy = "bypass mode" if mode == "bypass" else "always allowed this session"
+                self._logs[session_id].append("approval_requested", approval_id=approval_id, tool=tool.tool_id, args=action.args, digest=digest, call_id=call_id)
+                self._logs[session_id].append("approval_decided", approval_id=approval_id, digest=digest, decision="approve",
+                                              decided_by=f"automatic ({policy})", automatic=True)
+                self._execute(session, tool, action.args, call_id)
+                continue
             if tool.requires_approval:
                 digest = args_digest(tool.tool_id, action.args)
                 approval_id = f"ap-{secrets.token_hex(6)}"

@@ -11,11 +11,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 import time
 from typing import Any, Callable
 
-from chaser_agent import chaser_home, setup_checks, terminal_theme
+from chaser_agent import chaser_home, chaser_inputs, setup_checks, terminal_theme
 
 ACTIVE = {"queued", "reasoning", "running_tool"}
 WAITING = {"awaiting_human", "awaiting_approval"}
@@ -29,6 +30,10 @@ HELP = [
     ("/status", "Chaser's service and how it thinks"),
     ("/route [name]", "how new work thinks: auto or one of the routes /status lists"),
     ("/receipt [id]", "check this session's hash chain and who approved what"),
+    ("/image PATH", "attach a picture to your next message (or drag the file into the terminal)"),
+    ("/paste", "attach the image on the clipboard, e.g. a screenshot"),
+    ("/voice", "speak your next message; transcribed on this computer, shown for you to confirm"),
+    ("/mode [ask|plan|bypass]", "how much Chaser may do without asking (bypass needs you to type it)"),
     ("/stop", "stop the current task"),
     ("/checks", "run the pre-flight checks"),
     ("/quit", "leave the chat; Chaser keeps running"),
@@ -43,6 +48,8 @@ class Chat:
         self.session: str | None = None
         self.seen = 0
         self.route = "auto"
+        self.mode = "ask"
+        self.images: list[dict[str, Any]] = []
         reviewer = (settings.get("reviewer") or "").strip()
         self.decided_by = f"{reviewer} (terminal)" if reviewer else None
 
@@ -145,11 +152,14 @@ class Chat:
             signed = self.decided_by or "local_operator (set your name: chaser setup name)"
             body += ["", self.paint(f"digest {str(pending.get('digest'))[:24]}…   signed {signed}", "dim")]
             self.card(body, title=self.paint("Needs your yes", "warn"), tone="warn")
-            reply = self.ask(self.paint("  ❯ ", "warn") + self.paint("y", "key") + self.paint(" yes   ", "dim") + self.paint("n", "key")
+            reply = self.ask(self.paint("  ❯ ", "warn") + self.paint("y", "key") + self.paint(" yes   ", "dim") + self.paint("a", "key")
+                             + self.paint(f" yes, and don't ask again for {pending.get('tool')} here   ", "dim") + self.paint("n", "key")
                              + self.paint(" no   ", "dim") + self.paint("enter", "key") + self.paint(" later  ", "dim")).strip().lower()
-            if reply not in {"y", "yes", "n", "no"}:
+            if reply not in {"y", "yes", "a", "always", "n", "no"}:
                 return False
-            body = {"approval_id": pending["id"], "digest": pending["digest"], "decision": "approve" if reply.startswith("y") else "reject"}
+            body = {"approval_id": pending["id"], "digest": pending["digest"], "decision": "reject" if reply.startswith("n") else "approve"}
+            if reply in {"a", "always"}:
+                body["remember"] = True
             if self.decided_by:
                 body["decided_by"] = self.decided_by
             status, value = self.call("POST", f"/v1/agent/sessions/{self.session}/approvals", body)
@@ -165,13 +175,22 @@ class Chat:
     # --- Sending and commands ---------------------------------------------------------------------
 
     def send(self, message: str) -> str:
+        message, dropped = chaser_inputs.split_dropped(message) if chaser_inputs.mentions_image(message) else (message, [])
+        images, self.images = self.images + dropped, []
+        if images:
+            self.say(f"  {self.paint('▣', 'teal')} {self.paint('with ' + chaser_inputs.describe(images), 'dim')}")
+            message = message.strip() or "What's in this picture?"
+        extra = {"images": images} if images else {}
         if self.session:
-            status, value = self.call("POST", f"/v1/agent/sessions/{self.session}/messages", {"message": message})
+            status, value = self.call("POST", f"/v1/agent/sessions/{self.session}/messages", {"message": message, **extra})
             if status == 409:
                 self.say("  Chaser is still on the last task. Answer it, or /stop first.", "warn")
                 return "busy"
         else:
-            status, value = self.call("POST", "/v1/agent/sessions", {"message": message, "reasoner": self.route})
+            body = {"message": message, "reasoner": self.route, **extra}
+            if self.mode != "ask":
+                body.update(permission_mode=self.mode, set_by=self.decided_by or "local_operator")
+            status, value = self.call("POST", "/v1/agent/sessions", body)
             if status == 201:
                 self.session, self.seen = value["id"], 0
         if status not in {201, 202}:
@@ -183,6 +202,30 @@ class Chat:
             self.say("")
             self.stop()
             return "cancelled"
+
+    def set_mode(self, mode: str) -> None:
+        words = {"ask": "asks before anything that needs your yes", "plan": "only reads and plans; nothing that changes or sends runs",
+                 "bypass": "says yes to every approval itself; each is still in the receipt as automatic"}
+        if not mode:
+            self.say(f"  Mode: {self.paint(self.mode, 'fail' if self.mode == 'bypass' else 'teal')}: {words[self.mode]}. /mode ask, plan or bypass", "dim")
+            return
+        if mode not in words:
+            self.say("  /mode ask, plan or bypass", "dim")
+            return
+        if mode == "bypass":
+            self.card([self.paint("Bypass mode lets Chaser act without asking you, in this session only.", "head"),
+                       "Every automatic yes is still written to the receipt. Messaging channels can never turn this on."],
+                      title=self.paint("Bypass", "fail"), tone="fail")
+            if self.ask(self.paint("  type bypass to confirm ❯ ", "fail")).strip().lower() != "bypass":
+                self.say("  Still in " + self.mode + " mode.", "dim")
+                return
+        self.mode = mode
+        if self.session:
+            status, value = self.call("POST", f"/v1/agent/sessions/{self.session}/mode", {"mode": mode, "set_by": self.decided_by or "local_operator"})
+            if status != 202:
+                self.say(f"  That didn't go through: {self._error(value)}", "fail")
+                return
+        self.say(f"  Mode: {self.paint(mode, 'fail' if mode == 'bypass' else 'teal')}: {words[mode]}.")
 
     def stop(self) -> None:
         if not self.session:
@@ -257,6 +300,35 @@ class Chat:
             else:
                 for line in chaser_work.receipt_lines(chaser_work.receipt(folder), self.paint):
                     self.say(line)
+        elif name == "image":
+            try:
+                self.images.append(chaser_inputs.load_image(rest))
+                self.say(f"  {self.paint('▣', 'teal')} {self.images[-1]['name']} goes with your next message.")
+            except ValueError as exc:
+                self.say(f"  {exc}", "warn")
+        elif name == "paste":
+            try:
+                self.images.append(chaser_inputs.clipboard_image())
+                self.say(f"  {self.paint('▣', 'teal')} The clipboard image goes with your next message.")
+            except (ValueError, OSError, subprocess.SubprocessError) as exc:
+                self.say(f"  {exc}", "warn")
+        elif name == "voice":
+            ready, why = chaser_inputs.voice_ready(self.settings)
+            if not ready:
+                self.say(f"  {why}", "warn")
+                return True
+            self.say(f"  {self.paint('●', 'fail')} Listening for 6 seconds…")
+            result = chaser_inputs.listen(self.settings)
+            text = str(result.get("text") or "")
+            if not text:
+                self.say("  I didn't catch anything.", "dim")
+                return True
+            self.say(f"  {self.paint('heard:', 'dim')} {text}")
+            if self.ask(self.paint("  ❯ ", "teal") + self.paint("enter", "key") + self.paint(" send   ", "dim") + self.paint("n", "key")
+                        + self.paint(" discard  ", "dim")).strip().lower() not in {"n", "no"}:
+                self.send(text)
+        elif name == "mode":
+            self.set_mode(rest.strip().lower())
         elif name == "stop":
             self.stop()
         elif name in {"checks", "doctor"}:
@@ -285,7 +357,9 @@ class Chat:
             self.send(first)
         while True:
             try:
-                line = self.ask("\n" + self.paint("❯ ", "teal")).strip()
+                marker = {"bypass": self.paint("bypass ", "fail"), "plan": self.paint("plan ", "violet")}.get(self.mode, "")
+                attached = self.paint(f"▣{len(self.images)} ", "teal") if self.images else ""
+                line = self.ask("\n" + marker + attached + self.paint("❯ ", "fail" if self.mode == "bypass" else "teal")).strip()
             except (EOFError, KeyboardInterrupt):
                 self.say("")
                 return 0
@@ -307,6 +381,16 @@ def run(args: argparse.Namespace, paint: Callable[[str, str], str]) -> int:
     chat = Chat(settings, paint)
     if getattr(args, "route", None):
         chat.route = args.route
+    for path in getattr(args, "image", None) or []:
+        try:
+            chat.images.append(chaser_inputs.load_image(path))
+        except ValueError as exc:
+            print(exc)
+            return 2
+    if getattr(args, "mode", None) == "plan":
+        chat.mode = "plan"
+    elif getattr(args, "mode", None) == "bypass":
+        chat.set_mode("bypass")
     if getattr(args, "session", None):
         chat.session = args.session
         _, snapshot = chat.call("GET", f"/v1/agent/sessions/{args.session}")

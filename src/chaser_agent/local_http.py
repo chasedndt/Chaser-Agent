@@ -35,6 +35,8 @@ from chaser_agent.source_card import (
 LOOPBACK_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 MAX_BODY_BYTES = 262_144
+# Signed-in session messages may carry up to four 3 MB images as base64.
+MAX_IMAGE_BODY_BYTES = 18 * 1024 * 1024
 MAX_TEXT_CHARS = 100_000
 POSTS_PER_MINUTE = 20
 MAX_CLIENT_WORKERS = 16
@@ -510,11 +512,12 @@ class LocalRequestHandler(BaseHTTPRequestHandler):
             self._error(411, "length_required", "One Content-Length is required")
             return
         length = int(lengths[0])
-        if length > MAX_BODY_BYTES:
+        limit = MAX_IMAGE_BODY_BYTES if agent_route and agent_http.takes_images(self.path) else MAX_BODY_BYTES
+        if length > limit:
             # Windows can reset a connection with unread request bytes before
             # the client receives 413. Drain only a small over-limit body;
             # never allocate or wait for an arbitrarily large declaration.
-            if length <= MAX_BODY_BYTES + 8192:
+            if length <= limit + 8192:
                 try:
                     self.rfile.read(length)
                 except (TimeoutError, OSError):

@@ -55,7 +55,8 @@ def _fence(text: str) -> str:
 def _render_entry(entry: dict[str, Any], *, elide: bool = False) -> str:
     role = entry["role"]
     if role == "user":
-        return f"<operator>\n{entry['text']}\n</operator>"
+        images = "".join(f"\n[attached image: {path}]" for path in entry.get("images") or [])
+        return f"<operator>\n{entry['text']}{images}\n</operator>"
     if role == "assistant":
         return f"<your_reply>\n{entry['text']}\n</your_reply>"
     if role == "human_answer":

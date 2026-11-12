@@ -1,22 +1,86 @@
 # Chaser Agent
 
-**31 October 2026:** the [agent loop](docs/01_Product/Chaser-Agent-Agent-Loop.md) now runs locally with real tool use on `127.0.0.1:8765`, approval by exact digest and a saved, hash-chained record of every step. It moves past the P0.1 tool-free boundary described below at the operator's direction. Mail, publishing, payment and deployment still have no route through it. The review-only harness remains available with `serve --review-only`, and sections below that describe P0.1 refer to that path.
+**The agent that shows its work.** Chaser does real multi-step work on your computer, with any AI model you choose. Anything that matters waits for your named yes, and every step lands on a record you can verify.
 
-Engineering preview: [18-layer architecture](docs/01_Product/Runtime-Architecture.md), [interactive map](https://chaseos.ai/chaser-agent/architecture/), and [conversational companion research programme](docs/research/2026-09-27-conversational-harness-roadmap.md). The local HUD can minimize to the taskbar and toggle always-on-top. General conversation and Hermes/OpenClaw/computer-use integration remain in development.
+![Chaser Agent canonical identity](brand/chaser-agent/releases/v1.0.0/public-identity/chaser-agent_github-readme-hero_1600x900.webp)
 
-### Inside Chaser: the engineering guide
+```bash
+pip install .                 # from a clone of this repository; Python 3.11+ (Windows first)
+chaser onboard                # checks, where it keeps its work, how it thinks, your name, start
+chaser chat                   # talk to it, attach images, approve inline
+```
 
-[Explore all 18 responsibilities](https://chaseos.ai/chaser-agent/architecture/) or [read the local gateway instructions](https://chaseos.ai/chaser-agent/architecture/#run-local). The website is explanatory documentation; it does not start your agent, read your files or connect to localhost. The refreshed guide is published and browser-verified; its release evidence and remaining limits are tracked in the [experience record](docs/01_Product/2026-09-28-Engineering-Experience.md).
+Then just `chaser`: a home screen with what's running, which model, what's waiting for you, and every action one key away. `chaser help` lists every command.
 
-**Start here:** `chaser onboard` walks through the first run (checks, a private data folder, an optional ChaseOS Cloud key, your name on approvals, the stop shortcuts) and starts Chaser. After that, `chaser` opens the home menu, `chaser chat` talks to Chaser in the terminal with approvals answered inline, `chaser gateway` keeps it running in the background under a supervisor (`stop`, `restart`, `status`, `logs -f`, `install` to start at sign-in), `chaser doctor` runs the pre-flight checks, `chaser setup` changes any setting from a menu, `chaser key` adds or removes the Cloud key without showing it, and `chaser open` opens the HUD, which has the same settings under **Settings**. `python -m chaser_agent` runs the same command before the package is reinstalled. See [setup and onboarding](docs/01_Product/Chaser-Agent-Setup-and-Onboarding.md).
+## How you stay in charge
 
-The lower-level `chaser-agent` commands remain: `doctor` (read-only preflight), `serve` (local API), `desktop` (API plus native HUD), `hud` and `voice-mode`. The default bind is `127.0.0.1:8765`, not a public or LAN endpoint. A successful launch does not connect a computer-use executor.
+- **Approvals carry your name and cover one exact action.** Chaser shows the tool and its arguments, and your yes is bound to that request's digest. It works once, and is signed "Sam (terminal)", "Sam (Telegram)" and so on.
+- **Every step is on a tamper-evident record.** `chaser receipt` re-derives the session's hash chain from disk, lists who approved what, and hashes every file it wrote. An edited line shows up as a broken chain.
+- **You choose how much it may do alone,** per session:
+  - `ask`, the default, asks before anything that needs your yes;
+  - `plan` only reads and plans;
+  - `bypass` says yes itself. It must be typed to confirm, is shown in red, and every automatic yes is still in the receipt. Messaging channels can never turn it on.
+  - "Always allow this tool here" covers just the rest of one session.
+- **One command stops everything:** `chaser stop` (or `/stopall` from a channel). Keyboard shortcuts stop Chaser or take over at once.
+- **Local-first.** The service listens only on 127.0.0.1 with a private token. Keys, tokens and passwords are saved encrypted for your Windows account and never shown.
+
+## Choose your model
+
+`chaser model` offers ChaseOS Cloud first, as recommended: it's built for Chaser, with one key and pricing tuned for agent work. Any of these also works:
+- Claude through your Claude Code sign-in;
+- OpenRouter, OpenAI, Google Gemini, xAI, DeepSeek, Mistral, Groq, Together, Fireworks;
+- Ollama or LM Studio on your own computer;
+- any OpenAI-compatible endpoint;
+- another agent harness over the local bridge.
+
+Keys are checked for free by listing the provider's models, which you then pick from.
+
+## Talk to it from anywhere you are
+
+`chaser channels add telegram`, `discord`, `slack` or `email`.
+- **Only the accounts you allow are heard.** Email also requires the sender's mail server to vouch for them (DKIM or SPF).
+- **Approvals arrive in the same app:** Telegram buttons, or a typed yes. Each is checked against the waiting request before anything runs.
+- **Photos and screenshots come through as context.**
+- **No public address or webhook needed.**
+
+WhatsApp (through the official Cloud API), Signal, Microsoft Teams and Matrix are next.
+
+## Show it, say it
+
+- **Images:** drag an image into the terminal, `/paste` a screenshot, `/image path`, or `chaser chat --image photo.png`. Each image is saved and hashed into the receipt. Vision-capable models see it; others are told plainly that they can't.
+- **Voice:** `/voice` records one short take, transcribes it on your own computer, and shows you the text before anything is sent. It needs the `voice-input` extra and a local model: `chaser voice set FOLDER`.
+
+## Runs all the time, quietly
+
+`chaser gateway` keeps Chaser running in the background under a supervisor that restarts it if it stops. `chaser gateway install` starts it at sign-in. `chaser doctor` runs pre-flight checks, `chaser status` and `chaser logs -f` show what it's doing, and `chaser open` opens the small always-on-top HUD.
+
+## Honest limits
+
+| | Today |
+|---|---|
+| Channels | Telegram, Discord, Slack, email. More are planned. |
+| Schedules, recurring briefings | Not yet. |
+| MCP servers | Not yet. |
+| Computer use (mouse and keyboard) | In development behind the HUD's stop and take-over controls. |
+| Outcome scorecard (which model your accepted work favours) | Runs in ChaseOS. Not yet in this build. |
+| Signed installers | Waiting on a code-signing certificate. |
+
+More: [setup and every command](docs/01_Product/Chaser-Agent-Setup-and-Onboarding.md) · [the agent loop](docs/01_Product/Chaser-Agent-Agent-Loop.md) · [security policy](SECURITY.md) · [contributing](CONTRIBUTING.md)
+
+Chaser runs on its own, and works best with [ChaseOS](https://chaseos.ai/chaser-agent).
+
+---
+
+## Engineering detail
+
+The rest of this page is the longer engineering record: the review-first runtime, its maturity notes and verification. Where it describes the earlier P0.1 review-only path (`serve --review-only`), that path still exists. The agent loop above has moved past it: it runs real local tools behind digest-bound approvals.
+
+The lower-level `chaser-agent` commands remain: `doctor` (read-only preflight), `serve` (local API), `desktop` (API plus native HUD), `hud` and `voice-mode`. The default bind is `127.0.0.1:8765`, not a public or LAN endpoint.
 
 **Standalone-first. Local-first. Evidence-linked. Human-governed. ChaseOS-enhanced.**
 
 Chaser Agent is a standalone-first, local-first agent harness for turning goals and sources into evidence-linked, reviewable work. Its MIT-licensed core runs independently, learns from explicit human review, preserves approved local memory, and curates a user-owned provenance map. Optional ChaseOS integration adds shared governance, cross-runtime orchestration, shared canonical state, policy, approvals, routing, and cross-project memory.
 
-![Chaser Agent canonical identity](brand/chaser-agent/releases/v1.0.0/public-identity/chaser-agent_github-readme-hero_1600x900.webp)
 
 ## See the review boundary
 
@@ -168,7 +232,6 @@ Chaser Agent is not currently:
 - a finished personal AI;
 - a website-design, media-generation, or trading-execution agent;
 - a public FastAPI service or web UI;
-- a live provider router;
 - a semantic RAG/vector system;
 - a live MCP/tool registry;
 - a browser/computer-use runtime;
@@ -182,7 +245,7 @@ Chaser Agent is not currently:
 - Never infer authority from a workflow profile, skill, adapter, provider, or confidence score.
 - Never auto-promote a memory candidate.
 - Never mutate original run artifacts during review or correction.
-- Never activate providers, tools, MCP, browsers, public actions, payments, trading, deployment, or model training in P0.1.
+- In the P0.1 review-only path, never activate providers, tools, MCP, browsers, public actions, payments, trading, deployment or model training. The agent loop runs only registered local tools, behind approvals for anything that changes things.
 - Never mutate ChaseOS canonical state from the standalone core.
 - Keep generated run and research artifacts ignored unless separately reviewed for provenance, privacy, and licensing.
 

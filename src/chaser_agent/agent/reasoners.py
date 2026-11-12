@@ -213,6 +213,7 @@ class ChaseOSCloudReasoner:
     reasoner_id = "chaseos-cloud"
     label = "ChaseOS Cloud"
     max_context_chars = 120_000
+    sees_images = True  # OpenAI-style image parts; whether the model reads them depends on the model
 
     def __init__(self, key: str = "", *, model: str = "chaseos/balanced", base_url: str = "", max_tokens: int = 8000, key_source: str = "") -> None:
         self._key = key.strip()
@@ -277,13 +278,21 @@ class ChaseOSCloudReasoner:
         except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
             return 0, {}
 
-    def complete(self, system: str, transcript: str, *, timeout: float, cancel: Event) -> ReasonerReply:
+    def complete(self, system: str, transcript: str, *, timeout: float, cancel: Event, images: list[Path] | None = None) -> ReasonerReply:
         if not self.status().get("available"):
             raise ReasonerUnavailable("not_configured", self.status()["reason"])
         started = time.monotonic()
+        content: Any = transcript
+        if images:
+            import base64
+            import mimetypes
+
+            content = [{"type": "text", "text": transcript}] + [
+                {"type": "image_url", "image_url": {"url": f"data:{mimetypes.guess_type(p.name)[0] or 'image/png'};base64,"
+                                                           f"{base64.b64encode(p.read_bytes()).decode('ascii')}"}} for p in images]
         request = {
             "model": self.model, "stream": False, "max_completion_tokens": self.max_tokens,
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": transcript}],
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": content}],
             # Every reply must be one JSON object; without JSON mode the open models broke the format on about a third of steps.
             "response_format": {"type": "json_object"},
         }
@@ -311,6 +320,8 @@ class ChaseOSCloudReasoner:
             if time.monotonic() - started > timeout + 5:
                 raise ReasonerUnavailable("timeout", f"no reply within {int(timeout)} seconds")
         status, value = result["reply"]
+        if status == 400 and images:
+            raise ReasonerUnavailable("no_vision", f"{self.label} ({self.model}) wouldn't take the attached images. Choose a model that reads images: chaser model")
         if status == 402:
             raise ReasonerUnavailable("out_of_credits", f"{self.label} is out of credits. Top up to keep using it.")
         if status in {401, 403}:

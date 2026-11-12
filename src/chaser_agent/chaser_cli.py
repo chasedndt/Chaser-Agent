@@ -820,7 +820,7 @@ def run_home(_: argparse.Namespace) -> int:
                 continue
             if choice == "t":
                 run_channels(argparse.Namespace(action="list", platform=None))
-                pick = ask("Add or change one? telegram, discord (Enter to go back)").lower()
+                pick = ask("Add or change one? telegram, discord, slack, email (Enter to go back)").lower()
                 if pick in channels.PLATFORMS:
                     add_channel(pick)
                 terminal_ui.pause(paint)
@@ -869,15 +869,16 @@ def run_home(_: argparse.Namespace) -> int:
 
 HELP = (
     ("Start", (("chaser", "the home screen"), ("chaser onboard", "first-run setup"),
-               ("chaser chat [message]", "talk to Chaser and watch it work"), ("chaser ask \"task\"", "give Chaser a task and follow it"),
+               ("chaser chat [message]", "talk to Chaser; --image FILE, --mode plan|bypass"), ("chaser ask \"task\"", "give Chaser a task and follow it"),
                ("chaser open", "the HUD"))),
     ("Run", (("chaser gateway", "start Chaser in the background (stop, restart, run)"),
              ("chaser gateway install", "start at sign-in (uninstall to stop)"), ("chaser status", "running, model, routes, what's waiting"),
              ("chaser logs [-f]", "the service log"))),
     ("Work", (("chaser waiting", "what needs your answer or your yes"), ("chaser sessions", "recent work and where each stands"),
+              ("chaser stop", "stop every task now; the kill switch"),
               ("chaser approve [SESSION]", "say yes, signed with your name"), ("chaser reject [SESSION]", "say no, signed with your name"),
               ("chaser receipt [SESSION]", "check the hash chain; who approved what; what it wrote"))),
-    ("Set up", (("chaser model", "choose the AI provider and model"), ("chaser channels", "Telegram and Discord, owner-only (add, test, remove)"), ("chaser key", "the ChaseOS Cloud key"),
+    ("Set up", (("chaser model", "choose the AI provider and model"), ("chaser channels", "Telegram, Discord, Slack, email; owner-only (add, test, remove)"), ("chaser voice", "speak to Chaser, offline"), ("chaser key", "the ChaseOS Cloud key"),
                 ("chaser setup [section]", "every setting from a menu"), ("chaser shortcuts", "the stop and take-over keys"),
                 ("chaser doctor [--online] [--fix]", "pre-flight checks"))),
     ("Help", (("chaser help [command]", "this, or one command's options"), ("chaser version", "the installed version"))),
@@ -1011,6 +1012,17 @@ def run_decision(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_stop_all(_: argparse.Namespace) -> int:
+    """`chaser stop`: stop every task now. The service keeps running; nothing is deleted."""
+    settings = chaser_home.load()
+    if not _need_running(settings):
+        return 1
+    stopped = chaser_work.stop_everything(lambda method, route, body=None: _service_call(settings, method, route, body))
+    print(f"{paint(MARK['ok'], 'ok')} Stopped {len(stopped)} task(s). Chaser is still running; stop it too with: chaser gateway stop"
+          if stopped else "Nothing was running.")
+    return 0
+
+
 def run_receipt(args: argparse.Namespace) -> int:
     settings = chaser_home.load()
     folder = chaser_work.find_session(Path(settings["data_dir"]), args.session)
@@ -1041,6 +1053,8 @@ def add_channel(platform: str) -> int:
     info = channels.PLATFORMS[platform]
     print(paint(f"  {info['label']}", "head") + paint("  only the accounts you allow can talk to Chaser; approvals still need your yes", "dim"))
     print(paint(f"  {info['where']} The token won't show as you paste it.", "dim"))
+    if platform == "email":
+        return add_email_channel(settings)
     try:
         token = cloud_key.validate(secret_input(f"  {info['label']} bot token: "))
     except (ValueError, SecretInputUnavailable) as exc:
@@ -1067,6 +1081,21 @@ def add_channel(platform: str) -> int:
             return 1
         allow = [found.user]
         greet = lambda: bot.send(found.chat, "Chaser is connected. Only you can talk to it here; it will ask before anything leaves your computer.")  # noqa: E731
+    elif platform == "slack":
+        bot = channels.Slack(token, [])
+        ok, name = bot.whoami()
+        if not ok:
+            print(f"  {paint('✗', 'fail')} {name}")
+            return 2
+        print(f"  {paint('✓', 'ok')} Connected as {name}.")
+        print(paint("  Your member ID: in Slack, click your name → Profile → ⋮ → Copy member ID.", "dim"))
+        user = ask("Your Slack member ID").strip().upper()
+        if not (user.startswith(("U", "W")) and user[1:].isalnum()):
+            print(f"  {paint('✗', 'fail')} That isn't a Slack member ID (it starts with U).")
+            return 2
+        allow = [user]
+        bot.allow = allow
+        greet = lambda: bot.greet(user, "Chaser is connected. Only you can talk to it here; it will ask before anything leaves your computer.")  # noqa: E731
     else:
         bot = channels.Discord(token, [])
         ok, name = bot.whoami()
@@ -1097,6 +1126,57 @@ def add_channel(platform: str) -> int:
     return 0
 
 
+MAIL_HOSTS = {"gmail.com": ("imap.gmail.com", "smtp.gmail.com"), "googlemail.com": ("imap.gmail.com", "smtp.gmail.com"),
+              "outlook.com": ("outlook.office365.com", "smtp.office365.com"), "hotmail.com": ("outlook.office365.com", "smtp.office365.com"),
+              "icloud.com": ("imap.mail.me.com", "smtp.mail.me.com"), "me.com": ("imap.mail.me.com", "smtp.mail.me.com")}
+
+
+def add_email_channel(settings: dict[str, Any]) -> int:
+    """An inbox Chaser reads and answers. Best as an address of its own; only vouched-for allowed senders count."""
+    print(paint("  Best with an address just for Chaser. It answers only the senders you allow, and only when their", "dim"))
+    print(paint("  mail server vouches for them (DKIM or SPF), because a From line alone can be forged.", "dim"))
+    address = ask("Chaser's email address").strip()
+    if "@" not in address:
+        return 2
+    imap, smtp = MAIL_HOSTS.get(address.rsplit("@", 1)[1].lower(), ("", ""))
+    imap, smtp = ask("IMAP server", imap), ask("SMTP server (SSL, port 465)", smtp)
+    try:
+        password = cloud_key.validate(secret_input("  App password: "))
+    except (ValueError, EOFError, KeyboardInterrupt) as exc:
+        print(f"  {paint('✗', 'fail')} {exc}" if isinstance(exc, ValueError) else "")
+        return 2
+    allow = [a.strip().lower() for a in ask("Senders allowed to instruct Chaser, separated by commas").split(",") if "@" in a]
+    if not allow:
+        print(f"  {paint('✗', 'fail')} Allow at least one sender.")
+        return 2
+    config = {"enabled": True, "allow": allow, "address": address, "imap_host": imap, "smtp_host": smtp}
+    ok, name = channels.Email(password, config, allow).whoami()
+    if not ok:
+        print(f"  {paint('✗', 'fail')} {name}")
+        return 2
+    channels.save_token("email", password)
+    chosen = dict(settings.get("channels") or {})
+    chosen["email"] = config
+    settings = chaser_home.save({"channels": chosen})
+    print(f"  {paint('✓', 'ok')} Signed in to {name}. Chaser will answer mail from {', '.join(allow)}; the password is saved encrypted.")
+    _restart_offer(settings)
+    return 0
+
+
+def run_voice(args: argparse.Namespace) -> int:
+    from chaser_agent import chaser_inputs
+
+    settings = chaser_home.load()
+    if args.action == "set":
+        if not args.folder:
+            print("chaser voice set MODEL_FOLDER   (a pinned faster-whisper model with its stt-model.json)")
+            return 2
+        settings = chaser_home.save({"voice_model_dir": str(Path(args.folder).resolve())})
+    ready, why = chaser_inputs.voice_ready(settings)
+    print(f"{paint(MARK['ok'], 'ok')} Voice is ready: {why}. Use /voice in chaser chat." if ready else f"{paint('!', 'warn')} {why}")
+    return 0 if ready else 1
+
+
 def run_channels(args: argparse.Namespace) -> int:
     settings = chaser_home.load()
     chosen = settings.get("channels") or {}
@@ -1113,7 +1193,7 @@ def run_channels(args: argparse.Namespace) -> int:
                 state = paint("○ not set up", "dim") + paint(f"  chaser channels add {platform}", "dim")
             print(f"    {info['label']:<10} {state}")
         print(paint("\n  Only allowed accounts are heard. Every approval still needs a yes, signed by name into the receipt.", "dim"))
-        print(paint("  More platforms (Slack, email, WhatsApp, Signal, Teams, Matrix) are planned.", "dim"))
+        print(paint("  Next: WhatsApp (official Cloud API), Signal, Microsoft Teams, Matrix.", "dim"))
         return 0
     if not args.platform:
         print(f"chaser channels {args.action} {'|'.join(channels.PLATFORMS)}")
@@ -1140,7 +1220,7 @@ def run_channels(args: argparse.Namespace) -> int:
             print(f"{MARK['fail']} {name}")
             return 2
         for user in value.get("allow") or []:
-            if args.platform == "telegram":
+            if args.platform in {"telegram", "email"}:
                 adapter.send(user, "A test from chaser channels test.")
             else:
                 adapter.greet(user, "A test from chaser channels test.")
@@ -1179,7 +1259,9 @@ def build_parser() -> argparse.ArgumentParser:
     chat = sub.add_parser("chat", aliases=["tui"], help="Talk to Chaser and watch it work.")
     chat.add_argument("message", nargs="*", help="Start with this message.")
     chat.add_argument("--session", help="Carry on with this session.")
-    chat.add_argument("--route", help="How new work thinks: auto, chaseos-cloud, claude-cli or bridge.")
+    chat.add_argument("--route", help="How new work thinks: auto or a route id from chaser status.")
+    chat.add_argument("--image", action="append", default=[], help="Attach a picture to the first message. Repeatable.")
+    chat.add_argument("--mode", choices=["ask", "plan", "bypass"], default="ask", help="How much Chaser may do without asking; bypass asks you to confirm.")
     chat.set_defaults(func=lambda args: __import__("chaser_agent.chaser_chat", fromlist=["run"]).run(args, paint))
     gateway = sub.add_parser("gateway", help="Start, stop or check Chaser's service.")
     gateway.add_argument("action", nargs="?", default="start", choices=["start", "stop", "restart", "status", "logs", "run", "install", "uninstall"])
@@ -1226,11 +1308,17 @@ def build_parser() -> argparse.ArgumentParser:
         decide.add_argument("session", nargs="?", help="Which session; leave out when only one is waiting.")
         decide.add_argument("--yes", action="store_true", help="Don't ask to confirm.")
         decide.set_defaults(func=run_decision, decision="approve" if verb == "approve" else "reject")
+    halt = sub.add_parser("stop", help="Stop every task now (the kill switch). Chaser itself keeps running.")
+    halt.set_defaults(func=run_stop_all)
     proof = sub.add_parser("receipt", help="Check a session's hash chain from disk and show who approved what.")
     proof.add_argument("session", nargs="?", help="A session id or its start; the newest when left out.")
     proof.add_argument("--json", action="store_true")
     proof.set_defaults(func=run_receipt)
-    chan = sub.add_parser("channels", help="Talk to Chaser from Telegram or Discord, owner-only and approval-governed.")
+    voice = sub.add_parser("voice", help="Speak to Chaser: transcribed on this computer, confirmed before sending.")
+    voice.add_argument("action", nargs="?", default="status", choices=["status", "set"])
+    voice.add_argument("folder", nargs="?")
+    voice.set_defaults(func=run_voice)
+    chan = sub.add_parser("channels", help="Talk to Chaser from Telegram, Discord, Slack or email, owner-only and approval-governed.")
     chan.add_argument("action", nargs="?", default="list", choices=["list", "add", "remove", "test", "run"])
     chan.add_argument("platform", nargs="?", choices=sorted(channels.PLATFORMS))
     chan.set_defaults(func=run_channels)
