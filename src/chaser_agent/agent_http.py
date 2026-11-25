@@ -131,7 +131,7 @@ def handle_post(handler: Any, request: dict[str, Any]) -> None:
     route = urlsplit(handler.path).path
     try:
         if route == "/v1/agent/sessions":
-            if set(request) - {"message", "workflow", "reasoner", "title", "withhold_tools", "route_text"}:
+            if set(request) - {"message", "workflow", "reasoner", "title", "withhold_tools", "route_text", "job"}:
                 raise ValueError("Unsupported session fields")
             withheld = request.get("withhold_tools", [])
             if not isinstance(withheld, list) or not all(isinstance(item, str) for item in withheld):
@@ -143,6 +143,7 @@ def handle_post(handler: Any, request: dict[str, Any]) -> None:
                 title=_text(request, "title", required=False),
                 withhold_tools=frozenset(withheld),
                 route_text=_text(request, "route_text", required=False),
+                job=request.get("job"),
             )
             handler._reply(201, snapshot)
             return

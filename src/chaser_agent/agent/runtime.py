@@ -22,7 +22,7 @@ from threading import Event
 from typing import Any
 
 from chaser_agent.agent.context import MAX_CONTEXT_CHARS, build_system_prompt, render_transcript
-from chaser_agent.agent import objective
+from chaser_agent.agent import objective, routes
 from chaser_agent.agent.events import EventLog, utc_now, with_io_retry
 from chaser_agent.agent.protocol import AskHuman, Finish, ReplyRejected, ToolAction, parse_reply
 from chaser_agent.agent.reasoners import Reasoner, ReasonerUnavailable
@@ -88,6 +88,12 @@ class AgentRuntime:
         self.parent_link: dict[str, str] | None = None
         # Workspace folders a pack's own tools keep records in. workspace_write can't touch them.
         self.read_only_workspace_folders: tuple[str, ...] = ()
+        # The owner's preferred route, tried first when a session asks for "auto". A pack may set it; the guard still applies.
+        self.default_reasoner: str | None = None
+        # Where this service runs. A plan sign-in only answers on the person's own computer, never on a hosted machine.
+        self.host_machine = os.environ.get("CHASER_AGENT_MACHINE", "own")
+        if self.host_machine not in routes.MACHINES:
+            raise ValueError("CHASER_AGENT_MACHINE must be own or hosted")
         self._lock = threading.RLock()
         self._sessions: dict[str, dict[str, Any]] = {}
         self._logs: dict[str, EventLog] = {}
@@ -154,6 +160,7 @@ class AgentRuntime:
         withhold_tools: frozenset[str] = frozenset(),
         start: bool = True,
         route_text: str | None = None,
+        job: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         message = self._clean_message(message)
         # A caller that attaches context can route on the person's own words only, so a phrase
@@ -163,6 +170,8 @@ class AgentRuntime:
             raise NotFound(f"workflow {workflow_id}")
         if reasoner_id != "auto" and reasoner_id not in self.reasoners:
             raise NotFound(f"reasoner {reasoner_id}")
+        # Who the work is for. A workflow that does client or sold work can raise it; a caller can't lower it.
+        job_record = routes.Job.from_request(job, machine=self.host_machine, workflow_work_for=workflow.work_for).as_record()
         stamp = time.strftime("%Y%m%d%H%M%S", time.gmtime())
         session_id = f"as-{stamp}-{secrets.token_hex(5)}"
         folder = self._folder(session_id)
@@ -176,6 +185,9 @@ class AgentRuntime:
             "workflow_title": workflow.title,
             "reasoner_id": reasoner_id,
             "reasoner_used": None,
+            "job": job_record,
+            "route": None,
+            "cost": None,
             "created_at": utc_now(),
             "updated_at": utc_now(),
             "status": "queued",
@@ -202,7 +214,7 @@ class AgentRuntime:
             self._sessions[session_id] = session
             self._logs[session_id] = EventLog(folder / "events.jsonl")
             self._logs[session_id].append(
-                "session_created", workflow=workflow.workflow_id, reasoner=reasoner_id, grants=grants, goal=message,
+                "session_created", workflow=workflow.workflow_id, reasoner=reasoner_id, grants=grants, goal=message, job=job_record,
             )
             self._save(session)
         if start:
@@ -303,6 +315,9 @@ class AgentRuntime:
                 "workflow": session["workflow_id"],
                 "workflow_title": session["workflow_title"],
                 "reasoner": session["reasoner_used"] or session["reasoner_id"],
+                "job": session.get("job"),
+                "route": session.get("route"),
+                "cost": session.get("cost"),
                 "grants": list(session["grants"]),
                 "turn": session["turn"],
                 "steps_used": session["steps_used"],
@@ -400,14 +415,16 @@ class AgentRuntime:
             self._status_refreshing = True
 
         def refresh() -> None:
-            routes = []
+            rows = []
             for reasoner in list(self.reasoners.values()):
+                # Each route says which rung of the ladder it is, so a status page can show it.
+                kind = {"kind": routes.route_info(reasoner).kind, "provider": routes.route_info(reasoner).provider}
                 try:
-                    routes.append(reasoner.status())
+                    rows.append({**kind, **reasoner.status()})
                 except Exception as exc:  # A broken route must not stop the status page.
-                    routes.append({"id": reasoner.reasoner_id, "label": reasoner.label, "available": False, "reason": type(exc).__name__})
+                    rows.append({**kind, "id": reasoner.reasoner_id, "label": reasoner.label, "available": False, "reason": type(exc).__name__})
             with self._lock:
-                self._status_cache = {"checked_at": time.time(), "routes": routes}
+                self._status_cache = {"checked_at": time.time(), "routes": rows}
                 self._status_refreshing = False
 
         threading.Thread(target=refresh, daemon=True).start()
@@ -446,29 +463,40 @@ class AgentRuntime:
             (self._folder(session_id) / "loop-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
             self._finish(session, "failed", error=f"The agent loop stopped: {type(exc).__name__}. Details are in loop-error.txt.")
 
-    def _resolve_reasoner(self, session: dict[str, Any]) -> Reasoner:
+    def _job(self, session: dict[str, Any]) -> routes.Job:
+        # A session saved before the guard existed is the owner's own headless work, the strictest default for a plan.
+        return routes.Job(**(session.get("job") or {"machine": self.host_machine}))
+
+    def _choose_route(self, session: dict[str, Any]) -> routes.Choice:
+        """The route the guard allows for this job, in ladder order. Refused or not ready: the turn stops and says why."""
         requested = session["reasoner_id"]
-        if requested != "auto":
-            return self.reasoners[requested]
-        reasons = []
-        for reasoner in self.reasoners.values():
-            if reasoner.reasoner_id == "bridge":
-                continue
-            state = reasoner.status()
-            if state.get("available"):
-                return reasoner
-            reasons.append(f"{reasoner.label}: {state.get('reason')}")
-        # Last, and only if another program is really answering it: left waiting, work would just hang.
-        bridge = self.reasoners.get("bridge")
-        if bridge is not None and bridge.status().get("connected"):
-            return bridge
-        raise ReasonerUnavailable("no_route", "No AI model is connected, so this can't start. " + " | ".join(reasons))
+        try:
+            return routes.choose(self.reasoners, self._job(session), requested=requested,
+                                 preferred=self.default_reasoner if requested == "auto" else None)
+        except routes.NoRoute as exc:
+            unavailable = ReasonerUnavailable(exc.code, exc.message)
+            unavailable.passed_over = exc.passed_over  # type: ignore[attr-defined]
+            raise unavailable from None
+
+    def _resolve_reasoner(self, session: dict[str, Any]) -> Reasoner:
+        return self._choose_route(session).reasoner
+
+    def _fall_forward(self, choice: routes.Choice, exc: ReasonerUnavailable) -> routes.Choice | None:
+        """A route that ran out of allowance hands the job to the next tier the guard allows, ending at Cloud. Never backwards."""
+        if exc.code not in routes.LIMIT_CODES:
+            return None
+        try:
+            following = routes.choose(self.reasoners, choice.job, after_tier=choice.route.tier, exclude=frozenset({choice.route.reasoner_id}))
+        except routes.NoRoute:
+            return None
+        following.fallback_from = {"reasoner": choice.route.reasoner_id, "kind": choice.route.kind, "code": exc.code, "message": exc.message}
+        return following
 
     def _finish(self, session: dict[str, Any], status: str, *, answer: str | None = None, error: str | None = None) -> None:
         with self._lock:
             session.update(status=status, final_answer=answer, error=error)
             self._logs[session["id"]].append("turn_finished", status=status, answer=answer, error=error, steps=session["steps_used"],
-                                             objective=session.get("objective"))
+                                             objective=session.get("objective"), route=session.get("route"), cost=session.get("cost"))
             self._save(session)
 
     def _drive(self, session: dict[str, Any]) -> None:
@@ -476,12 +504,17 @@ class AgentRuntime:
         workflow = self._workflow(session)
         cancel = self._cancels[session_id]
         try:
-            reasoner = self._resolve_reasoner(session)
+            choice = self._choose_route(session)
         except ReasonerUnavailable as exc:
+            self._logs[session_id].append("route_refused", code=exc.code, message=exc.message, job=session.get("job"),
+                                          passed_over=getattr(exc, "passed_over", []))
             self._finish(session, "failed", error=exc.message)
             return
+        reasoner = choice.reasoner
         with self._lock:
             session["reasoner_used"] = reasoner.reasoner_id
+            session["route"] = choice.as_record()
+            self._logs[session_id].append("route_chosen", **choice.as_record())
         grants = frozenset(session["grants"])
         system = build_system_prompt(
             catalogue=self.toolbox.catalogue(grants), workflow_title=workflow.title, instructions=workflow.instructions,
@@ -517,10 +550,26 @@ class AgentRuntime:
             except ReasonerUnavailable as exc:
                 if exc.code == "cancelled":
                     self._finish(session, "cancelled")
-                else:
+                    return
+                following = self._fall_forward(choice, exc)
+                if following is None:
                     self._finish(session, "failed", error=f"{reasoner.label} did not answer: {exc.message}")
-                return
+                    return
+                # Not silent: the hand-over and its reason go on the receipt, and the step isn't charged to the budget.
+                choice, reasoner = following, following.reasoner
+                limit = getattr(reasoner, "max_context_chars", MAX_CONTEXT_CHARS) - len(system)
+                with self._lock:
+                    session["steps_used"] -= 1
+                    session["reasoner_used"] = reasoner.reasoner_id
+                    session["route"] = choice.as_record()
+                    self._logs[session_id].append("route_fallback", step=step, **choice.as_record())
+                    self._save(session)
+                continue
             _write_text(reasoner_folder / f"{step:04d}.reply.txt", reply.text)
+            # Counted before the reply is parsed: one refused for its format still used the route's allowance.
+            cost = routes.reply_cost(choice.route, reply)
+            with self._lock:
+                session["cost"] = routes.add_cost(session.get("cost"), cost)
             reply_sha = hashlib.sha256(reply.text.encode("utf-8")).hexdigest()
             try:
                 parsed = parse_reply(reply.text)
@@ -532,6 +581,7 @@ class AgentRuntime:
                 continue
             self._logs[session_id].append(
                 "reasoner_reply", step=step, route=reply.route, model=reply.model, seconds=reply.seconds, credits=reply.credits, usage=reply.usage,
+                route_kind=choice.route.kind, provider=choice.route.provider, guard_reason=choice.decision.reason, cost=cost,
                 reply_sha256=reply_sha, thought=parsed.thought, actions=[type(a).__name__ for a in parsed.actions],
             )
             with self._lock:
