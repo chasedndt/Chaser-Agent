@@ -492,6 +492,33 @@ class AgentRuntime:
         following.fallback_from = {"reasoner": choice.route.reasoner_id, "kind": choice.route.kind, "code": exc.code, "message": exc.message}
         return following
 
+    def _recheck_route(self, session: dict[str, Any], choice: routes.Choice) -> routes.Choice | None:
+        """None while the route is still what the guard allowed. If it now says it's something else, the guard decides again:
+        still allowed, the receipt notes the change; refused, the job moves to a route the guard allows, or stops."""
+        live = routes.route_info(choice.reasoner)
+        if (live.kind, live.provider) == (choice.route.kind, choice.route.provider):
+            return None
+        decision = routes.check(choice.job, live)
+        if decision.allowed:
+            changed = routes.Choice(choice.reasoner, live, decision, choice.job)
+        else:
+            try:
+                changed = routes.choose(self.reasoners, choice.job, exclude=frozenset({live.reasoner_id}))
+            except routes.NoRoute as exc:
+                with self._lock:
+                    self._logs[session["id"]].append("route_refused", code=decision.reason, message=decision.explanation,
+                                                     job=choice.job.as_record(), passed_over=exc.passed_over)
+                raise ReasonerUnavailable(decision.reason, decision.explanation) from None
+            changed.passed_over.insert(0, {"reasoner": live.reasoner_id, "kind": live.kind, "reason": decision.reason})
+        changed.fallback_from = {"reasoner": live.reasoner_id, "kind": live.kind, "code": "route_changed",
+                                 "message": f"{live.label} changed to {live.kind} ({live.provider}) during the session."}
+        with self._lock:
+            session["reasoner_used"] = changed.reasoner.reasoner_id
+            session["route"] = changed.as_record()
+            self._logs[session["id"]].append("route_changed", **changed.as_record())
+            self._save(session)
+        return changed
+
     def _finish(self, session: dict[str, Any], status: str, *, answer: str | None = None, error: str | None = None) -> None:
         with self._lock:
             session.update(status=status, final_answer=answer, error=error)
@@ -530,6 +557,15 @@ class AgentRuntime:
             if session["steps_used"] >= workflow.max_steps or session["active_seconds"] >= workflow.max_seconds:
                 self._finish(session, "budget_stopped", error="This turn used its step or time budget. Send a message to continue it.")
                 return
+            # A route whose provider can change while it runs (an owner's model picker) is checked again before every step.
+            try:
+                changed = self._recheck_route(session, choice)
+            except ReasonerUnavailable as exc:
+                self._finish(session, "failed", error=exc.message)
+                return
+            if changed is not None:
+                choice, reasoner = changed, changed.reasoner
+                limit = getattr(reasoner, "max_context_chars", MAX_CONTEXT_CHARS) - len(system)
             transcript, elided = render_transcript(
                 session["transcript"], goal=session["goal"], steps_left=workflow.max_steps - session["steps_used"], max_chars=limit,
             )

@@ -520,3 +520,53 @@ def test_a_reply_refused_for_its_format_still_counts_toward_the_cost(tmp_path: P
 
     snapshot, _ = run(runtime_with(tmp_path, Sloppy("chaseos-cloud", "cloud", "chaseos")))
     assert snapshot["status"] == "finished" and snapshot["cost"]["credits"] == 4
+
+
+class Picker(Route):
+    """A route whose provider the owner can switch mid-session, like a model picker. It says which it is on each call."""
+
+    def __init__(self, kinds: list[tuple[str, str]]) -> None:
+        super().__init__("owner-selected", "unknown", "unknown")
+        self.kinds = kinds
+        self.replies = [json.dumps({"thought": "look", "actions": [{"type": "tool", "tool": "update_plan", "args": {"steps": []}}]}), FINAL]
+
+    def route_details(self) -> dict:
+        return {"kind": self.kinds[min(self.calls, len(self.kinds) - 1)][0], "provider": self.kinds[min(self.calls, len(self.kinds) - 1)][1]}
+
+    def complete(self, system, transcript, *, timeout, cancel):
+        self.calls += 1
+        return ReasonerReply(self.replies.pop(0) if self.replies else FINAL, self.reasoner_id, "picked", 0.01)
+
+
+def two_step_runtime(tmp_path: Path, *rows) -> AgentRuntime:
+    from chaser_agent.agent.builtin import register_builtin_tools
+
+    toolbox = Toolbox()
+    register_builtin_tools(toolbox, memory_database=tmp_path / "memory.db")
+    runtime = AgentRuntime(tmp_path, toolbox=toolbox, reasoners=list(rows))
+    runtime.add_workflow(WorkflowSpec("general", "General", "Help.", frozenset({"update_plan"})))
+    return runtime
+
+
+def test_a_picker_switched_to_a_plan_mid_session_loses_client_work_to_cloud(tmp_path: Path) -> None:
+    picker, gateway = Picker([("cloud", "chaseos"), ("plan", "openai")]), cloud()
+    snapshot, events = run(two_step_runtime(tmp_path, picker, gateway), job={"work_for": "client"})
+    assert snapshot["status"] == "finished", snapshot["error"]
+    assert picker.calls == 1 and gateway.calls == 1
+    changed = of(events, "route_changed")[0]
+    assert changed["reasoner"] == "chaseos-cloud" and changed["fallback_from"]["code"] == "route_changed"
+    assert changed["passed_over"][0] == {"reasoner": "owner-selected", "kind": "plan", "reason": "plan_not_for_client_work"}
+
+
+def test_a_picker_switch_the_guard_still_allows_is_noted_and_kept(tmp_path: Path) -> None:
+    picker = Picker([("cloud", "chaseos"), ("local", "ollama")])
+    snapshot, events = run(two_step_runtime(tmp_path, picker), job={"work_for": "client"})
+    assert snapshot["status"] == "finished" and picker.calls == 2
+    assert of(events, "route_changed")[0]["kind"] == "local" and snapshot["route"]["reasoner"] == "owner-selected"
+
+
+def test_a_picker_switched_to_a_plan_with_nothing_else_allowed_stops(tmp_path: Path) -> None:
+    picker = Picker([("cloud", "chaseos"), ("plan", "openai")])
+    snapshot, events = run(two_step_runtime(tmp_path, picker), job={"work_for": "client"})
+    assert snapshot["status"] == "failed" and picker.calls == 1
+    assert of(events, "route_refused")[0]["code"] == "plan_not_for_client_work"
