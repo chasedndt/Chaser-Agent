@@ -251,6 +251,60 @@
     appendRow(row);
   }
 
+  // --- Which model route took the work, and why. The guard's choice is on every session's receipt; this says it plainly. ---
+
+  const ROUTE_NAMES = {
+    'codex-plan': 'your ChatGPT plan', 'claude-cli': 'your Claude plan', 'hermes-text': 'Hermes on your ChatGPT plan',
+    'owner-selected': 'your model picker', 'own-api-key': 'your API key', 'chaseos-cloud': 'ChaseOS Cloud', bridge: 'another program',
+  };
+  const KIND_NAMES = { plan: 'a personal plan', api_key: 'your API key', local: 'a model on this computer', cloud: 'ChaseOS Cloud', unknown: 'an undeclared route' };
+  const WHY = {
+    own_plan_own_work: 'your own work, on your own computer',
+    plan_not_for_client_work: 'client work never runs on a personal plan',
+    claude_plan_interactive_only: 'a Claude plan only takes tasks you type',
+    plan_needs_own_machine: 'a plan sign-in stays on your own computer',
+    own_api_key: 'your own key, allowed for any job', chaseos_cloud: 'allowed for any job', local_model: 'allowed for any job',
+    bridge_owner_work: 'your own work', bridge_owner_only: 'another program only takes your own work', test_route: 'test replies',
+    no_route: 'nothing allowed was ready',
+  };
+
+  const PLAN_NAMES = { openai: 'your ChatGPT plan', anthropic: 'your Claude plan' };
+
+  function routeName(data) {
+    if (data.reasoner === 'owner-selected' && data.kind) {
+      const name = data.kind === 'plan' ? (PLAN_NAMES[data.provider] || KIND_NAMES.plan) : (KIND_NAMES[data.kind] || data.kind);
+      return `${name}, from your model picker`;
+    }
+    return ROUTE_NAMES[data.reasoner] || KIND_NAMES[data.kind] || data.reasoner;
+  }
+
+  function routeRow(tag, kind, text, model) {
+    const row = el('div', 'row route-row');
+    row.append(el('span', `tag ${kind}`, tag), el('span', 'what', text), el('small', '', model || ''));
+    appendRow(row);
+  }
+
+  function skipped(data) {
+    const rows = (data.passed_over || []).filter((row) => row.reason !== 'not_ready');
+    if (!rows.length) return '';
+    const names = [...new Set(rows.map((row) => ROUTE_NAMES[row.reasoner] || row.reasoner))];
+    return ` Skipped ${names.join(', ')}: ${WHY[rows[0].reason] || rows[0].reason}.`;
+  }
+
+  function renderRoute(event) {
+    const data = event.data;
+    if (event.type === 'route_chosen') {
+      routeRow('ROUTE', 'save', `On ${routeName(data)}: ${WHY[data.reason] || data.reason}.${skipped(data)}`, data.model);
+    } else if (event.type === 'route_fallback') {
+      const from = data.fallback_from || {};
+      routeRow('MOVED', 'ask', `${ROUTE_NAMES[from.reasoner] || from.reasoner} ran out of allowance, so ${routeName(data)} took over.`, data.model);
+    } else if (event.type === 'route_changed') {
+      routeRow('ROUTE', 'ask', `The route changed during the work. Now on ${routeName(data)}: ${WHY[data.reason] || data.reason}.${skipped(data)}`, data.model);
+    } else if (event.type === 'route_refused') {
+      refusedRow(`No model route was allowed: ${WHY[data.code] || data.message}.${skipped(data)}`);
+    }
+  }
+
   function renderEvent(event) {
     const data = event.data;
     switch (event.type) {
@@ -262,6 +316,12 @@
         turnStartedAt = event.at;
         if (firstMessage !== null) { $('activity').prepend(el('div', 'said', firstMessage)); firstMessage = null; }
         appendRow(el('div', 'said', data.text));
+        break;
+      case 'route_chosen':
+      case 'route_fallback':
+      case 'route_changed':
+      case 'route_refused':
+        renderRoute(event);
         break;
       case 'reasoner_reply':
         lastThought = data.thought || '';
@@ -534,7 +594,8 @@
         if (ACTIVE.has(session.status) || session.pending) { $('notice').textContent = 'Chaser Agent is mid-task. Answer above, or press Stop first.'; return; }
         await api(`/v1/agent/sessions/${current}/messages`, { message: text });
       } else {
-        const session = await api('/v1/agent/sessions', { message: text });
+        // A person typed this, so it's interactive. Who it's for is left to the workflow: client work raises it.
+        const session = await api('/v1/agent/sessions', { message: text, job: { interactive: true } });
         select(session.id);
       }
       box.value = '';

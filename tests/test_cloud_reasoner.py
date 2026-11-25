@@ -120,11 +120,17 @@ def test_the_key_leaves_the_environment_so_launched_tools_never_inherit_it() -> 
     assert "secret-value" not in json.dumps(reasoner.status())
 
 
-def test_cloud_is_the_first_route_auto_tries(tmp_path, monkeypatch) -> None:
+def test_cloud_is_the_first_route_auto_tries_for_client_work(tmp_path, monkeypatch) -> None:
+    from chaser_agent.agent import routes
+
     monkeypatch.setenv(CLOUD_KEY_ENV, "k")
+    monkeypatch.delenv("CHASER_API_KEY", raising=False)
     runtime = build_runtime(tmp_path)
-    assert list(runtime.reasoners)[0] == "chaseos-cloud"
     assert CLOUD_KEY_ENV not in __import__("os").environ
+    # A plan may be signed in on this machine; the guard still keeps client work off it.
+    choice = routes.choose(runtime.reasoners, routes.Job("client", True))
+    assert choice.route.reasoner_id == "chaseos-cloud"
+    assert {row["reasoner"] for row in choice.passed_over} >= {"codex-plan", "claude-cli"}
 
 
 def test_a_reply_without_usage_fields_records_none_rather_than_guessing(gateway_factory) -> None:

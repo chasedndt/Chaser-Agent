@@ -61,6 +61,13 @@ def _common(parser: argparse.ArgumentParser) -> None:
 def _describe(event: dict[str, Any]) -> str | None:
     data = event["data"]
     kind = event["type"]
+    if kind == "route_chosen":
+        return f"[route] {data.get('reasoner')} · {data.get('kind')} · {data.get('provider')} · {data.get('reason')}"
+    if kind == "route_fallback":
+        moved = data.get("fallback_from") or {}
+        return f"[route] {moved.get('reasoner')} stopped ({moved.get('code')}), so {data.get('reasoner')} took over · {data.get('reason')}"
+    if kind == "route_refused":
+        return f"[route refused] {data.get('code')}: {data.get('message')}"
     if kind == "reasoner_reply":
         return f"[thinking] {data.get('thought')}"
     if kind == "tool_started":
@@ -81,7 +88,9 @@ def run_ask(args: argparse.Namespace) -> int:
     if args.session:
         status, session = _call(args, "POST", f"/v1/agent/sessions/{args.session}/messages", {"message": message})
     else:
-        body: dict[str, Any] = {"message": message, "reasoner": args.reasoner}
+        # A person typing a task is interactive unless they say otherwise. The guard reads this, never the model.
+        body: dict[str, Any] = {"message": message, "reasoner": args.reasoner,
+                                "job": {"work_for": args.work_for, "interactive": not args.headless}}
         if args.workflow:
             body["workflow"] = args.workflow
         if args.withhold:
@@ -249,6 +258,9 @@ def add_agent_commands(subparsers: argparse._SubParsersAction) -> None:
     ask.add_argument("message", nargs="+")
     ask.add_argument("--workflow")
     ask.add_argument("--reasoner", default="auto")
+    ask.add_argument("--for", dest="work_for", choices=("owner", "client", "sale"), default="owner",
+                     help="Who the work is for. Client work and anything sold run on an API key or ChaseOS Cloud, never a personal plan.")
+    ask.add_argument("--headless", action="store_true", help="Run as an unattended job: a Claude plan won't take it.")
     ask.add_argument("--session", help="Continue this session instead of starting a new one.")
     ask.add_argument("--withhold", action="append", default=[], help="A tool this session must not have, even if its workflow grants it. Repeatable.")
     ask.set_defaults(func=run_ask)
