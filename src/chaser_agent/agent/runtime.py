@@ -404,8 +404,8 @@ class AgentRuntime:
     def _live_routes(self) -> dict[str, Any]:
         """Other routes are slow to check, so they're cached. The bridge is cheap and changes the moment a program attaches."""
         bridge = self.reasoners.get("bridge")
-        routes = [bridge.status() if bridge is not None and row["id"] == "bridge" else row for row in self._status_cache["routes"]]
-        return {**self._status_cache, "routes": routes}
+        rows = [{**row, **bridge.status()} if bridge is not None and row["id"] == "bridge" else row for row in self._status_cache["routes"]]
+        return {**self._status_cache, "routes": rows}
 
     def _refresh_reasoner_status(self) -> None:
         with self._lock:
@@ -420,7 +420,7 @@ class AgentRuntime:
                 # Each route says which rung of the ladder it is, so a status page can show it.
                 kind = {"kind": routes.route_info(reasoner).kind, "provider": routes.route_info(reasoner).provider}
                 try:
-                    rows.append({**kind, **reasoner.status()})
+                    rows.append({**reasoner.status(), **kind})
                 except Exception as exc:  # A broken route must not stop the status page.
                     rows.append({**kind, "id": reasoner.reasoner_id, "label": reasoner.label, "available": False, "reason": type(exc).__name__})
             with self._lock:
