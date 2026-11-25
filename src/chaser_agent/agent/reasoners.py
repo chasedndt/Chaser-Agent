@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -63,14 +64,21 @@ class Reasoner(Protocol):
 
 
 def _run_cancellable(command: list[str], *, stdin: str, timeout: float, cancel: Event, env: dict[str, str] | None = None, cwd: str | None = None) -> tuple[int, str]:
+    code, stdout, _ = _run_capturing(command, stdin=stdin, timeout=timeout, cancel=cancel, env=env, cwd=cwd, keep_stderr=False)
+    return code, stdout
+
+
+def _run_capturing(command: list[str], *, stdin: str, timeout: float, cancel: Event, env: dict[str, str] | None = None,
+                   cwd: str | None = None, keep_stderr: bool = True) -> tuple[int, str, str]:
+    """As _run_cancellable, also keeping stderr so a route can tell a used-up allowance from a fault. Never logged."""
     process = subprocess.Popen(
-        command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE if keep_stderr else subprocess.DEVNULL,
         encoding="utf-8", errors="replace", env=env, cwd=cwd, creationflags=NO_WINDOW,
     )
     result: dict[str, str] = {}
 
     def communicate() -> None:
-        result["stdout"], _ = process.communicate(stdin)
+        result["stdout"], result["stderr"] = process.communicate(stdin)
 
     worker = threading.Thread(target=communicate, daemon=True)
     worker.start()
@@ -83,7 +91,15 @@ def _run_cancellable(command: list[str], *, stdin: str, timeout: float, cancel: 
             if cancel.is_set():
                 raise ReasonerUnavailable("cancelled", "the operator cancelled this turn")
             raise ReasonerUnavailable("timeout", f"no reply within {int(timeout)} seconds")
-    return process.returncode, result.get("stdout", "")
+    return process.returncode, result.get("stdout") or "", result.get("stderr") or ""
+
+
+# How the plan programs say an allowance is used up. Matched to classify the stop, never stored or shown.
+_LIMIT_WORDS = re.compile(r"usage limit|limit reached|rate limit|too many requests|\b429\b|quota|out of credits|hit your limit", re.IGNORECASE)
+
+
+def says_limit(text: str) -> bool:
+    return bool(_LIMIT_WORDS.search(text or ""))
 
 
 class ClaudeCliReasoner:
@@ -91,6 +107,9 @@ class ClaudeCliReasoner:
 
     reasoner_id = "claude-cli"
     label = "Claude (Claude Code login)"
+    # A personal Claude plan: the guard keeps it to interactive tasks, never a headless job.
+    route_kind = "plan"
+    provider = "anthropic"
 
     def __init__(self, model: str = "sonnet", executable: str | None = None) -> None:
         self.model = model
@@ -141,6 +160,8 @@ class ClaudeCliReasoner:
         text = value.get("result")
         if value.get("is_error") or not isinstance(text, str) or not text.strip():
             detail = str(text or value.get("terminal_reason") or "error")[:300]
+            if says_limit(detail):
+                raise ReasonerUnavailable("plan_limit", "The Claude plan's usage limit is reached.")
             raise ReasonerUnavailable("route_error", detail)
         return ReasonerReply(text, self.reasoner_id, self.model, round(time.monotonic() - started, 3))
 
@@ -150,6 +171,8 @@ class HermesTextReasoner:
 
     reasoner_id = "hermes-text"
     label = "Hermes (OpenAI subscription)"
+    route_kind = "plan"
+    provider = "openai"
 
     def __init__(self, python_executable: str, script: Path, model: str = "gpt-5.6-sol") -> None:
         self.python_executable = python_executable
@@ -208,54 +231,40 @@ CLOUD_FALLBACK_DEFAULT = ("chaseos/deep", "chaseos/fast")
 CLOUD_MOVE_ON_STATUSES = CLOUD_RETRY_STATUSES | {0, 409, 429, 500}
 
 
-class ChaseOSCloudReasoner:
-    """ChaseOS Cloud: the route meant for unattended work, metered in credits on the owner's own key.
+class OpenAICompatibleReasoner:
+    """One chat-completions call to an OpenAI-compatible endpoint, in JSON mode, on a key held only in memory.
 
     The key is taken out of the environment when the service starts, so tools and other
-    harnesses this service launches never inherit it. A 402 means out of credits: the turn
-    stops and says so, never switching to another provider.
-    """
+    harnesses this service launches never inherit it."""
 
-    reasoner_id = "chaseos-cloud"
-    label = "ChaseOS Cloud"
+    reasoner_id = "openai-compatible"
+    label = "OpenAI-compatible endpoint"
+    route_kind = "api_key"
+    provider = "unknown"
     max_context_chars = 120_000
+    completions_path = "/chat/completions"
 
-    def __init__(self, key: str = "", *, model: str = "chaseos/balanced", base_url: str = "", max_tokens: int = 8000,
-                 fallback: tuple[str, ...] = ()) -> None:
+    def __init__(self, key: str = "", *, model: str, base_url: str, max_tokens: int = 8000, fallback: tuple[str, ...] = ()) -> None:
         self._key = key.strip()
         self.model = model
         self.fallback = tuple(m for m in fallback if m and m != model)
-        self.base_url = (base_url or CLOUD_BASE_URL).rstrip("/")
+        self.base_url = base_url.rstrip("/")
         self.max_tokens = max_tokens
 
-    @classmethod
-    def from_environment(cls, environ: dict[str, str] | None = None, **kwargs: Any) -> "ChaseOSCloudReasoner":
-        environ = os.environ if environ is None else environ
-        key = environ.pop(CLOUD_KEY_ENV, "")
-        base_url = kwargs.pop("base_url", "") or environ.get("CHASEOS_CLOUD_BASE_URL", "")
-        # A different model, e.g. a candidate evaluated against an OpenAI-compatible endpoint.
-        model = kwargs.pop("model", "") or environ.get("CHASEOS_CLOUD_MODEL", "") or "chaseos/balanced"
-        raw = environ.get(CLOUD_FALLBACK_ENV)
-        fallback = tuple(m.strip() for m in raw.split(",") if m.strip()) if raw is not None else CLOUD_FALLBACK_DEFAULT
-        return cls(key, base_url=base_url, model=model, fallback=kwargs.pop("fallback", fallback), **kwargs)
-
     def status(self) -> dict[str, Any]:
-        return {
-            "id": self.reasoner_id, "label": self.label, "available": bool(self._key), "model": self.model,
-            "reason": None if self._key else f"No ChaseOS Cloud key on this machine. Start the service with {CLOUD_KEY_ENV} set.",
-        }
+        return {"id": self.reasoner_id, "label": self.label, "available": bool(self._key), "model": self.model,
+                "reason": None if self._key else "No key is set for this route."}
+
+    def _headers(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self._key}", "Content-Type": "application/json", "User-Agent": CLOUD_USER_AGENT}
 
     def _post(self, body: bytes, timeout: float) -> tuple[int, dict[str, Any]]:
         import urllib.error
         import urllib.request
 
-        request = urllib.request.Request(
-            f"{self.base_url}/v1/chat/completions", data=body, method="POST",
-            headers={"Authorization": f"Bearer {self._key}", "Content-Type": "application/json", "User-Agent": CLOUD_USER_AGENT,
-                     "X-ChaseOS-Agent-Harness": CLOUD_HARNESS},
-        )
+        request = urllib.request.Request(f"{self.base_url}{self.completions_path}", data=body, method="POST", headers=self._headers())
         try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - the owner's gateway
+            with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - the owner's chosen endpoint
                 return response.status, json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             try:
@@ -265,6 +274,18 @@ class ChaseOSCloudReasoner:
             return exc.code, value if isinstance(value, dict) else {}
         except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
             return 0, {}
+
+    def _failure(self, status: int, value: dict[str, Any]) -> ReasonerUnavailable:
+        error = value.get("error") if isinstance(value.get("error"), dict) else {}
+        said = error.get("message")
+        if status == 402 or (status == 429 and error.get("code") == "insufficient_quota"):
+            return ReasonerUnavailable("out_of_credits", f"{self.label} has no credit left with {self.provider}.")
+        if status == 429:
+            return ReasonerUnavailable("rate_limited", f"{self.label} is rate limited by {self.provider}.")
+        if status in {401, 403}:
+            return ReasonerUnavailable("not_authorised", f"{self.provider} refused the key (HTTP {status}).")
+        return ReasonerUnavailable("route_error", f"{self.label} did not answer (HTTP {status or 'no connection'})."
+                                   + (f" {str(said)[:200]}" if said else ""))
 
     def complete(self, system: str, transcript: str, *, timeout: float, cancel: Event) -> ReasonerReply:
         if not self._key:
@@ -303,23 +324,247 @@ class ChaseOSCloudReasoner:
             if time.monotonic() - started > timeout + 5:
                 raise ReasonerUnavailable("timeout", f"no reply within {int(timeout)} seconds")
         status, value = result["reply"]
-        if status == 402:
-            raise ReasonerUnavailable("out_of_credits", "ChaseOS Cloud is out of credits. Top up to keep using it.")
-        if status in {401, 403}:
-            raise ReasonerUnavailable("not_authorised", f"ChaseOS Cloud refused this machine's key (HTTP {status}).")
         if status != 200:
-            said = value.get("error", {}).get("message") if isinstance(value.get("error"), dict) else None
-            raise ReasonerUnavailable("route_error", f"ChaseOS Cloud did not answer (HTTP {status or 'no connection'})."
-                                      + (f" {str(said)[:200]}" if said else ""))
+            raise self._failure(status, value)
         try:
             choice = value["choices"][0]["message"]
             text = choice.get("content") or ""
         except (KeyError, IndexError, TypeError, AttributeError):
             text = ""
         if not isinstance(text, str) or not text.strip():
-            raise ReasonerUnavailable("bad_output", "ChaseOS Cloud returned no text")
+            raise ReasonerUnavailable("bad_output", f"{self.label} returned no text")
         credits, usage = cloud_usage(value)
         return ReasonerReply(text, self.reasoner_id, str(value.get("model") or self.model), round(time.monotonic() - started, 3), credits, usage)
+
+
+class ChaseOSCloudReasoner(OpenAICompatibleReasoner):
+    """ChaseOS Cloud: the route that never stops, metered in credits on the owner's own key.
+
+    It takes a job when a plan's allowance runs out or the guard refuses a plan for it.
+    A 402 means out of credits: Cloud is the last rung, so the turn stops and says so.
+    """
+
+    reasoner_id = "chaseos-cloud"
+    label = "ChaseOS Cloud"
+    route_kind = "cloud"
+    provider = "chaseos"
+    completions_path = "/v1/chat/completions"
+
+    def __init__(self, key: str = "", *, model: str = "chaseos/balanced", base_url: str = "", max_tokens: int = 8000,
+                 fallback: tuple[str, ...] = ()) -> None:
+        super().__init__(key, model=model, base_url=base_url or CLOUD_BASE_URL, max_tokens=max_tokens, fallback=fallback)
+
+    @classmethod
+    def from_environment(cls, environ: dict[str, str] | None = None, **kwargs: Any) -> "ChaseOSCloudReasoner":
+        environ = os.environ if environ is None else environ
+        key = environ.pop(CLOUD_KEY_ENV, "")
+        base_url = kwargs.pop("base_url", "") or environ.get("CHASEOS_CLOUD_BASE_URL", "")
+        # A different model, e.g. a candidate evaluated against an OpenAI-compatible endpoint.
+        model = kwargs.pop("model", "") or environ.get("CHASEOS_CLOUD_MODEL", "") or "chaseos/balanced"
+        raw = environ.get(CLOUD_FALLBACK_ENV)
+        fallback = tuple(m.strip() for m in raw.split(",") if m.strip()) if raw is not None else CLOUD_FALLBACK_DEFAULT
+        return cls(key, base_url=base_url, model=model, fallback=kwargs.pop("fallback", fallback), **kwargs)
+
+    def status(self) -> dict[str, Any]:
+        return {
+            "id": self.reasoner_id, "label": self.label, "available": bool(self._key), "model": self.model,
+            "reason": None if self._key else f"No ChaseOS Cloud key on this machine. Start the service with {CLOUD_KEY_ENV} set.",
+        }
+
+    def _headers(self) -> dict[str, str]:
+        return {**super()._headers(), "X-ChaseOS-Agent-Harness": CLOUD_HARNESS}
+
+    def _failure(self, status: int, value: dict[str, Any]) -> ReasonerUnavailable:
+        if status == 402:
+            return ReasonerUnavailable("out_of_credits", "ChaseOS Cloud is out of credits. Top up to keep using it.")
+        if status in {401, 403}:
+            return ReasonerUnavailable("not_authorised", f"ChaseOS Cloud refused this machine's key (HTTP {status}).")
+        said = value.get("error", {}).get("message") if isinstance(value.get("error"), dict) else None
+        return ReasonerUnavailable("route_error", f"ChaseOS Cloud did not answer (HTTP {status or 'no connection'})."
+                                   + (f" {str(said)[:200]}" if said else ""))
+
+
+API_KEY_ENV = "CHASER_API_KEY"
+API_BASE_URL_ENV = "CHASER_API_BASE_URL"
+API_MODEL_ENV = "CHASER_API_MODEL"
+API_PROVIDER_ENV = "CHASER_API_PROVIDER"
+API_DEFAULT_BASE_URL = "https://api.openai.com/v1"
+_PROVIDER_HOSTS = {"api.openai.com": "openai", "api.anthropic.com": "anthropic", "openrouter.ai": "openrouter",
+                   "api.groq.com": "groq", "api.mistral.ai": "mistral", "api.deepseek.com": "deepseek",
+                   "generativelanguage.googleapis.com": "google", "api.x.ai": "xai", "api.together.xyz": "together"}
+
+
+def provider_for(base_url: str) -> str:
+    from urllib.parse import urlsplit
+
+    host = (urlsplit(base_url).hostname or "").lower()
+    return _PROVIDER_HOSTS.get(host) or host or "unknown"
+
+
+class ApiKeyReasoner(OpenAICompatibleReasoner):
+    """The person's own API key for any provider with an OpenAI-compatible endpoint. Billed by that provider, allowed for any job."""
+
+    reasoner_id = "own-api-key"
+    label = "Your own API key"
+    route_kind = "api_key"
+
+    def __init__(self, key: str = "", *, model: str = "", base_url: str = "", provider: str = "", max_tokens: int = 8000) -> None:
+        super().__init__(key, model=model, base_url=base_url or API_DEFAULT_BASE_URL, max_tokens=max_tokens)
+        self.provider = provider or provider_for(self.base_url)
+
+    @classmethod
+    def from_environment(cls, environ: dict[str, str] | None = None, **kwargs: Any) -> "ApiKeyReasoner":
+        environ = os.environ if environ is None else environ
+        key = environ.pop(API_KEY_ENV, "")
+        return cls(key, model=kwargs.pop("model", "") or environ.get(API_MODEL_ENV, ""),
+                   base_url=kwargs.pop("base_url", "") or environ.get(API_BASE_URL_ENV, ""),
+                   provider=kwargs.pop("provider", "") or environ.get(API_PROVIDER_ENV, ""), **kwargs)
+
+    def status(self) -> dict[str, Any]:
+        reason = None
+        if not self._key:
+            reason = f"No API key of your own is set. Start the service with {API_KEY_ENV} (and {API_MODEL_ENV}, {API_BASE_URL_ENV})."
+        elif not self.model:
+            reason = f"Name the model for your API key with {API_MODEL_ENV}."
+        return {"id": self.reasoner_id, "label": self.label, "available": reason is None, "provider": self.provider,
+                "model": self.model or None, "reason": reason}
+
+    def complete(self, system: str, transcript: str, *, timeout: float, cancel: Event) -> ReasonerReply:
+        if not self.model:
+            raise ReasonerUnavailable("not_configured", self.status()["reason"])
+        return super().complete(system, transcript, timeout=timeout, cancel=cancel)
+
+
+CODEX_EXECUTABLE_ENV = "CHASER_CODEX_EXECUTABLE"
+CODEX_MODEL_ENV = "CHASER_CODEX_MODEL"
+# Keys that would turn Codex onto an API key or another endpoint. The plan route runs on the ChatGPT sign-in only.
+_CODEX_HIDDEN = frozenset({"OPENAI_API_KEY", "CODEX_API_KEY", "OPENAI_BASE_URL", "AZURE_OPENAI_API_KEY", API_KEY_ENV, CLOUD_KEY_ENV})
+_CODEX_FLAGS = [
+    "exec", "--ignore-user-config", "--ignore-rules", "--ephemeral", "--skip-git-repo-check", "--sandbox", "read-only",
+    "-c", 'model_provider="openai"', "-c", 'approval_policy="never"', "-c", 'web_search="disabled"',
+    "-c", 'forced_login_method="chatgpt"',
+    "-c", "features.shell_tool=false", "-c", "features.unified_exec=false", "-c", "features.apply_patch_freeform=false",
+    "-c", "features.apps=false", "-c", "features.plugins=false", "-c", "features.multi_agent=false",
+    "-c", "features.js_repl=false", "-c", "features.code_mode=false", "-c", "features.computer_use=false",
+    "-c", "features.browser_use=false", "-c", "features.in_app_browser=false", "-c", "features.hooks=false",
+    "-c", "features.skip_host_skill_discovery=true", "-c", "features.image_generation=false",
+]
+_CODEX_PACKAGES = r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\Repository\Packages"
+
+
+def _installed_codex() -> str | None:
+    """codex.exe inside the newest installed Codex desktop app (a Microsoft Store package), from the per-user registry.
+
+    The package folder is named after the app's version, so every update moves it and a written-down path goes stale."""
+    try:
+        import winreg
+    except ImportError:
+        return None
+    found: list[tuple[tuple[int, ...], str]] = []
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _CODEX_PACKAGES) as packages:
+            index = 0
+            while True:
+                try:
+                    name = winreg.EnumKey(packages, index)
+                except OSError:
+                    break
+                index += 1
+                if not name.startswith("OpenAI.Codex_"):
+                    continue
+                try:
+                    with winreg.OpenKey(packages, name) as package:
+                        root = winreg.QueryValueEx(package, "PackageRootFolder")[0]
+                    version = tuple(int(part) for part in name[len("OpenAI.Codex_"):].split("_")[0].split("."))
+                except (OSError, ValueError):
+                    continue
+                exe = Path(root) / "app" / "resources" / "codex.exe"
+                if exe.is_file():
+                    found.append((version, str(exe)))
+    except OSError:
+        return None
+    return max(found)[1] if found else None
+
+
+def find_codex() -> str | None:
+    """The Codex CLI to run: a named one first, then one on PATH, then the installed desktop app's own copy."""
+    return os.environ.get(CODEX_EXECUTABLE_ENV) or shutil.which("codex") or _installed_codex()
+
+
+class CodexPlanReasoner:
+    """The person's own ChatGPT plan, through their own Codex CLI on this computer, with every native tool off.
+
+    Codex keeps its own sign-in. This route never reads, copies or sends it: it runs `codex exec`
+    as the person would, with API keys taken out of its environment so it can only use the plan.
+    When the plan's limit is reached it says so, and the ladder moves the job on to a key or Cloud.
+    """
+
+    reasoner_id = "codex-plan"
+    label = "ChatGPT plan (Codex sign-in)"
+    route_kind = "plan"
+    provider = "openai"
+    max_context_chars = 110_000
+
+    def __init__(self, model: str = "", command: list[str] | None = None) -> None:
+        self.model = model or None
+        if command is None:
+            executable = find_codex()
+            command = [executable] if executable else []
+        self.command = list(command)
+        self._status: dict[str, Any] | None = None
+        self._status_at = 0.0
+
+    @classmethod
+    def from_environment(cls, environ: dict[str, str] | None = None) -> "CodexPlanReasoner":
+        environ = os.environ if environ is None else environ
+        return cls(model=environ.get(CODEX_MODEL_ENV, ""))
+
+    @staticmethod
+    def _environment() -> dict[str, str]:
+        return {key: value for key, value in os.environ.items()
+                if key.upper() not in _CODEX_HIDDEN and key not in _HARNESS_NAMES and not key.startswith(_HARNESS_PREFIXES)}
+
+    def status(self) -> dict[str, Any]:
+        if self._status is not None and time.monotonic() - self._status_at < 60:
+            return self._status
+        state: dict[str, Any] = {"id": self.reasoner_id, "label": self.label, "model": self.model}
+        if not self.command:
+            state.update(available=False, reason="Codex is not installed. Install it, then run: codex login")
+        else:
+            try:
+                done = subprocess.run([*self.command, "login", "status"], capture_output=True, encoding="utf-8", errors="replace",
+                                      timeout=45, env=self._environment(), creationflags=NO_WINDOW)
+                said = (done.stdout + done.stderr).lower()
+                if done.returncode == 0 and "chatgpt" in said:
+                    state.update(available=True, reason=None)
+                elif done.returncode == 0 and "api key" in said:
+                    state.update(available=False, reason="Codex is signed in with an API key, not a ChatGPT plan.")
+                else:
+                    state.update(available=False, reason="Codex is not signed in with ChatGPT. Run: codex login")
+            except (OSError, subprocess.SubprocessError):
+                state.update(available=False, reason="Codex could not be asked whether it is signed in.")
+        self._status, self._status_at = state, time.monotonic()
+        return state
+
+    def complete(self, system: str, transcript: str, *, timeout: float, cancel: Event) -> ReasonerReply:
+        if not self.command:
+            raise ReasonerUnavailable("not_installed", "Codex is not installed")
+        started = time.monotonic()
+        with tempfile.TemporaryDirectory(prefix="chaser-codex-") as folder:
+            output = Path(folder) / "answer.txt"
+            model = ["--model", self.model] if self.model else []
+            code, stdout, stderr = _run_capturing(
+                [*self.command, *_CODEX_FLAGS, *model, "--output-last-message", str(output), "-"],
+                stdin=system + "\n\nReturn only the requested reply. Use no native tools.\n\n" + transcript,
+                timeout=timeout, cancel=cancel, env=self._environment(), cwd=folder,
+            )
+            text = output.read_text(encoding="utf-8").strip() if output.is_file() else ""
+        if code or not text:
+            # Codex's own words are only classified here; they're never stored, so nothing it prints reaches a receipt.
+            if says_limit(stdout + "\n" + stderr):
+                raise ReasonerUnavailable("plan_limit", "The ChatGPT plan's usage limit is reached.")
+            raise ReasonerUnavailable("route_error", f"Codex could not answer (exit {code}). Check its ChatGPT sign-in and model access.")
+        return ReasonerReply(text, self.reasoner_id, self.model or "codex-default", round(time.monotonic() - started, 3))
 
 
 def _count(value: Any) -> int | None:
@@ -353,6 +598,8 @@ class BridgeReasoner:
 
     reasoner_id = "bridge"
     label = "Another harness over the local API"
+    route_kind = "bridge"
+    provider = "external"
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -414,6 +661,8 @@ class ScriptedReasoner:
 
     reasoner_id = "scripted"
     label = "Scripted test replies"
+    route_kind = "test"
+    provider = "scripted"
 
     def __init__(self, replies: list[str]) -> None:
         self.replies = list(replies)
