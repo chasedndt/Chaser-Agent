@@ -22,12 +22,16 @@ class WorkflowSpec:
     objective_requires: tuple[Any, ...] = ()
     # Optional claim verifier (objective.verify_claims): checks a passing final answer against the sources read.
     objective_verifier: Any = None
+    # Who this workflow's work is for: "client" or "sale" keeps a personal plan off it (agent/routes.py). None leaves it to the caller.
+    work_for: str | None = None
 
     def __post_init__(self) -> None:
         if not self.workflow_id.strip() or not self.instructions.strip():
             raise ValueError("a workflow needs an id and instructions")
         if self.max_steps <= 0 or self.max_seconds <= 0:
             raise ValueError("workflow budgets must be positive")
+        if self.work_for not in (None, "owner", "client", "sale"):
+            raise ValueError("work_for must be owner, client or sale")
 
     def matches(self, message: str) -> bool:
         lowered = message.lower()
